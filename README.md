@@ -16,7 +16,7 @@ The debugger contributes the following settings:
 
 To run the extension in developer mode, perform the following steps:
 
-- Create a directory `/tmp/warduino`
+- Run `yarn install`
 - Compile the WARDuino CLI (Emulator version) in this directory
 - Build [the custom WABT toolkit](https://github.com/TOPLLab/wabt) and add `wat2wasm` to `$PATH`
 
