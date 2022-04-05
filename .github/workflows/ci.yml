@@ -7,11 +7,6 @@ concurrency:
 
 env:
     WABT_CACHE: "build-wabt"
-    WORKING_DIRECTORY: "vs-debugger"
-
-defaults:
-    run:
-        working-directory: vs-debugger
 
 jobs:
     formatting-check:
@@ -51,7 +46,7 @@ jobs:
                 cmake --build .
             
             - name: Update $PATH
-              run: echo "${GITHUB_WORKSPACE}/${{env.WORKING_DIRECTORY}}/wabt/build" >> $GITHUB_PATH
+              run: echo "${GITHUB_WORKSPACE}/wabt/build" >> $GITHUB_PATH
             
             - name: Echo $PATH
               run: echo $PATH
@@ -61,7 +56,7 @@ jobs:
               uses: actions/cache@v2
               with:
                 path: |
-                    ${{ env.WORKING_DIRECTORY }}/wabt/build
+                    ./wabt/build
                 key: ${{ env.WABT_CACHE }}
 
     test:
@@ -86,11 +81,11 @@ jobs:
               uses: actions/cache@v2
               with:
                 path: |
-                    ${{ env.WORKING_DIRECTORY }}/wabt/build
+                    ./wabt/build
                 key: ${{ env.WABT_CACHE }}
 
             - name: Update $PATH
-              run: echo "${GITHUB_WORKSPACE}/${{env.WORKING_DIRECTORY}}/wabt/build" >> $GITHUB_PATH
+              run: echo "${GITHUB_WORKSPACE}/wabt/build" >> $GITHUB_PATH
 
             - name: Check wat2wasm
               run: wat2wasm --version
