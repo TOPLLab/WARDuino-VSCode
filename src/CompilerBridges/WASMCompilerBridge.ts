@@ -178,7 +178,7 @@ export class WASMCompilerBridge implements CompileBridge {
     }
 
     private compileCHeaderFileCommand(): string {
-        return `xxd -i ${this.tmpdir}/upload.wasm > ${this.tmpdir}/upload.c`;
+        return `cd ${this.tmpdir} ; xxd -i upload.wasm > upload.c`;
     }
 
 }
