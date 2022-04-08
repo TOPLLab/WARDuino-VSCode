@@ -22,6 +22,7 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
     // private locals: VariableInfo[] = [];
     private callstack: Frame[] = [];
     private startAddress: number = 0;
+    private buffer: string = "";
 
     constructor(wasmPath: string, sourceMap: SourceMap | void, tmpdir: string, listener: DebugBridgeListener,
                 warduinoSDK: string) {
@@ -123,8 +124,23 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
             );
 
             this.client.on('data', data => {
-                    // console.log(`data: ${data}`);
-                    that.parser.parse(that, data.toString());
+                    data.toString().split("\n").forEach((line) => {
+                        if (this.buffer.length > 0) {
+                            this.buffer += line;
+                        } else if (line.startsWith("{")) {
+                            this.buffer = line;
+                        } else {
+                            that.parser.parse(that, line);
+                            return;
+                        }
+
+                        try {
+                            that.parser.parse(that, this.buffer);
+                            this.buffer = "";
+                        } catch (e) {
+                            return;
+                        }
+                    });
                 }
             );
         }
