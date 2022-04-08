@@ -13,17 +13,20 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
     private client?: net.Socket;
     private wasmPath: string;
     private sourceMap: SourceMap | void;
-    private tmpdir: string;
+    private readonly sdk: string;
+    private readonly tmpdir: string;
     private cp?: ChildProcess;
     private listener: DebugBridgeListener;
     private parser: DebugInfoParser;
     private pc: number = 0;
-    private locals: VariableInfo[] = [];
+    // private locals: VariableInfo[] = [];
     private callstack: Frame[] = [];
     private startAddress: number = 0;
 
-    constructor(wasmPath: string, sourceMap: SourceMap | void, tmpdir: string, listener: DebugBridgeListener) {
+    constructor(wasmPath: string, sourceMap: SourceMap | void, tmpdir: string, listener: DebugBridgeListener,
+                warduinoSDK: string) {
         this.wasmPath = wasmPath;
+        this.sdk = warduinoSDK;
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
         this.listener = listener;
@@ -111,7 +114,7 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
         if (this.client === undefined) {
             this.client = new net.Socket();
             this.client.connect({port: 8192, host: '127.0.0.1'});  // TODO config
-            this.listener.notifyProgress('Connected socket');
+            this.listener.notifyProgress('Connected to socket');
 
             this.client.on('error', err => {
                     this.listener.notifyError('Lost connection to the board');
@@ -179,7 +182,7 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
 
     private spawnEmulatorProcess(): ChildProcess {
         // TODO no absolute path. package extension with upload.wasm and compile warduino during installation.
-        return spawn('/home/tolauwae/Arduino/libraries/WARDuino/build-emu/wdcli', ['--file', `${this.tmpdir}/upload.wasm`]);
+        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`]);
     }
 
 }

@@ -13,19 +13,19 @@ export class DebugBridgeFactory {
         let fileType = getFileExtension(file);
         switch (fileType) {
             case "wast" :
+                const warduinoSDK: string | undefined = vscode.workspace.getConfiguration().get("warduino.WarduinoToolChainPath");
+                if (warduinoSDK === undefined) {
+                    throw new Error('WARDuino Tool Chain not set');
+                }
+
                 switch (target) {
                     case RunTimeTarget.emulator:
-                        return new WARDuinoDebugBridgeEmulator(file, sourceMap, tmpdir, listener);
+                        return new WARDuinoDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
                     case RunTimeTarget.embedded:
                         let portAddress: string | undefined = vscode.workspace.getConfiguration().get("warduino.Port");
-                        let warduinoSDK: string | undefined = vscode.workspace.getConfiguration().get("warduino.WarduinoToolChainPath");
 
                         if (portAddress === undefined) {
                             throw new Error('Configuration error. No port address set.');
-                        }
-
-                        if (warduinoSDK === undefined) {
-                            throw new Error('WARDuino Tool Chain not set');
                         }
                         return new WARDuinoDebugBridge(file, sourceMap, tmpdir, listener, portAddress, warduinoSDK);
                 }

@@ -29,9 +29,9 @@ export class WARDuinoDebugBridge implements DebugBridge {
     private pc: number = 0;
     // private locals: VariableInfo[] = [];
     private callstack: Frame[] = [];
-    private portAddress: string;
-    private sdk: string;
-    private tmpdir: string | undefined;
+    private readonly portAddress: string;
+    private readonly sdk: string;
+    private readonly tmpdir: string | undefined;
     private startAddress: number = 0;
 
     constructor(wasmPath: string,
