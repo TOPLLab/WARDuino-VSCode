@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
     const commandHandler = () => {
       factory.warduino?.upload();
     };
-  
+
     context.subscriptions.push(vscode.commands.registerCommand(command, commandHandler));
 }
 

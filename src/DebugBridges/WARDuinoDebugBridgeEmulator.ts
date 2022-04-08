@@ -123,7 +123,7 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
             );
 
             this.client.on('data', data => {
-                    console.log(`data: ${data}`);
+                    // console.log(`data: ${data}`);
                     that.parser.parse(that, data.toString());
                 }
             );
@@ -141,6 +141,10 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
 
     public refresh() {
         this.sendInterrupt(InterruptTypes.interruptDUMPFull);
+    }
+
+    public pullSession() {
+        throw new Error("Running with emulator: nothing to pull");
     }
 
     private executeCommand(command: InterruptTypes) {

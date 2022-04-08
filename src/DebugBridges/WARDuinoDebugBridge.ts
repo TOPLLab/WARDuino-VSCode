@@ -237,6 +237,24 @@ export class WARDuinoDebugBridge implements DebugBridge {
         });
     }
 
+    pullSession(): void {
+        this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
+            console.log("Plugin: WOOD Dump");
+            if (err) {
+                return console.log("Error on write: ", err.message);
+            }
+        });
+    }
+
+    pushSession(): void {
+        this.sendInterrupt(InterruptTypes.interruptWOODRecvState, function (err: any) {
+            console.log("Plugin: WOOD Dump");
+            if (err) {
+                return console.log("Error on write: ", err.message);
+            }
+        });
+    }
+
     refresh(): void {
         console.log("Plugin: Refreshing");
         this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {

@@ -15,6 +15,7 @@ export interface DebugBridge {
     step(): void;
     run(): void;
     pause(): void;
+    pullSession(): void;
     setBreakPoint(x:number): void;
     refresh(): void;
     disconnect(): void;

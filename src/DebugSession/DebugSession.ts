@@ -124,7 +124,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         let that = this;
         this.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap,
-            RunTimeTarget.emulator,
+            RunTimeTarget.embedded,
             this.tmpdir,
             {   // VS Code Interface
                 notifyError(): void {

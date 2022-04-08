@@ -9,5 +9,7 @@ export enum InterruptTypes {
     interruptDUMPLocals = '11',
     interruptDUMPFull = '12',
     interruptUPDATEFun = '20',
-    interruptUPDATELocal = '21'
+    interruptWOODDump = '60',
+    interruptOffset = '61',
+    interruptWOODRecvState = '62' // WOOD Change state
 }
