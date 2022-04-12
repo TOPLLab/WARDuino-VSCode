@@ -7,20 +7,17 @@ export function activate(context: vscode.ExtensionContext) {
     let errorReporter = installDiagnosticReporting(context);
     let factory = new InlineDebugAdapterFactory(status, errorReporter);
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('WARDuinoDBG', factory));
-
-    const command = 'warduinodebug.upload';
-
-    const commandHandler = () => {
-      factory.warduino?.upload();
-    };
-
-    context.subscriptions.push(vscode.commands.registerCommand(command, commandHandler));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.upload', () => {
+        factory.warduino?.upload();
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.multiverse', () => {
+        factory.warduino?.startMultiverseDebugging();
+    }));
 }
 
 function installDiagnosticReporting(context: vscode.ExtensionContext) {
     return new ErrorReporter(context);
 }
-
 
 function installStatusMenuBar(context: vscode.ExtensionContext): vscode.StatusBarItem {
     let warduinoStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 200);

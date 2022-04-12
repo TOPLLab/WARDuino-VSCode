@@ -34,6 +34,10 @@
       {
         "command": "warduinodebug.upload",
         "title": "upload file"
+      },
+      {
+        "command": "warduinodebug.multiverse",
+        "title": "multiverse debugging"
       }
     ],
     "configuration": {

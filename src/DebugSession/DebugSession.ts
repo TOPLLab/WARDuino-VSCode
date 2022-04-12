@@ -177,6 +177,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.debugBridge?.upload();
     }
 
+    public startMultiverseDebugging() {
+        this.debugBridge?.pullSession();
+    }
+
     private handleCompileError(handleCompileError: CompileTimeError) {
         let range = new vscode.Range(handleCompileError.lineInfo.line - 1,
             handleCompileError.lineInfo.column,
