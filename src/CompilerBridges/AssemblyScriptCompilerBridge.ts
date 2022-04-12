@@ -1,7 +1,7 @@
 import {CompileBridge} from "./CompileBridge";
 import {exec, ExecException} from "child_process";
-import {LineInfoPairs} from "./LineInfoPairs";
-import {SourceMap} from "./SourceMap";
+import {LineInfoPairs} from "../State/LineInfoPairs";
+import {SourceMap} from "../State/SourceMap";
 
 export class AssemblyScriptCompilerBridge implements CompileBridge {
     sourceFilePath: String;

@@ -5,7 +5,7 @@ import {WARDuinoDebugBridgeEmulator} from "./WARDuinoDebugBridgeEmulator";
 import {getFileExtension} from '../Parsers/ParseUtils';
 import {WARDuinoDebugBridge} from "./WARDuinoDebugBridge";
 import * as vscode from "vscode";
-import {SourceMap} from "../CompilerBridges/SourceMap";
+import {SourceMap} from "../State/SourceMap";
 
 
 export class DebugBridgeFactory {

@@ -4,7 +4,7 @@ import {ReadlineParser, SerialPort} from 'serialport';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
 import {InterruptTypes} from "./InterruptTypes";
 import {exec} from "child_process";
-import {SourceMap} from "../CompilerBridges/SourceMap";
+import {SourceMap} from "../State/SourceMap";
 
 export class WARDuinoDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
@@ -136,11 +136,13 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void): void {
+        console.log(path);
         const compile = exec("make compile", {
             cwd: path
         });
 
         compile.on("error", (err => {
+            console.log(err);
             resolver(false);
         }));
 

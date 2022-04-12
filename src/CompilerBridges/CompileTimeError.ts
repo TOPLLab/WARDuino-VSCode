@@ -1,4 +1,4 @@
-import { LineInfo } from "./LineInfo";
+import { LineInfo } from "../State/LineInfo";
 
 
 export class CompileTimeError extends Error {

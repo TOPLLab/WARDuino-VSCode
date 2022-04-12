@@ -1,4 +1,4 @@
-import {VariableInfo} from "../CompilerBridges/VariableInfo";
+import {VariableInfo} from "../State/VariableInfo";
 import {Frame} from "../Parsers/Frame";
 
 export interface DebugBridge {

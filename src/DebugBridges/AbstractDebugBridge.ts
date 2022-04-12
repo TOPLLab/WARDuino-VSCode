@@ -1,7 +1,7 @@
 import {DebugBridge} from "./DebugBridge";
 import {Frame} from "../Parsers/Frame";
-import {VariableInfo} from "../CompilerBridges/VariableInfo";
-import {SourceMap} from "../CompilerBridges/SourceMap";
+import {VariableInfo} from "../State/VariableInfo";
+import {SourceMap} from "../State/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
 
 export class Messages {

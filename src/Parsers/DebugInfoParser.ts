@@ -1,5 +1,5 @@
 import {DebugBridge} from "../DebugBridges/DebugBridge";
-import {VariableInfo} from "../CompilerBridges/VariableInfo";
+import {VariableInfo} from "../State/VariableInfo";
 import {Frame} from "./Frame";
 
 export class DebugInfoParser {

@@ -1,5 +1,5 @@
-import {FunctionInfo} from "../CompilerBridges/FunctionInfo";
-import {VariableInfo} from "../CompilerBridges/VariableInfo";
+import {FunctionInfo} from "../State/FunctionInfo";
+import {VariableInfo} from "../State/VariableInfo";
 
 export function jsonParse(obj: string) {
     return new Function(`return ${obj}`)();

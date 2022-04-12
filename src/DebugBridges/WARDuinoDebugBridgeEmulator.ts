@@ -3,7 +3,7 @@ import * as net from 'net';
 import {DebugBridgeListener} from './DebugBridgeListener';
 import {InterruptTypes} from './InterruptTypes';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {SourceMap} from "../CompilerBridges/SourceMap";
+import {SourceMap} from "../State/SourceMap";
 import {AbstractDebugBridge} from "./AbstractDebugBridge";
 
 export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
