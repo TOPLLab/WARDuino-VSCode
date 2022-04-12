@@ -3,7 +3,7 @@ import {DebugBridgeListener} from "./DebugBridgeListener";
 import {ReadlineParser, SerialPort} from 'serialport';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
 import {InterruptTypes} from "./InterruptTypes";
-import {exec} from "child_process";
+import {exec, spawn} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 
 export class WARDuinoDebugBridge extends AbstractDebugBridge {
@@ -136,17 +136,21 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void): void {
-        console.log(path);
-        const compile = exec("make compile", {
+        const compile = spawn("make", ["compile"], {
             cwd: path
         });
 
-        compile.on("error", (err => {
-            console.log(err);
+        compile.stdout.on("data", (data: string) => {
+            console.log(`stdout: ${data}`);
+        });
+
+        compile.stderr.on("data", (data: string) => {
+            console.error(`stderr: ${data}`);
             resolver(false);
-        }));
+        });
 
         compile.on("close", (code) => {
+            console.log(`child process exited with code ${code}`);
             if (code === 0) {
                 this.listener.notifyProgress(Messages.compiled);
                 this.uploadArduino(path, resolver);
@@ -201,7 +205,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
 
     pushSession(woodState: WOODState): void {
         console.log("Plugin: WOOD RecvState");
-        let command = `0${InterruptTypes.interruptWOODRecvState}${woodState.toBinary()} \n`;
+        let command = `${InterruptTypes.interruptWOODRecvState}${woodState.toBinary()} \n`;
         this.port?.write(command);
     }
 

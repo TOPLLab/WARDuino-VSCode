@@ -83,7 +83,9 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
 
             this.client.on('data', data => {
                     data.toString().split("\n").forEach((line) => {
-                        if (this.buffer.length > 0) {
+                        if (line.startsWith("Interrupt:")) {
+                            this.buffer = line;
+                        } else if (this.buffer.length > 0) {
                             this.buffer += line;
                         } else if (line.startsWith("{")) {
                             this.buffer = line;
@@ -118,7 +120,7 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     }
 
     public pullSession() {
-        throw new Error("Running with emulator: nothing to pull");
+        this.sendInterrupt(InterruptTypes.interruptWOODDump);
     }
 
     public pushSession(woodState: WOODState) {
