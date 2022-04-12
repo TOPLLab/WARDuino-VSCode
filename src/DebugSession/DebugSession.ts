@@ -103,7 +103,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     protected async launchRequest(response: DebugProtocol.LaunchResponse, args: any) {
         console.log(args.program);
-        console.log(process.cwd());
         this.reporter.clear();
         this.program = args.program;
 

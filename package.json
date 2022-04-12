@@ -10,7 +10,8 @@
     "Debuggers"
   ],
   "activationEvents": [
-    "onCommand:warduinodebug.testHelloWorld",
+    "onCommand:warduinodebug.upload",
+    "onCommand:warduinodebug.multiverse",
     "onDebugResolve:WARDuinoDBG",
     "onDebugDynamicConfigurations:WARDuinoDBG"
   ],
