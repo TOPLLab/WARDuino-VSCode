@@ -121,6 +121,10 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         throw new Error("Running with emulator: nothing to pull");
     }
 
+    public pushSession(woodState: WOODState) {
+        throw new Error("Running with emulator: nothing to push");
+    }
+
     private executeCommand(command: InterruptTypes) {
         console.log(command.toString());
         this.client?.write(command.toString + '\n');

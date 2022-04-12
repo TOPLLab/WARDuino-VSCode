@@ -28,6 +28,8 @@ export interface DebugBridge {
 
     pullSession(): void;
 
+    pushSession(woodState: WOODState): void;
+
     setBreakPoint(x: number): void;
 
     refresh(): void;

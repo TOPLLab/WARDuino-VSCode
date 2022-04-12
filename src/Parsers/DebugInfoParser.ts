@@ -22,6 +22,8 @@ export class DebugInfoParser {
             }
         }
 
+        // TODO receive state from WOOD Dump and call bridge.pushSession(state)
+
         if (line.startsWith("{")) {
             let obj = JSON.parse(line);
             this.addressBeginning = parseInt(obj.start);

@@ -36,6 +36,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract pullSession(): void;
 
+    abstract pushSession(woodState: WOODState): void;
+
     abstract refresh(): void;
 
     abstract run(): void;

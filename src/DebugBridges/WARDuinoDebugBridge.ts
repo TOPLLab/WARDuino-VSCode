@@ -197,13 +197,10 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    pushSession(): void {
-        this.sendInterrupt(InterruptTypes.interruptWOODRecvState, function (err: any) {
-            console.log("Plugin: WOOD Dump");
-            if (err) {
-                return console.log("Error on write: ", err.message);
-            }
-        });
+    pushSession(woodState: WOODState): void {
+        console.log("Plugin: WOOD RecvState");
+        let command = `0${InterruptTypes.interruptWOODRecvState}${woodState.toBinary()} \n`;
+        this.port?.write(command);
     }
 
     refresh(): void {
