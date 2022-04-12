@@ -1,34 +1,15 @@
-import {DebugBridge} from "./DebugBridge";
+import {AbstractDebugBridge, Messages} from "./AbstractDebugBridge";
 import {DebugBridgeListener} from "./DebugBridgeListener";
 import {ReadlineParser, SerialPort} from 'serialport';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
 import {InterruptTypes} from "./InterruptTypes";
-import {VariableInfo} from "../CompilerBridges/VariableInfo";
 import {exec} from "child_process";
-import {Frame} from "../Parsers/Frame";
 import {SourceMap} from "../CompilerBridges/SourceMap";
 
-class Messages {
-    public static UPLOADING: string = "Uploading to board";
-    public static CONNECTING: string = "Connecting to board";
-    public static CONNECTED: string = "Connected to board";
-    public static DISCONNECTED: string = "Disconnected board";
-
-    public static COMPILING: string = "Compiling the code";
-    public static COMPILED: string = "Compiled Code";
-    public static RESET: string = "Press reset button";
-}
-
-
-export class WARDuinoDebugBridge implements DebugBridge {
-    private listener: DebugBridgeListener;
+export class WARDuinoDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
     private wasmPath: string;
-    private sourceMap: SourceMap | void;
     private port: SerialPort | undefined;
-    private pc: number = 0;
-    // private locals: VariableInfo[] = [];
-    private callstack: Frame[] = [];
     private readonly portAddress: string;
     private readonly sdk: string;
     private readonly tmpdir: string | undefined;
@@ -40,6 +21,8 @@ export class WARDuinoDebugBridge implements DebugBridge {
                 listener: DebugBridgeListener,
                 portAddress: string,
                 warduinoSDK: string) {
+        super(sourceMap, listener);
+
         this.wasmPath = wasmPath;
         this.sourceMap = sourceMap;
         this.listener = listener;
@@ -165,6 +148,9 @@ export class WARDuinoDebugBridge implements DebugBridge {
             if (code === 0) {
                 this.listener.notifyProgress(Messages.COMPILED);
                 this.uploadArduino(path, resolver);
+            } else {
+                resolver(false);
+                this.listener.notifyProgress(Messages.ERROR);
             }
         });
     }
@@ -182,43 +168,8 @@ export class WARDuinoDebugBridge implements DebugBridge {
         });
     }
 
-    getProgramCounter(): number {
-        return this.pc;
-    }
-
-    setProgramCounter(pc: number) {
-        this.pc = pc;
-    }
-
     private sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
         return this.port?.write(`${i} \n`, callback);
-    }
-
-    getLocals(fidx: number): VariableInfo[] {
-        if (this.sourceMap === undefined || fidx >= this.sourceMap.functionInfos.length || fidx < 0) {
-            return [];
-        }
-        return this.sourceMap.functionInfos[fidx].locals;
-    }
-
-    setLocals(fidx: number, locals: VariableInfo[]) {
-        if (this.sourceMap === undefined) {
-            return;
-        }
-        if (fidx >= this.sourceMap.functionInfos.length) {
-            console.log(`warning setting locals for new function with index: ${fidx}`);
-            this.sourceMap.functionInfos[fidx] = {index: fidx, name: "<anonymous>", locals: []};
-        }
-        this.sourceMap.functionInfos[fidx].locals = locals;
-    }
-
-    getCallstack(): Frame[] {
-        return this.callstack;
-    }
-
-    setCallstack(callstack: Frame[]): void {
-        this.callstack = callstack;
-        this.listener.notifyStateUpdate();
     }
 
     getCurrentFunctionIndex(): number {

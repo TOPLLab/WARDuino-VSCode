@@ -1,36 +1,29 @@
 import {ChildProcess, spawn} from 'child_process';
 import * as net from 'net';
-import {DebugBridge} from './DebugBridge';
 import {DebugBridgeListener} from './DebugBridgeListener';
 import {InterruptTypes} from './InterruptTypes';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {VariableInfo} from "../CompilerBridges/VariableInfo";
-import {Frame} from "../Parsers/Frame";
 import {SourceMap} from "../CompilerBridges/SourceMap";
+import {AbstractDebugBridge} from "./AbstractDebugBridge";
 
-export class WARDuinoDebugBridgeEmulator implements DebugBridge {
-
+export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     private client?: net.Socket;
     private wasmPath: string;
-    private sourceMap: SourceMap | void;
     private readonly sdk: string;
     private readonly tmpdir: string;
     private cp?: ChildProcess;
-    private listener: DebugBridgeListener;
     private parser: DebugInfoParser;
-    private pc: number = 0;
-    // private locals: VariableInfo[] = [];
-    private callstack: Frame[] = [];
     private startAddress: number = 0;
     private buffer: string = "";
 
     constructor(wasmPath: string, sourceMap: SourceMap | void, tmpdir: string, listener: DebugBridgeListener,
                 warduinoSDK: string) {
+        super(sourceMap, listener);
+
         this.wasmPath = wasmPath;
         this.sdk = warduinoSDK;
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
-        this.listener = listener;
         this.parser = new DebugInfoParser();
         this.connect();
     }
@@ -66,41 +59,6 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
             this.startEmulator();
             resolve("127.0.0.1:8192");
         });
-    }
-
-    public getProgramCounter(): number {
-        return this.pc;
-    }
-
-    setProgramCounter(pc: number) {
-        this.pc = pc;
-    }
-
-    getLocals(fidx: number): VariableInfo[] {
-        if (this.sourceMap === undefined || fidx >= this.sourceMap.functionInfos.length || fidx < 0) {
-            return [];
-        }
-        return this.sourceMap.functionInfos[fidx].locals;
-    }
-
-    setLocals(fidx: number, locals: VariableInfo[]) {
-        if (this.sourceMap === undefined) {
-            return;
-        }
-        if (fidx >= this.sourceMap.functionInfos.length) {
-            console.log(`warning setting locals for new function with index: ${fidx}`);
-            this.sourceMap.functionInfos[fidx] = {index: fidx, name: "<anonymous>", locals: []};
-        }
-        this.sourceMap.functionInfos[fidx].locals = locals;
-    }
-
-    getCallstack(): Frame[] {
-        return this.callstack;
-    }
-
-    setCallstack(callstack: Frame[]): void {
-        this.callstack = callstack;
-        this.listener.notifyStateUpdate();
     }
 
     getCurrentFunctionIndex(): number {
@@ -201,7 +159,7 @@ export class WARDuinoDebugBridgeEmulator implements DebugBridge {
     }
 
     private spawnEmulatorProcess(): ChildProcess {
-        // TODO no absolute path. package extension with upload.wasm and compile warduino during installation.
+        // TODO package extension with upload.wasm and compile WARDuino during installation.
         return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`]);
     }
 
