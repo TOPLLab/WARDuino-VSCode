@@ -68,9 +68,9 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
 
     async connect(): Promise<string> {
         return new Promise(async (resolve, reject) => {
-            this.listener.notifyProgress(Messages.COMPILING);
+            this.listener.notifyProgress(Messages.compiling);
             await this.compileAndUpload();
-            this.listener.notifyProgress(Messages.CONNECTING);
+            this.listener.notifyProgress(Messages.connecting);
             this.openSerialPort(reject, resolve);
             this.installInputStreamListener();
         });
@@ -87,7 +87,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
                 if (error) {
                     reject(`Could not connect to serial port: ${this.portAddress}`);
                 } else {
-                    this.listener.notifyProgress(Messages.CONNECTED);
+                    this.listener.notifyProgress(Messages.connected);
                     resolve(this.portAddress);
                 }
             }
@@ -111,11 +111,11 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
 
     public disconnect(): void {
         this.port?.close();
-        this.listener.notifyProgress(Messages.DISCONNECTED);
+        this.listener.notifyProgress(Messages.disconnected);
     }
 
     private uploadArduino(path: string, resolver: (value: boolean) => void): void {
-        this.listener.notifyProgress(Messages.RESET);
+        this.listener.notifyProgress(Messages.reset);
 
         const upload = exec(`sh upload ${this.portAddress}`, {cwd: path}, (err, stdout, stderr) => {
                 console.log(err);
@@ -126,7 +126,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         upload.on("data", (data: string) => {
             console.log(`stdout: ${data}`);
             if (data.search('Uploading')) {
-                this.listener.notifyProgress(Messages.UPLOADING);
+                this.listener.notifyProgress(Messages.uploading);
             }
         });
 
@@ -146,11 +146,11 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
 
         compile.on("close", (code) => {
             if (code === 0) {
-                this.listener.notifyProgress(Messages.COMPILED);
+                this.listener.notifyProgress(Messages.compiled);
                 this.uploadArduino(path, resolver);
             } else {
                 resolver(false);
-                this.listener.notifyProgress(Messages.ERROR);
+                this.listener.notifyProgress(Messages.error);
             }
         });
     }

@@ -5,16 +5,14 @@ import {SourceMap} from "../CompilerBridges/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
 
 export class Messages {
-    public static UPLOADING: string = "Uploading to board";
-    public static CONNECTING: string = "Connecting to board";
-    public static CONNECTED: string = "Connected to board";
-    public static DISCONNECTED: string = "Disconnected board";
-
-    public static COMPILING: string = "Compiling the code";
-    public static COMPILED: string = "Compiled Code";
-    public static RESET: string = "Press reset button";
-
-    public static ERROR: string = "Failed to initialise";
+    public static readonly compiling: string = "Compiling the code";
+    public static readonly compiled: string = "Compiled Code";
+    public static readonly reset: string = "Press reset button";
+    public static readonly uploading: string = "Uploading to board";
+    public static readonly connecting: string = "Connecting to board";
+    public static readonly connected: string = "Connected to board";
+    public static readonly disconnected: string = "Disconnected board";
+    public static readonly error: string = "Failed to initialise";
 }
 
 export abstract class AbstractDebugBridge implements DebugBridge {
