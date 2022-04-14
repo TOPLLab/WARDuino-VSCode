@@ -5,6 +5,7 @@ import {InterruptTypes} from './InterruptTypes';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
 import {SourceMap} from "../State/SourceMap";
 import {AbstractDebugBridge} from "./AbstractDebugBridge";
+import {WOODState} from "../State/WOODState";
 
 export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     private client?: net.Socket;
@@ -25,7 +26,12 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
         this.parser = new DebugInfoParser();
-        this.connect();
+        this.connect().then(() => {
+            console.log("Plugin: Connected.");
+            this.listener.connected();
+        }).catch(reason => {
+            console.log(reason);
+        });
     }
 
     upload(): void {
@@ -124,7 +130,9 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     }
 
     public pushSession(woodState: WOODState) {
-        throw new Error("Running with emulator: nothing to push");
+        console.log("Plugin: WOOD RecvState");
+        let command = `${InterruptTypes.interruptWOODRecvState}${woodState.toBinary()} \n`;
+        this.client?.write(command);
     }
 
     private executeCommand(command: InterruptTypes) {

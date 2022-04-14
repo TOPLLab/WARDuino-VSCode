@@ -3,6 +3,7 @@ import {Frame} from "../Parsers/Frame";
 import {VariableInfo} from "../State/VariableInfo";
 import {SourceMap} from "../State/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
+import {WOODState} from "../State/WOODState";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";

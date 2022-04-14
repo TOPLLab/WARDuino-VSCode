@@ -24,6 +24,7 @@ import {VariableInfo} from "../State/VariableInfo";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import {WOODState} from "../State/WOODState";
 
 // Interface between the debugger and the VS runtime 
 export class WARDuinoDebugSession extends LoggingDebugSession {
@@ -131,6 +132,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 },
                 connected(): void {
                     that.debugBridge?.pause();
+                },
+                startMultiverseDebugging(woodState: WOODState) {
+                    that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.emulator, that.tmpdir, this);
+                    that.debugBridge.pushSession(woodState);  // TODO move to connected()
                 },
                 notifyPaused(): void {
                     that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
