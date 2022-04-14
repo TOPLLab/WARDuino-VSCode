@@ -26,12 +26,6 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
         this.parser = new DebugInfoParser();
-        this.connect().then(() => {
-            console.log("Plugin: Connected.");
-            this.listener.connected();
-        }).catch(reason => {
-            console.log(reason);
-        });
     }
 
     upload(): void {
@@ -61,10 +55,7 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     }
 
     public connect(): Promise<string> {
-        return new Promise((resolve, reject) => {
-            this.startEmulator();
-            resolve("127.0.0.1:8192");
-        });
+        return this.startEmulator();
     }
 
     getCurrentFunctionIndex(): number {
@@ -74,42 +65,47 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         return this.callstack[this.callstack.length - 1].index;
     }
 
-    private initClient() {
-        let that = this;
-        if (this.client === undefined) {
-            this.client = new net.Socket();
-            this.client.connect({port: 8192, host: '127.0.0.1'});  // TODO config
-            this.listener.notifyProgress('Connected to socket');
+    private initClient(): Promise<string> {
+        return new Promise<string>((resolve, reject) => {
+            let that = this;
+            if (this.client === undefined) {
+                this.client = new net.Socket();
+                this.client.connect({port: 8192, host: '127.0.0.1'}, () => {
+                    this.listener.notifyProgress('Connected to socket');
+                    resolve("127.0.0.1:8192");
+                });  // TODO config
 
-            this.client.on('error', err => {
-                    this.listener.notifyError('Lost connection to the board');
-                    console.log(err);
-                }
-            );
+                this.client.on('error', err => {
+                        this.listener.notifyError('Lost connection to the board');
+                        console.error(err);
+                        reject(err);
+                    }
+                );
 
-            this.client.on('data', data => {
-                    data.toString().split("\n").forEach((line) => {
-                        if (line.startsWith("Interrupt:")) {
-                            this.buffer = line;
-                        } else if (this.buffer.length > 0) {
-                            this.buffer += line;
-                        } else if (line.startsWith("{")) {
-                            this.buffer = line;
-                        } else {
-                            that.parser.parse(that, line);
-                            return;
-                        }
+                this.client.on('data', data => {
+                        data.toString().split("\n").forEach((line) => {
+                            if (line.startsWith("Interrupt:")) {
+                                this.buffer = line;
+                            } else if (this.buffer.length > 0) {
+                                this.buffer += line;
+                            } else if (line.startsWith("{")) {
+                                this.buffer = line;
+                            } else {
+                                that.parser.parse(that, line);
+                                return;
+                            }
 
-                        try {
-                            that.parser.parse(that, this.buffer);
-                            this.buffer = "";
-                        } catch (e) {
-                            return;
-                        }
-                    });
-                }
-            );
-        }
+                            try {
+                                that.parser.parse(that, this.buffer);
+                                this.buffer = "";
+                            } catch (e) {
+                                return;
+                            }
+                        });
+                    }
+                );
+            }
+        });
     }
 
     private sendInterrupt(i: InterruptTypes) {
@@ -140,14 +136,12 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         this.client?.write(command.toString + '\n');
     }
 
-    private startEmulator() {
+    private startEmulator(): Promise<string> {
         this.cp = this.spawnEmulatorProcess();
 
         this.listener.notifyProgress('Started Emulator');
         while (this.cp.stdout === undefined) {
         }
-
-        this.initClient();
 
         this.cp.stdout?.on('data', (data) => {  // Print debug and trace information
             console.log(`stdout: ${data}`);
@@ -162,9 +156,11 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         });
 
         this.cp.on('close', (code) => {
-            console.log('Something went wrong with the emulator stream');
+            console.error('Something went wrong with the emulator stream');
             this.listener.notifyProgress('Disconnected from emulator');
         });
+
+        return this.initClient();
     }
 
     public disconnect(): void {

@@ -30,13 +30,6 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         this.portAddress = portAddress;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
-
-        this.connect().then(() => {
-            console.log("Plugin: Connected.");
-            this.listener.connected();
-        }).catch(reason => {
-            console.log(reason);
-        });
     }
 
     setVariable(name: string, value: number): Promise<string> {

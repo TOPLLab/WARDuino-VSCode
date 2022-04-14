@@ -26,10 +26,8 @@ suite('WARDuinoCompilerBridge Test Suite', () => {
 
     test('TestCompileOK', async () => {
         let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir);
-        let result = await compilerBridge.compile().catch((reason) => {
-                expect.fail(`Unexpected exception ${reason}`);
-            }
-        );
+        let result = await compilerBridge.compile();
+        expect(result.lineInfoPairs).to.have.lengthOf.above(0);
         expect(result.lineInfoPairs[0].lineAddress).to.equal('000002e');
         expect(result.lineInfoPairs[0].lineInfo.line).to.equal(13);
     });

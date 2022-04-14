@@ -1,19 +1,20 @@
 import "mocha";
 import {WARDuinoDebugBridge} from "../../DebugBridges/WARDuinoDebugBridge";
 import {WOODState} from "../../State/WOODState";
-import {expect} from "chai";
+import {assert, expect} from "chai";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import {before, beforeEach} from "mocha";
+import {before, beforeEach, after, describe, it} from "mocha";
 import ErrnoException = NodeJS.ErrnoException;
 import {WARDuinoDebugBridgeEmulator} from "../../DebugBridges/WARDuinoDebugBridgeEmulator";
+import {WASMCompilerBridge} from "../../CompilerBridges/WASMCompilerBridge";
 
 const runPath = process.cwd();
 
 const port = "port does not exist";
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
-const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource/fac_ok.wasm`;
+const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
 const listener = {
     notifyError(): void {
 
@@ -37,7 +38,7 @@ const listener = {
     }
 };
 
-suite('Emulator Bridge Test Suite', () => {
+suite("Emulator Bridge Test Suite", () => {
     let tmpdir: string = "";
     let bridge: WARDuinoDebugBridgeEmulator;
 
@@ -46,22 +47,39 @@ suite('Emulator Bridge Test Suite', () => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err: ErrnoException | null, dir: string) => {
                 if (err === null) {
                     tmpdir = dir;
+                    bridge = new WARDuinoDebugBridgeEmulator("",
+                        undefined,
+                        tmpdir,
+                        listener,
+                        warduinoSDK
+                    );
                     resolve(null);
                 }
             });
         });
-
-        // TODO start emulator
     });
 
-    test('Connect to Emulator', async () => {
-        bridge = new WARDuinoDebugBridgeEmulator("",
-            undefined,
-            tmpdir,
-            listener,
-            warduinoSDK
-        );
-        // TODO test connection
+    before(async function() {
+        let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir);
+        let result = await compilerBridge.compile();
+    });
+
+    describe("Debug API Test", () => {
+        it("Test Emulator Connection", () => {
+
+            return bridge.connect().then(result => {
+                assert.equal(result, "127.0.0.1:8192");
+            });
+        });
+
+        it("Test `run` command");
+        it("Test `pause` command");
+        it("Test `step` command");
+        it("Test `dump` command");
+    });
+
+    after(function() {
+        bridge.disconnect();
     });
 });
 

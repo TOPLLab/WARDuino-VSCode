@@ -1,5 +1,6 @@
 import {VariableInfo} from "../State/VariableInfo";
 import {Frame} from "../Parsers/Frame";
+import {WOODState} from "../State/WOODState";
 
 export interface DebugBridge {
     setStartAddress(startAddress: number): void;

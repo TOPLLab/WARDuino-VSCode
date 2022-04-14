@@ -7,10 +7,10 @@ import {WARDuinoDebugBridge} from "./WARDuinoDebugBridge";
 import * as vscode from "vscode";
 import {SourceMap} from "../State/SourceMap";
 
-
 export class DebugBridgeFactory {
     static makeDebugBridge(file: string, sourceMap: SourceMap | void, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
         let fileType = getFileExtension(file);
+        let bridge;
         switch (fileType) {
             case "wast" :
                 const warduinoSDK: string | undefined = vscode.workspace.getConfiguration().get("warduino.WarduinoToolChainPath");
@@ -20,15 +20,25 @@ export class DebugBridgeFactory {
 
                 switch (target) {
                     case RunTimeTarget.emulator:
-                        return new WARDuinoDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
+                        bridge = new WARDuinoDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
+                        break;
                     case RunTimeTarget.embedded:
                         let portAddress: string | undefined = vscode.workspace.getConfiguration().get("warduino.Port");
 
                         if (portAddress === undefined) {
                             throw new Error('Configuration error. No port address set.');
                         }
-                        return new WARDuinoDebugBridge(file, sourceMap, tmpdir, listener, portAddress, warduinoSDK);
+                        bridge = new WARDuinoDebugBridge(file, sourceMap, tmpdir, listener, portAddress, warduinoSDK);
+                        break;
                 }
+
+                bridge.connect().then(() => {
+                    console.log("Plugin: Connected.");
+                    listener.connected();
+                }).catch(reason => {
+                    console.log(reason);
+                });
+                return bridge;
         }
         throw new Error("Unsupported file type");
     }
