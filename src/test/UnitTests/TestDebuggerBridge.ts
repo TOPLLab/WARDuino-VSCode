@@ -80,43 +80,10 @@ suite("Emulator Bridge Test Suite", () => {
 
     after(function() {
         bridge.disconnect();
-    });
-});
-
-suite('Embedded Bridge Failure Test Suite', () => {
-    let tmpdir: string = "";
-    let bridge: WARDuinoDebugBridge;
-
-    before(async function () {
-        await new Promise(resolve => {
-            fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err: ErrnoException | null, dir: string) => {
-                if (err === null) {
-                    tmpdir = dir;
-                    resolve(null);
-                }
-            });
+        fs.rm(tmpdir, {recursive: true}, err => {
+            if (err) {
+                throw new Error('Could not delete temporary directory.');
+            }
         });
     });
-
-    beforeEach(async function () {
-        bridge = new WARDuinoDebugBridge("",
-            undefined,
-            tmpdir,
-            listener,
-            port,
-            warduinoSDK
-        );
-    });
-
-    test('TestEstablishConnectionFailure', async () => {
-        await bridge.compileAndUpload().catch(reason => {
-            expect(reason.to.equal(`Could not connect to serial port: ${port}`));
-        });
-    });
-
-    test('TestNoLocalDevice', async () => {
-        let result = await bridge.compileAndUpload();
-        expect(result).to.be.false;
-    });
-
 });

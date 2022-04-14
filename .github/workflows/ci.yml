@@ -90,6 +90,9 @@ jobs:
             - name: Check wat2wasm
               run: wat2wasm --version
 
+            - name: Check wasm-objdump
+              run: wasm-objdump --version
+
             - name: Run tests
               run: npm run unit-test
 

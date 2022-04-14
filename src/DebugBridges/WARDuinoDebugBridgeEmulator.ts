@@ -50,7 +50,7 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     }
 
     setBreakPoint(x: number): void {
-        console.log(this.startAddress);
+        console.log(`Plugin: set breakpoint at ${this.startAddress}`);
         throw new Error('Method not implemented.');
     }
 
