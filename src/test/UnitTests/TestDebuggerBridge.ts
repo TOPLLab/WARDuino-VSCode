@@ -1,18 +1,16 @@
 import "mocha";
-import {WARDuinoDebugBridge} from "../../DebugBridges/WARDuinoDebugBridge";
 import {WOODState} from "../../State/WOODState";
-import {assert, expect} from "chai";
+import {assert} from "chai";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import {before, beforeEach, after, describe, it} from "mocha";
-import ErrnoException = NodeJS.ErrnoException;
+import {after, before, describe, it} from "mocha";
 import {WARDuinoDebugBridgeEmulator} from "../../DebugBridges/WARDuinoDebugBridgeEmulator";
 import {WASMCompilerBridge} from "../../CompilerBridges/WASMCompilerBridge";
+import ErrnoException = NodeJS.ErrnoException;
 
 const runPath = process.cwd();
 
-const port = "port does not exist";
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
 const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
 const listener = {
@@ -59,7 +57,7 @@ suite("Emulator Bridge Test Suite", () => {
         });
     });
 
-    before(async function() {
+    before(async function () {
         let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir);
         let result = await compilerBridge.compile();
     });
@@ -78,7 +76,7 @@ suite("Emulator Bridge Test Suite", () => {
         it("Test `dump` command");
     });
 
-    after(function() {
+    after(function () {
         bridge.disconnect();
         fs.rm(tmpdir, {recursive: true}, err => {
             if (err) {

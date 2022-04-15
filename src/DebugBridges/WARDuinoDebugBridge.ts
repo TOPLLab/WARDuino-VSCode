@@ -15,6 +15,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     private readonly sdk: string;
     private readonly tmpdir: string | undefined;
     private startAddress: number = 0;
+    private woodDumpDetected: boolean = false;
 
     constructor(wasmPath: string,
                 sourceMap: SourceMap | void,
@@ -99,6 +100,11 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         const parser = new ReadlineParser();
         this.port?.pipe(parser);
         parser.on("data", (line: any) => {
+            if (this.woodDumpDetected) {
+                // Next line will be a WOOD dump
+                // TODO receive state from WOOD Dump and call bridge.pushSession(state)
+            }
+            this.woodDumpDetected = line.includes("DUMP!");
             this.parser.parse(this, line);
         });
     }

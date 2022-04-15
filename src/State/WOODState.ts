@@ -1,5 +1,10 @@
 export class WOODState {
+    private unparsedJSON = "";
+    constructor(state: string) {
+        this.unparsedJSON = state;
+    }
+
     toBinary(): string {
-        return "";
+        return ""; // TODO call python script
     }
 }

@@ -8,7 +8,7 @@ import {AbstractDebugBridge} from "./AbstractDebugBridge";
 import {WOODState} from "../State/WOODState";
 
 export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
-    private client?: net.Socket;
+    protected client?: net.Socket;
     private wasmPath: string;
     private readonly sdk: string;
     private readonly tmpdir: string;
@@ -126,9 +126,7 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     }
 
     public pushSession(woodState: WOODState) {
-        console.log("Plugin: WOOD RecvState");
-        let command = `${InterruptTypes.interruptWOODRecvState}${woodState.toBinary()} \n`;
-        this.client?.write(command);
+        throw new Error("Method not implemented.");
     }
 
     private executeCommand(command: InterruptTypes) {

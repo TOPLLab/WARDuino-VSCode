@@ -6,6 +6,7 @@ import {getFileExtension} from '../Parsers/ParseUtils';
 import {WARDuinoDebugBridge} from "./WARDuinoDebugBridge";
 import * as vscode from "vscode";
 import {SourceMap} from "../State/SourceMap";
+import {WOODDebugBridgeEmulator} from "./WOODDebugBridgeEmulator";
 
 export class DebugBridgeFactory {
     static makeDebugBridge(file: string, sourceMap: SourceMap | void, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
@@ -29,6 +30,9 @@ export class DebugBridgeFactory {
                             throw new Error('Configuration error. No port address set.');
                         }
                         bridge = new WARDuinoDebugBridge(file, sourceMap, tmpdir, listener, portAddress, warduinoSDK);
+                        break;
+                    case RunTimeTarget.WOOD:
+                        bridge = new WOODDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                 }
 
