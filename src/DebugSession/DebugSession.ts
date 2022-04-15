@@ -134,8 +134,28 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.debugBridge?.pause();
                 },
                 startMultiverseDebugging(woodState: WOODState) {
-                    that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.WOOD, that.tmpdir, this);
-                    that.debugBridge.pushSession(woodState);  // TODO move to connected()
+                    that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.WOOD, that.tmpdir, {
+                        notifyError(): void {
+                        },
+                        connected(): void {
+                            that.debugBridge?.pushSession(woodState);
+                        },
+                        startMultiverseDebugging(woodState: WOODState) {
+                        },
+                        notifyPaused(): void {
+                            that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
+                            that.debugBridge?.refresh();
+                        },
+                        disconnected(): void {
+
+                        },
+                        notifyProgress(message: string): void {
+                            that.notifier.text = message;
+                        },
+                        notifyStateUpdate(): void {
+                            that.notifyStepCompleted();
+                        }
+                    });
                 },
                 notifyPaused(): void {
                     that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));

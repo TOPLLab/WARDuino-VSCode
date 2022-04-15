@@ -38,7 +38,7 @@
       },
       {
         "command": "warduinodebug.multiverse",
-        "title": "multiverse debugging"
+        "title": "Pull debugsession"
       }
     ],
     "configuration": {

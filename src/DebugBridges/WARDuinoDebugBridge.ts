@@ -75,7 +75,6 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         await this.compileAndUpload();
     }
 
-
     private openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
         this.port = new SerialPort({path: this.portAddress, baudRate: 115200},
             (error) => {
@@ -103,6 +102,9 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
             if (this.woodDumpDetected) {
                 // Next line will be a WOOD dump
                 // TODO receive state from WOOD Dump and call bridge.pushSession(state)
+                this.pushSession(new WOODState(line));
+                this.woodDumpDetected = false;
+                return;
             }
             this.woodDumpDetected = line.includes("DUMP!");
             this.parser.parse(this, line);
@@ -138,6 +140,10 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     public compileArduino(path: string, resolver: (value: boolean) => void): void {
         const compile = spawn("make", ["compile"], {
             cwd: path
+        });
+
+        compile.stdout.on("data", (data) => {
+            console.log(data.toString());
         });
 
         compile.stderr.on("data", (data: string) => {
@@ -201,7 +207,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     }
 
     pushSession(woodState: WOODState): void {
-        console.log("Plugin: WOOD RecvState");
+        console.log("Plugin: listener start multiversedebugging");
         this.listener.startMultiverseDebugging(woodState);
     }
 

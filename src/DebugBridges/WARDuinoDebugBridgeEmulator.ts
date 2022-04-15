@@ -29,7 +29,7 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     }
 
     upload(): void {
-        throw new Error('Method not implemented.');
+        throw new Error("Method not implemented.");
     }
 
     setVariable(name: string, value: number): Promise<string> {
@@ -70,19 +70,19 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
             let that = this;
             if (this.client === undefined) {
                 this.client = new net.Socket();
-                this.client.connect({port: 8192, host: '127.0.0.1'}, () => {
-                    this.listener.notifyProgress('Connected to socket');
+                this.client.connect({port: 8192, host: "127.0.0.1"}, () => {
+                    this.listener.notifyProgress("Connected to socket");
                     resolve("127.0.0.1:8192");
                 });  // TODO config
 
                 this.client.on('error', err => {
-                        this.listener.notifyError('Lost connection to the board');
+                        this.listener.notifyError("Lost connection to the board");
                         console.error(err);
                         reject(err);
                     }
                 );
 
-                this.client.on('data', data => {
+                this.client.on("data", data => {
                         data.toString().split("\n").forEach((line) => {
                             if (line.startsWith("Interrupt:")) {
                                 this.buffer = line;
@@ -108,7 +108,7 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         });
     }
 
-    private sendInterrupt(i: InterruptTypes) {
+    protected sendInterrupt(i: InterruptTypes) {
         let command = `${i} \n`;
         this.client?.write(command);
     }
