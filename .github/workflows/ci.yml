@@ -6,6 +6,7 @@ concurrency:
     cancel-in-progress: true  # Cancel in-flight jobs for the same branch or PR
 
 env:
+    WDCLI_CACHE: "build-wdcli"
     WABT_CACHE: "build-wabt"
 
 jobs:
@@ -27,6 +28,41 @@ jobs:
 
             - name: Run ESLint
               run: npm run lint
+    
+    build-wdcli:
+        name: Build WARDuino CLI
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                submodules: recursive
+    
+            - name: Retrieve version
+              run: |
+                cd WARDuino
+                echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+              id: version
+
+            - name: Cache build files
+              id: cache-wdcli
+              uses: actions/cache@v2
+              with:
+                path: |
+                    ./WARDuino/build-emu
+                key: ${{ env.WDCLI_CACHE }}-${{ steps.version.outputs.COMMIT }}
+            
+            - name: Build from source
+              if: steps.cache-wdcli.outputs.cache-hit != 'true'
+              run: |
+                cd WARDuino; mkdir build-emu; cd build-emu
+                cmake .. -D BUILD_EMULATOR=ON
+                make
+
+            - name: Verify version
+              if: steps.cache-wdcli.outputs.cache-hit != 'true'
+              run: ./WARDuino/build-emu/wdcli --help
 
     build-wabt:
         name: Build custom WABT
@@ -65,7 +101,7 @@ jobs:
 
     test:
         name: Mocha Test Suites
-        needs: build-wabt
+        needs: [build-wabt, build-wdcli]
         runs-on: ubuntu-latest
     
         steps:
@@ -86,7 +122,7 @@ jobs:
               with:
                 path: |
                     ./WABT/build
-                key: ${{ env.WABT_CACHE }}
+                key: ${{ env.WABT_CACHE }}-${{ steps.version.outputs.COMMIT }}
 
             - name: Update $PATH
               run: echo "${GITHUB_WORKSPACE}/WABT/build" >> $GITHUB_PATH
@@ -96,6 +132,14 @@ jobs:
 
             - name: Check wasm-objdump
               run: wasm-objdump --version
+
+            - name: Get WARDuino cache
+              id: cache-wdcli
+              uses: actions/cache@v2
+              with:
+                path: |
+                    ./WARDuino/build-emu
+                key: ${{ env.WDCLI_CACHE }}-${{ steps.version.outputs.COMMIT }}
 
             - name: Run tests
               run: npm run unit-test
