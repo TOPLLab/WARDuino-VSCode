@@ -8,7 +8,7 @@ import {AbstractDebugBridge} from "./AbstractDebugBridge";
 import {WOODState} from "../State/WOODState";
 
 export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
-    protected client?: net.Socket;
+    public client?: net.Socket;
     private wasmPath: string;
     private readonly sdk: string;
     private readonly tmpdir: string;
@@ -38,7 +38,8 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     }
 
     pause(): void {
-        throw new Error('Method not implemented.');
+        this.sendInterrupt(InterruptTypes.interruptPAUSE);
+        this.listener.notifyPaused();
     }
 
     setStartAddress(startAddress: number) {
@@ -69,13 +70,14 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         return new Promise<string>((resolve, reject) => {
             let that = this;
             if (this.client === undefined) {
+                let address = {port: 8192, host: "127.0.0.1"};  // TODO config
                 this.client = new net.Socket();
-                this.client.connect({port: 8192, host: "127.0.0.1"}, () => {
+                this.client.connect(address, () => {
                     this.listener.notifyProgress("Connected to socket");
-                    resolve("127.0.0.1:8192");
-                });  // TODO config
+                    resolve(`${address.host}:${address.port}`);
+                });
 
-                this.client.on('error', err => {
+                this.client.on("error", err => {
                         this.listener.notifyError("Lost connection to the board");
                         console.error(err);
                         reject(err);

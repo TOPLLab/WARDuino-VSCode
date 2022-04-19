@@ -36,7 +36,7 @@ const listener = {
     }
 };
 
-suite("Emulator Bridge Test Suite", () => {
+suite("Debug API Test Suite (emulated)", () => {
     let tmpdir: string = "";
     let bridge: WARDuinoDebugBridgeEmulator;
 
@@ -62,18 +62,46 @@ suite("Emulator Bridge Test Suite", () => {
         let result = await compilerBridge.compile();
     });
 
-    describe("Debug API Test", () => {
-        it("Test Emulator Connection", () => {
-
-            return bridge.connect().then(result => {
-                assert.equal(result, "127.0.0.1:8192");
-            });
+    test("Test Emulator Connection", () => {
+        return bridge.connect().then(result => {
+            assert.equal(result, "127.0.0.1:8192");
         });
+    });
 
-        it("Test `run` command");
-        it("Test `pause` command");
-        it("Test `step` command");
-        it("Test `dump` command");
+    test("Test `run` command", function (done) {
+        bridge.client?.on("data", (data: string) => {
+            if (data.includes("GO!")) {
+                done();
+            }
+        });
+        bridge.run();
+    });
+
+    test("Test `pause` command", function (done) {
+        bridge.client?.on("data", (data: string) => {
+            if (data.includes("PAUSE!")) {
+                done();
+            }
+        });
+        bridge.pause();
+    });
+
+    test("Test `step` command", function (done) {
+        bridge.client?.on("data", (data: string) => {
+            if (data.includes("STEP!")) {
+                done();
+            }
+        });
+        bridge.step();
+    });
+
+    test("Test `dump` command", function (done) {
+        bridge.client?.on("data", (data: string) => {
+            if (data.includes("{\"pc\":")) {
+                done();
+            }
+        });
+        bridge.refresh();
     });
 
     after(function () {
