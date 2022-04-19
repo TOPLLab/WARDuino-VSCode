@@ -42,6 +42,7 @@ jobs:
               run: |
                 cd WABT
                 echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+              id: version
 
             - name: Build from source
               run: |
