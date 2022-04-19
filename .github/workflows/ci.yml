@@ -33,12 +33,18 @@ jobs:
         runs-on: ubuntu-latest
         
         steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                submodules: recursive
+    
+            - name: Retrieve version
+              run: |
+                cd WABT
+                echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+
             - name: Build from source
               run: |
-                git clone --recursive https://github.com/TOPLLab/wabt
-                cd wabt
-                git checkout develop
-                git submodule update --init
                 mkdir build; cd build
                 cmake ..
                 cmake --build .
@@ -49,13 +55,16 @@ jobs:
             - name: Echo $PATH
               run: echo $PATH
 
+            - name: Verify version
+              run: wasm-objdump --version
+
             - name: Cache build files
               id: cache_wabt
               uses: actions/cache@v2
               with:
                 path: |
                     ./wabt/build
-                key: ${{ env.WABT_CACHE }}
+                key: ${{ env.WABT_CACHE }}-${{ steps.version.outputs.COMMIT }}
 
     test:
         name: Mocha Test Suites
