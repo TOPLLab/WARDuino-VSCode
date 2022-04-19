@@ -10,7 +10,7 @@ import ErrnoException = NodeJS.ErrnoException;
 let runPath = process.cwd();
 let wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
 
-suite('WARDuinoCompilerBridge Test Suite', () => {
+suite('WASMCompilerBridge Test Suite', () => {
     let tmpdir: string = "";
 
     before(async function () {
@@ -44,5 +44,4 @@ suite('WARDuinoCompilerBridge Test Suite', () => {
     });
 
     // TODO catch wat2wasm not in $PATH
-
 });

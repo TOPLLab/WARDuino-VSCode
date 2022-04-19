@@ -33,13 +33,11 @@ jobs:
         runs-on: ubuntu-latest
         
         steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-
             - name: Build from source
               run: |
                 git clone --recursive https://github.com/TOPLLab/wabt
                 cd wabt
+                git checkout develop
                 git submodule update --init
                 mkdir build; cd build
                 cmake ..
