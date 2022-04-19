@@ -44,28 +44,24 @@ jobs:
                 echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
               id: version
 
+            - name: Cache build files
+              id: cache-wabt
+              uses: actions/cache@v2
+              with:
+                path: |
+                    ./WABT/build
+                key: ${{ env.WABT_CACHE }}-${{ steps.version.outputs.COMMIT }}
+            
             - name: Build from source
+              if: steps.cache-wabt.outputs.cache-hit != 'true'
               run: |
                 cd WABT; mkdir build; cd build
                 cmake ..
                 cmake --build .
-            
-            - name: Update $PATH
-              run: echo "${GITHUB_WORKSPACE}/WABT/build" >> $GITHUB_PATH
-            
-            - name: Echo $PATH
-              run: echo $PATH
 
             - name: Verify version
-              run: wasm-objdump --version
-
-            - name: Cache build files
-              id: cache_wabt
-              uses: actions/cache@v2
-              with:
-                path: |
-                    ./wabt/build
-                key: ${{ env.WABT_CACHE }}-${{ steps.version.outputs.COMMIT }}
+              if: steps.cache-wabt.outputs.cache-hit != 'true'
+              run: ./WABT/build/wasm-objdump --version
 
     test:
         name: Mocha Test Suites
@@ -85,15 +81,15 @@ jobs:
               run: npm ci
 
             - name: Get WABT cache
-              id: cache_wabt
+              id: cache-wabt
               uses: actions/cache@v2
               with:
                 path: |
-                    ./wabt/build
+                    ./WABT/build
                 key: ${{ env.WABT_CACHE }}
 
             - name: Update $PATH
-              run: echo "${GITHUB_WORKSPACE}/wabt/build" >> $GITHUB_PATH
+              run: echo "${GITHUB_WORKSPACE}/WABT/build" >> $GITHUB_PATH
 
             - name: Check wat2wasm
               run: wat2wasm --version
