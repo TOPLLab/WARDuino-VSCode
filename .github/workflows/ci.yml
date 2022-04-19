@@ -45,12 +45,12 @@ jobs:
 
             - name: Build from source
               run: |
-                mkdir build; cd build
+                cd WABT; mkdir build; cd build
                 cmake ..
                 cmake --build .
             
             - name: Update $PATH
-              run: echo "${GITHUB_WORKSPACE}/wabt/build" >> $GITHUB_PATH
+              run: echo "${GITHUB_WORKSPACE}/WABT/build" >> $GITHUB_PATH
             
             - name: Echo $PATH
               run: echo $PATH

@@ -139,7 +139,7 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     private startEmulator(): Promise<string> {
         this.cp = this.spawnEmulatorProcess();
 
-        this.listener.notifyProgress('Started Emulator');
+        this.listener.notifyProgress('Started emulator');
         while (this.cp.stdout === undefined) {
         }
 
@@ -156,7 +156,6 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         });
 
         this.cp.on('close', (code) => {
-            console.error('Something went wrong with the emulator stream');
             this.listener.notifyProgress('Disconnected from emulator');
         });
 
