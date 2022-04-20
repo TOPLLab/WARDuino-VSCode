@@ -4,8 +4,9 @@ const path: string = "/home/tolauwae/Documents/out-of-things/warduino"; // TODO 
 
 export class WOODState {
     private unparsedJSON = "";
+
     constructor(state: string) {
-        this.unparsedJSON = state;
+        this.unparsedJSON = state.trimEnd();
     }
 
     async toBinary(offset: string): Promise<string> {
