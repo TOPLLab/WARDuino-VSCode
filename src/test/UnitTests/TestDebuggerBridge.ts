@@ -4,13 +4,13 @@ import {assert} from "chai";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import {after, afterEach, before} from "mocha";
+import {after, before, beforeEach} from "mocha";
 import {WARDuinoDebugBridgeEmulator} from "../../DebugBridges/WARDuinoDebugBridgeEmulator";
 import {WASMCompilerBridge} from "../../CompilerBridges/WASMCompilerBridge";
 import ErrnoException = NodeJS.ErrnoException;
+import {InterruptTypes} from "../../DebugBridges/InterruptTypes";
 
 const runPath = process.cwd();
-
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
 const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
 const listener = {
@@ -100,9 +100,15 @@ suite("Debug API Test Suite (emulated)", () => {
         await bridge.connect();
     });
 
+    beforeEach(() => {
+        bridge.client?.removeAllListeners("data");
+    });
+
     test("Test `pause` command", function (done) {
-        bridge.client?.on("data", (data: string) => {
-            if (data.includes("PAUSE!")) {
+        bridge.client?.on("data", (data: Buffer) => {
+            const text = data.toString();
+            console.log(text);
+            if (text.includes("PAUSE!")) {
                 done();
             }
         });
@@ -110,12 +116,13 @@ suite("Debug API Test Suite (emulated)", () => {
     });
 
     test("Test `step` command", function (done) {
-        bridge.client?.on("data", (data: string) => {
-            if (data.includes("STEP!")) {
+        bridge.client?.on("data", (data: Buffer) => {
+            const text = data.toString();
+            console.log(text);
+            if (text.includes("STEP!")) {
                 done();
             }
         });
-        bridge.pause();
         bridge.step();
     });
 
@@ -125,6 +132,7 @@ suite("Debug API Test Suite (emulated)", () => {
 
         bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
+            console.log(text);
             if (receivingDumpData(json, text)) {
                 let lines = text.split("\n");
                 for (let i = 0; i < lines.length; i++) {
@@ -143,16 +151,26 @@ suite("Debug API Test Suite (emulated)", () => {
     });
 
     test("Test `run` command", function (done) {
-        bridge.client?.on("data", (data: string) => {
-            if (data.includes("GO!")) {
+        bridge.client?.on("data", (data: Buffer) => {
+            const text = data.toString();
+            console.log(text);
+            if (text.includes("GO!")) {
                 done();
             }
         });
         bridge.run();
     });
 
-    afterEach(() => {
-        bridge.client?.removeAllListeners("data");
+    test("Test `WOODDUMP` command", function (done) {
+        bridge.client?.on("data", (data: Buffer) => {
+            const text = data.toString();
+            console.log(text);
+            if (text.includes("ack!")) {
+                done();
+            }
+        });
+        let binary = "NjIwMDAwMDAyMDA0MDAwMDAwMDMwNTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA2MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAgCjYyMDAwMDAxRUQwMTA2NTYzRUQ1QzM0OThFMDgwMDAxMDBFODAzMDAwMDAzMDAwMTAwRkZGRkZGRkZGRkZGRkZGRjA2NTYzRUQ1QzM0OTZGMDAwMDAwMDQwNDAwMDAwMDAzMDAxNzAwMDAwMDAwMDEwMDAwMDAwMDAwMDAwMDAwMDcwMDAwMDA2QTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCAKNjIwMDAwMDFFRTA3MDA2QjAwRTQwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAgCjYyMDAwMDAwNzIwNzAwRTUwMEZGMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEgCg=="
+        bridge.client?.write(`${InterruptTypes.interruptWOODRecvState}${binary} \n`);
     });
 
     after(async function () {
