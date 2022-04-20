@@ -26,6 +26,11 @@ import * as os from "os";
 import * as path from "path";
 import {WOODState} from "../State/WOODState";
 
+const debugmodeMap = new Map<string, RunTimeTarget>([
+    ["emulated", RunTimeTarget.emulator],
+    ["embedded", RunTimeTarget.embedded]
+]);
+
 // Interface between the debugger and the VS runtime 
 export class WARDuinoDebugSession extends LoggingDebugSession {
     private sourceMap?: SourceMap = undefined;
@@ -123,8 +128,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.sourceMap = sourceMap;
         }
         let that = this;
+        const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
         this.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap,
-            RunTimeTarget.embedded,
+            debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface
                 notifyError(): void {

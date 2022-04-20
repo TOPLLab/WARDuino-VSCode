@@ -44,6 +44,20 @@
     "configuration": {
       "title": "WARDuino Debugger",
       "properties": {
+        "warduino.DebugMode": {
+          "type": "string",
+          "scope": "resource",
+          "description": "The mode of the WARDuino debugger to use",
+          "default": "emulated",
+          "enum": [
+            "emulated",
+            "embedded"
+          ],
+          "enumDescription": [
+            "Run the WARDuino debugger locally in an emulated mode",
+            "Connect to a WARDuino debugger running on an embedded device"
+          ]
+        },
         "warduino.Port": {
           "type": "string",
           "scope": "resource",

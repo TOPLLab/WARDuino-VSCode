@@ -31,7 +31,7 @@ export class DebugBridgeFactory {
                         }
                         bridge = new WARDuinoDebugBridge(file, sourceMap, tmpdir, listener, portAddress, warduinoSDK);
                         break;
-                    case RunTimeTarget.WOOD:
+                    case RunTimeTarget.wood:
                         bridge = new WOODDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                 }
