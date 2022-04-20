@@ -81,6 +81,19 @@ suite("WARDuinoDebugBridgeEmulator Test Suite", () => {
     });
 });
 
+function isValidJSON(text: string): boolean {
+    try {
+        JSON.parse(text);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
+
+function receivingDumpData(json: string, text: string): boolean {
+    return json.length > 0 || text.includes("{\"pc\":");
+}
+
 suite("Debug API Test Suite (emulated)", () => {
     before(async function () {
         await init();
@@ -112,23 +125,20 @@ suite("Debug API Test Suite (emulated)", () => {
 
         bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
-            if (text.includes("{\"pc\":")) {
-                text.split("\n").forEach(line => {
-                    console.log(line);
-                    if (json.length > 0 || line.startsWith("{\"pc\":")) {
-                        json += line.trimEnd();
-                        try {
-                            JSON.parse(json);
-                        } catch (e) {
-                            return;
+            if (receivingDumpData(json, text)) {
+                let lines = text.split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    if (receivingDumpData(json, lines[i])) {
+                        json += lines[i].trimEnd();
+                        if (isValidJSON(json)) {
+                            json = "";
+                            done();
+                            break;
                         }
-                        json = "";
-                        done();
                     }
-                });
+                }
             }
         });
-        bridge.pause();
         bridge.refresh();
     });
 
