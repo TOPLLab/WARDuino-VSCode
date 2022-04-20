@@ -140,7 +140,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.debugBridge?.pause();
                 },
                 startMultiverseDebugging(woodState: WOODState) {
-                    that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.WOOD, that.tmpdir, {
+                    that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
                         connected(): void {
