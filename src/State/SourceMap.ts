@@ -6,4 +6,5 @@ export interface SourceMap {
     lineInfoPairs: LineInfoPairs[];
     functionInfos: FunctionInfo[];
     globalInfos: VariableInfo[];
+    importInfos: FunctionInfo[];
 }

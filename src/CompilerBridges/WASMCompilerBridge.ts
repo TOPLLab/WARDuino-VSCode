@@ -122,6 +122,7 @@ export class WASMCompilerBridge implements CompileBridge {
             return new Promise<SourceMap>((resolve, reject) => {
                 let functionInfos: FunctionInfo[];
                 let globalInfos: VariableInfo[];
+                let importInfos: FunctionInfo[];
                 let sourceMap: SourceMap;
                 let that = this;
 
@@ -130,16 +131,18 @@ export class WASMCompilerBridge implements CompileBridge {
                     that.handleError(error, reject);
                     functionInfos = parseUtils.getFunctionInfos(stdout);
                     globalInfos = parseUtils.getGlobalInfos(stdout);
+                    importInfos = parseUtils.getImportInfos(stdout);
                 }
 
                 let objDump = exec(objDumpCommand, handleObjDumpStreams);
 
                 if (result) {
-                    sourceMap = {lineInfoPairs: result, functionInfos: [], globalInfos: []};
+                    sourceMap = {lineInfoPairs: result, functionInfos: [], globalInfos: [], importInfos: []};
                     objDump.on('close', (code) => {
                         if (functionInfos && globalInfos) {
                             sourceMap.functionInfos = functionInfos;
                             sourceMap.globalInfos = globalInfos;
+                            sourceMap.importInfos = importInfos;
                             resolve(sourceMap);
                         }
                     });

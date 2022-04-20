@@ -59,7 +59,7 @@ function fillInLocalInfos(functionInfos: FunctionInfo[], lines: String[]): Funct
     for (let i = 0; i < lines.length; i++) {
         let fidx = lines[i].match(/\[([0-9]+)]/);
         if (fidx !== null) {
-            let name = lines[i].match(/<([a-zA-Z0-9 ]+)>/);
+            let name = lines[i].match(/<([a-zA-Z0-9 ._]+)>/);
             let f = fidx[1];
             if (f !== null) {
                 let functionInfo = functionInfos.find(o => o.index === parseInt(f));
@@ -86,13 +86,22 @@ function extractGlobalInfo(line: String): VariableInfo {
     global.index = (match === null) ? NaN : +match[1];
     match = line.match(/ ([if][0-9][0-9]) /);
     global.type = (match === null) ? "undefined" : match[1];
-    match = line.match(/<([a-zA-Z0-9 ]+)>/);
+    match = line.match(/<([a-zA-Z0-9 ._]+)>/);
     global.name = ((match === null) ? `${global.index}` : `$${match[1]}`) + ` (${global.type})`;
     match = line.match(/mutable=([0-9])/);
     global.mutable = match !== null && +match[1] === 1;
     match = line.match(/init.*=(.*)/);
     global.value = (match === null) ? "" : match[1];
     return global;
+}
+
+function extractImportInfo(line: String): FunctionInfo {
+    let primitive = {} as FunctionInfo;
+    let match = line.match(/\[([0-9]+)]/);
+    primitive.index = (match === null) ? NaN : +match[1];
+    match = line.match(/<([a-zA-Z0-9 ._]+)>/);
+    primitive.name = ((match === null) ? `${primitive.index}` : `$${match[1]}`);
+    return primitive;
 }
 
 export function getFunctionInfos(input: String): FunctionInfo[] {
@@ -119,6 +128,15 @@ export function getGlobalInfos(input: String): VariableInfo[] {
     let globals: VariableInfo[] = [];
     lines.forEach((line) => {
         globals.push(extractGlobalInfo(line));
+    });
+    return globals;
+}
+
+export function getImportInfos(input: String): FunctionInfo[] {
+    let lines: String[] = extractDetailedSection("Import[", input);
+    let globals: FunctionInfo[] = [];
+    lines.forEach((line) => {
+        globals.push(extractImportInfo(line));
     });
     return globals;
 }
