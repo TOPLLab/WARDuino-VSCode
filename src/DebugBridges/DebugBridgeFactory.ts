@@ -7,6 +7,7 @@ import {WARDuinoDebugBridge} from "./WARDuinoDebugBridge";
 import * as vscode from "vscode";
 import {SourceMap} from "../State/SourceMap";
 import {WOODDebugBridgeEmulator} from "./WOODDebugBridgeEmulator";
+import {Messages} from "./AbstractDebugBridge";
 
 export class DebugBridgeFactory {
     static makeDebugBridge(file: string, sourceMap: SourceMap | void, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
@@ -41,6 +42,7 @@ export class DebugBridgeFactory {
                     listener.connected();
                 }).catch(reason => {
                     console.log(reason);
+                    listener.notifyProgress(Messages.connection_failure);
                 });
                 return bridge;
         }

@@ -148,7 +148,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
 
         compile.stderr.on("data", (data: string) => {
             console.error(`stderr: ${data}`);
-            this.listener.notifyProgress(Messages.error);
+            this.listener.notifyProgress(Messages.initialisation_failure);
             resolver(false);
         });
 
@@ -158,7 +158,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
                 this.listener.notifyProgress(Messages.compiled);
                 this.uploadArduino(path, resolver);
             } else {
-                this.listener.notifyProgress(Messages.error);
+                this.listener.notifyProgress(Messages.initialisation_failure);
                 resolver(false);
             }
         });

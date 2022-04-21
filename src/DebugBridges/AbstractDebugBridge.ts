@@ -13,7 +13,8 @@ export class Messages {
     public static readonly connecting: string = "Connecting to board";
     public static readonly connected: string = "Connected to board";
     public static readonly disconnected: string = "Disconnected board";
-    public static readonly error: string = "Failed to initialise";
+    public static readonly initialisation_failure: string = "Failed to initialise";
+    public static readonly connection_failure: string = "Failed to connect device";
 }
 
 export abstract class AbstractDebugBridge implements DebugBridge {
