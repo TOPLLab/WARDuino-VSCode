@@ -36,13 +36,12 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     setVariable(name: string, value: number): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             console.log(`setting ${name} ${value}`);
-            let local = this.getLocals(this.getCurrentFunctionIndex()).find(o => o.name === name);
-            if (local) {
-                let command = `21${this.convertToLEB128(local.index)}${this.convertToLEB128(value)} \n`;
+            try {
+                let command = this.getVariableCommand(name, value);
                 this.port?.write(command, err => {
                     resolve("Interrupt send.");
                 });
-            } else {
+            } catch {
                 reject("Local not found.");
             }
         });
@@ -218,22 +217,5 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
                 return console.log("Error on write: ", err.message);
             }
         });
-    }
-
-    private convertToLEB128(a: number): string { // TODO can only handle 32 bit
-        a |= 0;
-        const result = [];
-        while (true) {
-            const byte_ = a & 0x7f;
-            a >>= 7;
-            if (
-                (a === 0 && (byte_ & 0x40) === 0) ||
-                (a === -1 && (byte_ & 0x40) !== 0)
-            ) {
-                result.push(byte_.toString(16).padStart(2, "0"));
-                return result.join("").toUpperCase();
-            }
-            result.push((byte_ | 0x80).toString(16).padStart(2, "0"));
-        }
     }
 }

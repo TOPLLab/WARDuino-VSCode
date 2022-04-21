@@ -33,8 +33,17 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
     }
 
     setVariable(name: string, value: number): Promise<string> {
-        console.log(`setting ${name} ${value}`);
-        return new Promise<string>(resolve => resolve("Variable set."));
+        return new Promise<string>((resolve, reject) => {
+            console.log(`setting ${name} ${value}`);
+            try {
+                let command = this.getVariableCommand(name, value);
+                this.client?.write(command, err => {
+                    resolve("Interrupt send.");
+                });
+            } catch {
+                reject("Local not found.");
+            }
+        });
     }
 
     pause(): void {
@@ -110,9 +119,8 @@ export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
         });
     }
 
-    protected sendInterrupt(i: InterruptTypes) {
-        let command = `${i} \n`;
-        this.client?.write(command);
+    protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
+        return this.client?.write(`${i} \n`, callback);
     }
 
     public step() {

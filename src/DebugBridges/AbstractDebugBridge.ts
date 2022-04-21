@@ -17,6 +17,23 @@ export class Messages {
     public static readonly connection_failure: string = "Failed to connect device";
 }
 
+function convertToLEB128(a: number): string { // TODO can only handle 32 bit
+    a |= 0;
+    const result = [];
+    while (true) {
+        const byte_ = a & 0x7f;
+        a >>= 7;
+        if (
+            (a === 0 && (byte_ & 0x40) === 0) ||
+            (a === -1 && (byte_ & 0x40) !== 0)
+        ) {
+            result.push(byte_.toString(16).padStart(2, "0"));
+            return result.join("").toUpperCase();
+        }
+        result.push((byte_ | 0x80).toString(16).padStart(2, "0"));
+    }
+}
+
 export abstract class AbstractDebugBridge implements DebugBridge {
     protected sourceMap: SourceMap | void;
     protected listener: DebugBridgeListener;
@@ -53,6 +70,15 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     abstract step(): void;
 
     abstract upload(): void;
+
+    protected getVariableCommand(name: string, value: number): string {
+        let local = this.getLocals(this.getCurrentFunctionIndex()).find(o => o.name === name);
+        if (local) {
+            return `21${convertToLEB128(local.index)}${convertToLEB128(value)} \n`;
+        } else {
+            throw new Error("Failed to set variables.");
+        }
+    }
 
     getProgramCounter(): number {
         return this.pc;

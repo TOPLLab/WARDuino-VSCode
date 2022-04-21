@@ -10,7 +10,7 @@ export class WOODDebugBridgeEmulator extends WARDuinoDebugBridgeEmulator {
         this.sendInterrupt(InterruptTypes.interruptOffset);
         offset = await new Promise<string>((resolve, reject) => {
             function parseOffset(data: Buffer) {
-                console.log(`parseoffset: ${data.toString().split("\n").length} ${data}`);
+                console.log(`parse offset: ${data.toString().split("\n").length} ${data}`);
                 data.toString().split("\n").forEach((line) => {
                     console.log(line);
                     if (line.startsWith("{")) {
@@ -22,8 +22,14 @@ export class WOODDebugBridgeEmulator extends WARDuinoDebugBridgeEmulator {
 
             this.client?.on("data", parseOffset);
         });
-        let binary: string = await woodState.toBinary(offset);
-        let command = `${InterruptTypes.interruptWOODRecvState}${binary} \n`;
-        this.client?.write(command);
+
+        const binary: string = await woodState.toBinary(offset);
+        let messages = Buffer.from(binary, "base64").toString("ascii").split("\n");
+        for (let i = 0; i < messages.length; i++) {
+            console.log(`send 62 message: ${messages[i]}\n`);
+            this.client?.write(`${messages[i]} \n`);
+        }
     }
+
+    // TODO proxies
 }

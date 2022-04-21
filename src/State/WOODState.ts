@@ -15,9 +15,8 @@ export class WOODState {
                 cwd: path
             });
 
-            process.stdout?.on("data", (data: string) => {
-                console.log(`stdout: ${data}`);
-                resolve(data);
+            process.stdout?.on("data", (data: Buffer) => {
+                resolve(data.toString());
             });
 
             process.stderr?.on("data", (data) => {
