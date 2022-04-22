@@ -25,6 +25,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import {WOODState} from "../State/WOODState";
+import {WOODDebugBridgeEmulator} from "../DebugBridges/WOODDebugBridgeEmulator";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -39,6 +40,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private THREAD_ID: number = 42;
     private testCurrentLine = 0;
     private debugBridge?: DebugBridge;
+    private droneBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
     private reporter: ErrorReporter;
 
@@ -140,6 +142,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.debugBridge?.pause();
                 },
                 startMultiverseDebugging(woodState: WOODState) {
+                    that.debugBridge?.disconnect();
+
                     that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
@@ -160,6 +164,18 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         },
                         notifyStateUpdate(): void {
                             that.notifyStepCompleted();
+                        }
+                    });
+
+                    that.droneBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.drone, that.tmpdir, {
+                        connected(): void {
+                            (that.debugBridge as WOODDebugBridgeEmulator).specifyPrimitives();
+                        }, disconnected(): void {
+                        }, notifyError(message: string): void {
+                        }, notifyPaused(): void {
+                        }, notifyProgress(message: string): void {
+                        }, notifyStateUpdate(): void {
+                        }, startMultiverseDebugging(woodState: WOODState): void {
                         }
                     });
                 },

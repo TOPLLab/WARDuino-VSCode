@@ -1,14 +1,42 @@
 import {WARDuinoDebugBridgeEmulator} from "./WARDuinoDebugBridgeEmulator";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
+import {spawn} from "child_process";
 
 export class WOODDebugBridgeEmulator extends WARDuinoDebugBridgeEmulator {
     public async pushSession(woodState: WOODState) {
         console.log("Plugin: WOOD RecvState");
+        let offset = await this.getOffset();
+
+        const messages: string[] = await woodState.toBinary(offset);
+        for (let i = 0; i < messages.length; i++) {
+            console.log(`send 62 message: ${messages[i]}\n`);
+            this.client?.write(`${messages[i]} \n`);
+        }
+    }
+
+    public async specifyPrimitives() {
+        let message: string = await new Promise((resolve, reject) => {
+            let process = spawn("python3 -c \"import cli;cli.encode_monitor_proxies('/dev/ttyUSB0', '', [0, 1, 2])\"", {  // TODO add to config
+                cwd: "/home/tolauwae/Documents/out-of-things/warduino"
+            });
+
+            process.stdout?.on("data", (data: Buffer) => {
+                resolve(data.toString());
+            });
+
+            process.stderr?.on("data", (data) => {
+                console.log(`stderr: ${data}`);
+                reject(data);
+            });
+        });
+        this.client?.write(message);
+    }
+
+    private getOffset(): Promise<string> {
         let that = this;
-        let offset = "";
         this.sendInterrupt(InterruptTypes.interruptOffset);
-        offset = await new Promise<string>((resolve, reject) => {
+        return new Promise<string>((resolve, reject) => {
             function parseOffset(data: Buffer) {
                 console.log(`parse offset: ${data.toString().split("\n").length} ${data}`);
                 data.toString().split("\n").forEach((line) => {
@@ -22,14 +50,5 @@ export class WOODDebugBridgeEmulator extends WARDuinoDebugBridgeEmulator {
 
             this.client?.on("data", parseOffset);
         });
-
-        const binary: string = await woodState.toBinary(offset);
-        let messages = Buffer.from(binary, "base64").toString("ascii").split("\n");
-        for (let i = 0; i < messages.length; i++) {
-            console.log(`send 62 message: ${messages[i]}\n`);
-            this.client?.write(`${messages[i]} \n`);
-        }
     }
-
-    // TODO proxies
 }

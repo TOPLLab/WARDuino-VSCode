@@ -12,8 +12,8 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     private wasmPath: string;
     private port: SerialPort | undefined;
     private readonly portAddress: string;
-    private readonly sdk: string;
-    private readonly tmpdir: string | undefined;
+    protected readonly sdk: string;
+    protected readonly tmpdir: string | undefined;
     private startAddress: number = 0;
     private woodDumpDetected: boolean = false;
 
@@ -119,8 +119,8 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         this.listener.notifyProgress(Messages.reset);
 
         const upload = exec(`sh upload ${this.portAddress}`, {cwd: path}, (err, stdout, stderr) => {
-                console.log(err);
-                console.log(stdout);
+                console.error(err);
+                this.listener.notifyProgress(Messages.initialisationFailure);
             }
         );
 
@@ -141,13 +141,9 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
             cwd: path
         });
 
-        compile.stdout.on("data", (data) => {
-            console.log(data.toString());
-        });
-
         compile.stderr.on("data", (data: string) => {
             console.error(`stderr: ${data}`);
-            this.listener.notifyProgress(Messages.initialisation_failure);
+            this.listener.notifyProgress(Messages.initialisationFailure);
             resolver(false);
         });
 
@@ -157,7 +153,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
                 this.listener.notifyProgress(Messages.compiled);
                 this.uploadArduino(path, resolver);
             } else {
-                this.listener.notifyProgress(Messages.initialisation_failure);
+                this.listener.notifyProgress(Messages.initialisationFailure);
                 resolver(false);
             }
         });
@@ -206,7 +202,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     }
 
     pushSession(woodState: WOODState): void {
-        console.log("Plugin: listener start multiversedebugging");
+        console.log("Plugin: listener start multiverse debugging");
         this.listener.startMultiverseDebugging(woodState);
     }
 

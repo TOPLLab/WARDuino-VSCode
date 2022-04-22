@@ -13,8 +13,8 @@ export class Messages {
     public static readonly connecting: string = "Connecting to board";
     public static readonly connected: string = "Connected to board";
     public static readonly disconnected: string = "Disconnected board";
-    public static readonly initialisation_failure: string = "Failed to initialise";
-    public static readonly connection_failure: string = "Failed to connect device";
+    public static readonly initialisationFailure: string = "Failed to initialise";
+    public static readonly connectionFailure: string = "Failed to connect device";
 }
 
 function convertToLEB128(a: number): string { // TODO can only handle 32 bit
