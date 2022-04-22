@@ -15,10 +15,11 @@ export class WOODDebugBridgeEmulator extends WARDuinoDebugBridgeEmulator {
         }
     }
 
-    public async specifyPrimitives() {
+    public async specifyPrimitives(host: string, port: string) {
+        let primitives = [0, 1, 2]; // TODO get list from UI
         let message: string = await new Promise((resolve, reject) => {
-            let process = spawn("python3 -c \"import cli;cli.encode_monitor_proxies('/dev/ttyUSB0', '', [0, 1, 2])\"", {  // TODO add to config
-                cwd: "/home/tolauwae/Documents/out-of-things/warduino"
+            let process = spawn(`python3 -c "import cli;cli.encode_monitor_proxies('${host}', '${port}', [${primitives}])"`, {
+                cwd: "/home/tolauwae/Documents/out-of-things/warduino"  // TODO add to config (or better yet remove need for python script)
             });
 
             process.stdout?.on("data", (data: Buffer) => {
