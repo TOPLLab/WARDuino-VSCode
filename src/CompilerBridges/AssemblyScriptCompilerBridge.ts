@@ -39,6 +39,6 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
 
     private static makeSourceMap(sourceMapFile: String): SourceMap {
         // TODO
-        return {lineInfoPairs: [], functionInfos: [], globalInfos: []};
+        return {lineInfoPairs: [], functionInfos: [], globalInfos: [], importInfos: []};
     }
 }
