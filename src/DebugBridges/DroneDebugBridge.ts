@@ -1,5 +1,6 @@
 import {WARDuinoDebugBridge} from "./WARDuinoDebugBridge";
 import {exec} from "child_process";
+import {Messages} from "./AbstractDebugBridge";
 
 export interface Socket {
     host: string,
@@ -20,6 +21,38 @@ export class DroneDebugBridge extends WARDuinoDebugBridge {
             cp.on("close", (code) => {
                 this.compileArduino(sdkpath, resolve);
             });
+        });
+    }
+
+    protected uploadArduino(path: string, resolver: (value: boolean) => void): void {
+        this.listener.notifyProgress(Messages.reset);
+
+        const upload = exec(`sh upload ${this.portAddress}`, {cwd: path}, (err, stdout, stderr) => {
+                console.error(err);
+                this.listener.notifyProgress(Messages.initialisationFailure);
+            }
+        );
+
+        upload.on("data", (data: string) => {
+            this.listener.notifyProgress(Messages.uploading);
+        });
+
+        upload.on("close", (code) => {
+            resolver(code === 0);
+        });
+    }
+
+    protected openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
+        super.openSerialPort(reject, resolve);
+
+        this.port?.on("data", data => {
+            const text = data.toString();
+            if (this.socket.host.length === 0 && text.search('localip') >= 0) {
+                let search = /localip: ([0-9.]*)/.exec(text);
+                // @ts-ignore
+                this.socket.host = search && search.length > 1 ? search[1] : "";
+                this.listener.connected();
+            }
         });
     }
 

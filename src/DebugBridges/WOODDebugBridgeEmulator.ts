@@ -1,7 +1,7 @@
 import {WARDuinoDebugBridgeEmulator} from "./WARDuinoDebugBridgeEmulator";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
-import {spawn} from "child_process";
+import {exec} from "child_process";
 
 export class WOODDebugBridgeEmulator extends WARDuinoDebugBridgeEmulator {
     public async pushSession(woodState: WOODState) {
@@ -16,20 +16,38 @@ export class WOODDebugBridgeEmulator extends WARDuinoDebugBridgeEmulator {
     }
 
     public async specifyPrimitives(host: string, port: string) {
+        if (host.length === 0 || port.length === 0) {
+            return;
+        }
+
+        console.log(`Connected to drone (${host}:${port}).`);
         let primitives = [0, 1, 2]; // TODO get list from UI
         let message: string = await new Promise((resolve, reject) => {
-            let process = spawn(`python3 -c "import cli;cli.encode_monitor_proxies('${host}', '${port}', [${primitives}])"`, {
-                cwd: "/home/tolauwae/Documents/out-of-things/warduino"  // TODO add to config (or better yet remove need for python script)
-            });
+            // let process = spawn(`cd /home/tolauwae/Documents/out-of-things/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${host}', ${port}, [${primitives}])"`);
+            // TODO use spawn
 
-            process.stdout?.on("data", (data: Buffer) => {
-                resolve(data.toString());
+            exec(`cd /home/tolauwae/Documents/out-of-things/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${host}', ${port}, [${primitives}])"`, (err, stdout, stderr) => {
+                resolve(stdout);
+                console.error(stderr);
+                if (err) {
+                    reject(err.message);
+                }
             });
+            // TODO add to config (or better yet remove need for python script)
 
-            process.stderr?.on("data", (data) => {
-                console.log(`stderr: ${data}`);
-                reject(data);
-            });
+            // process.stdout?.on("data", (data: Buffer) => {
+            //     console.log(data.toString());
+            //     resolve(data.toString());
+            // });
+
+            // process.stderr?.on("data", (data: Buffer) => {
+            //     console.log(`stderr: ${data.toString()}`);
+            //     reject(data.toString());
+            // });
+
+            // process.on("close", code => {
+            //     reject(`encode_monitor_proxies exited with code: ${code}`);
+            // });
         });
         this.client?.write(message);
     }

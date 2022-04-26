@@ -10,8 +10,8 @@ import {WOODState} from "../State/WOODState";
 export class WARDuinoDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
     private wasmPath: string;
-    private port: SerialPort | undefined;
-    private readonly portAddress: string;
+    protected port: SerialPort | undefined;
+    protected readonly portAddress: string;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
     private startAddress: number = 0;
@@ -74,7 +74,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         await this.compileAndUpload();
     }
 
-    private openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
+    protected openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
         this.port = new SerialPort({path: this.portAddress, baudRate: 115200},
             (error) => {
                 if (error) {
@@ -115,7 +115,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         this.listener.notifyProgress(Messages.disconnected);
     }
 
-    private uploadArduino(path: string, resolver: (value: boolean) => void): void {
+    protected uploadArduino(path: string, resolver: (value: boolean) => void): void {
         this.listener.notifyProgress(Messages.reset);
 
         const upload = exec(`sh upload ${this.portAddress}`, {cwd: path}, (err, stdout, stderr) => {
@@ -126,7 +126,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
 
         upload.on("data", (data: string) => {
             console.log(`stdout: ${data}`);
-            if (data.search('Uploading')) {
+            if (data.search('Uploading') >= 0) {
                 this.listener.notifyProgress(Messages.uploading);
             }
         });
