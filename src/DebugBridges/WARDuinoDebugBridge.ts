@@ -31,7 +31,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         this.sourceMap = sourceMap;
         this.listener = listener;
         this.portAddress = portAddress;
-        this.fqbn = portAddress;
+        this.fqbn = fqbn;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
     }
