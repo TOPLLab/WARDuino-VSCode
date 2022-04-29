@@ -59,10 +59,12 @@ function makeLineInfoPairs(sourceMapInput: String): LineInfoPairs[] {
 
 export class WASMCompilerBridge implements CompileBridge {
     tmpdir: string;
+    wabt: string;
     wasmFilePath: String;
 
-    constructor(wasmFilePath: String, tmpdir: string) {
+    constructor(wasmFilePath: String, tmpdir: string, wabt: string) {
         this.wasmFilePath = wasmFilePath;
+        this.wabt = wabt;
         this.tmpdir = tmpdir;
     }
 
@@ -173,11 +175,11 @@ export class WASMCompilerBridge implements CompileBridge {
     }
 
     private compileToWasmCommand(): string {
-        return `wat2wasm --debug-names -v -o ${this.tmpdir}/upload.wasm ` + this.wasmFilePath;
+        return `${this.wabt}/wat2wasm --debug-names -v -o ${this.tmpdir}/upload.wasm ` + this.wasmFilePath;
     }
 
     private getNameDumpCommand(): string {
-        return `wasm-objdump -x -m ${this.tmpdir}/upload.wasm`;
+        return `${this.wabt}/wasm-objdump -x -m ${this.tmpdir}/upload.wasm`;
     }
 
     private compileCHeaderFileCommand(): string {

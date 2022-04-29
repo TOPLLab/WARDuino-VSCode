@@ -115,16 +115,18 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.reporter.clear();
         this.program = args.program;
 
-        await new Promise(resolve => {
+        await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
                 if (err === null) {
                     this.tmpdir = tmpdir;
                     resolve(null);
+                } else {
+                    reject();
                 }
             });
         });
 
-        let compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir);
+        let compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
 
         let sourceMap: SourceMap | void = await compiler.compile().catch((reason) => this.handleCompileError(reason));
         if (sourceMap) {
