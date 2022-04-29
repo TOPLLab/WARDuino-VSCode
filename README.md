@@ -22,9 +22,10 @@ Before first time use make sure you have:
 
 To run the extension in developer mode, perform the following steps:
 
+- Install `node` and `yarn`
 - Run `yarn install`
-- Compile the WARDuino CLI (Emulator version) in this directory
-- Build [the custom WABT toolkit](https://github.com/TOPLLab/wabt) and add `wat2wasm` to `$PATH`
+- (optional) Compile the WARDuino CLI (Emulator version) in this directory
+- Build [the custom WABT toolkit](https://github.com/TOPLLab/wabt) and add both `wat2wasm` and `wasm-objdump` to `$PATH`
 
 When you have performed each step above. You should be able to open this directory in VS Code and run the extension.
 When you run `Run Extension` a new VS Code instance should start.
