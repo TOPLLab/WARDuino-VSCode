@@ -19,10 +19,11 @@ Before first time use make sure you have:
 - Installed VS Code (version 1.64 or higher)
 - Installed [this WebAssembly Plugin](https://github.com/AlanCezarAraujo/vscode-webassembly-syntax-highlight)
 - Enabled the `Debug: Allow Breakpoints Everywhere` setting
+- Install `node` and `yarn`
+- Install [WARDuino](https://github.com/TOPLLab/WARDuino)
 
 To run the extension in developer mode, perform the following steps:
 
-- Install `node` and `yarn`
 - Run `yarn install`
 - (optional) Compile the WARDuino CLI (Emulator version) in this directory
 - Build [the custom WABT toolkit](https://github.com/TOPLLab/wabt) and add both `wat2wasm` and `wasm-objdump` to `$PATH`
