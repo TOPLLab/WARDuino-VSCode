@@ -27,7 +27,7 @@ export class DroneDebugBridge extends WARDuinoDebugBridge {
     protected uploadArduino(path: string, resolver: (value: boolean) => void): void {
         this.listener.notifyProgress(Messages.reset);
 
-        const upload = exec(`sh upload ${this.portAddress}`, {cwd: path}, (err, stdout, stderr) => {
+        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, {cwd: path}, (err, stdout, stderr) => {
                 console.error(err);
                 this.listener.notifyProgress(Messages.initialisationFailure);
             }

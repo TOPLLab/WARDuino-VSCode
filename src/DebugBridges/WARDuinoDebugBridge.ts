@@ -12,6 +12,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     private wasmPath: string;
     protected port: SerialPort | undefined;
     protected readonly portAddress: string;
+    protected readonly fqbn: string;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
     private startAddress: number = 0;
@@ -22,6 +23,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
                 tmpdir: string,
                 listener: DebugBridgeListener,
                 portAddress: string,
+                fqbn: string,
                 warduinoSDK: string) {
         super(sourceMap, listener);
 
@@ -29,6 +31,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
         this.sourceMap = sourceMap;
         this.listener = listener;
         this.portAddress = portAddress;
+        this.fqbn = portAddress;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
     }
@@ -118,7 +121,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     protected uploadArduino(path: string, resolver: (value: boolean) => void): void {
         this.listener.notifyProgress(Messages.reset);
 
-        const upload = exec(`sh upload ${this.portAddress}`, {cwd: path}, (err, stdout, stderr) => {
+        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, {cwd: path}, (err, stdout, stderr) => {
                 console.error(err);
                 this.listener.notifyProgress(Messages.initialisationFailure);
             }
@@ -137,7 +140,7 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void): void {
-        const compile = spawn("make", ["compile"], {
+        const compile = spawn("make", ["compile", `FQBN=${this.fqbn}`], {
             cwd: path
         });
 

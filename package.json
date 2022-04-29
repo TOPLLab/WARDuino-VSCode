@@ -64,17 +64,23 @@
           "default": "/dev/cu.usbserial-1420",
           "description": "The port to use in order to program the microcontroller"
         },
+        "warduino.Device": {
+          "type": "string",
+          "scope": "resource",
+          "default": "esp32:esp32:esp32wrover",
+          "description": "The FQBN of the target device"
+        },
         "warduino.WarduinoToolChainPath": {
           "type": "string",
           "scope": "resource",
           "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/",
-          "description": "WARDuino toolchain path"
+          "description": "WARDuino toolchain path (repo root folder)"
         },
         "warduino.WABToolChainPath": {
           "type": "string",
           "scope": "resource",
-          "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/",
-          "description": "WARDuino toolchain path"
+          "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/build",
+          "description": "TOPLLab WABT toolchain path (build folder)"
         }
       }
     }

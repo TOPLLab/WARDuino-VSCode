@@ -22,28 +22,31 @@ export class DebugBridgeFactory {
                 }
 
                 let portAddress: string | undefined;
+                let fqbn: string | undefined;
                 switch (target) {
                     case RunTimeTarget.emulator:
                         bridge = new WARDuinoDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.embedded:
                         portAddress = vscode.workspace.getConfiguration().get("warduino.Port");
+                        fqbn = vscode.workspace.getConfiguration().get("warduino.Device");
 
-                        if (portAddress === undefined) {
+                        if (portAddress === undefined || fqbn === undefined) {
                             throw new Error('Configuration error. No port address set.');
                         }
-                        bridge = new WARDuinoDebugBridge(file, sourceMap, tmpdir, listener, portAddress, warduinoSDK);
+                        bridge = new WARDuinoDebugBridge(file, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                     case RunTimeTarget.wood:
                         bridge = new WOODDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.drone:
                         portAddress = vscode.workspace.getConfiguration().get("warduino.Port");
+                        fqbn = vscode.workspace.getConfiguration().get("warduino.Device");
 
-                        if (portAddress === undefined) {
+                        if (portAddress === undefined || fqbn === undefined) {
                             throw new Error('Configuration error. No port address set.');
                         }
-                        bridge = new DroneDebugBridge(file, sourceMap, tmpdir, listener, portAddress, warduinoSDK);
+                        bridge = new DroneDebugBridge(file, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                 }
 
