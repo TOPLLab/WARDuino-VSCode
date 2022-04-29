@@ -141,6 +141,10 @@ export class WARDuinoDebugBridge extends AbstractDebugBridge {
             cwd: path
         });
 
+        compile.stdout.on("data", data => {
+            console.log(data.toString());
+        });
+
         compile.stderr.on("data", (data: string) => {
             console.error(`stderr: ${data}`);
             this.listener.notifyProgress(Messages.initialisationFailure);

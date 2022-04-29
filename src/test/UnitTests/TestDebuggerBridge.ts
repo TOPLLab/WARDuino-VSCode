@@ -13,6 +13,7 @@ import ErrnoException = NodeJS.ErrnoException;
 
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
+const wabtSDK = `${runPath}/WABT/build`;
 const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
 const listener = {
     notifyError(): void {
@@ -71,7 +72,7 @@ async function init(target: RunTimeTarget) {
             ;
         });
 
-        let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir);
+        let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir, wabtSDK);
         await compilerBridge.compile();
     }
 
