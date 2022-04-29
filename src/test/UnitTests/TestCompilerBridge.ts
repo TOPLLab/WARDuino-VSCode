@@ -7,8 +7,9 @@ import * as os from "os";
 import * as path from "path";
 import ErrnoException = NodeJS.ErrnoException;
 
-let runPath = process.cwd();
-let wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
+const runPath = process.cwd();
+const wabtSDK = `${runPath}/WABT/build`;
+const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
 
 suite('WASMCompilerBridge Test Suite', () => {
     let tmpdir: string = "";
@@ -25,7 +26,7 @@ suite('WASMCompilerBridge Test Suite', () => {
     });
 
     test('TestCompileOK', async () => {
-        let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir);
+        let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir, wabtSDK);
         let result = await compilerBridge.compile();
         expect(result.lineInfoPairs).to.have.lengthOf.above(0);
         expect(result.lineInfoPairs[0].lineAddress).to.equal('000002e');
@@ -33,7 +34,7 @@ suite('WASMCompilerBridge Test Suite', () => {
     });
 
     test('TestCompileBridgeSyntaxError', async () => {
-        let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_syntax_error.wast`, tmpdir);
+        let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_syntax_error.wast`, tmpdir, wabtSDK);
         let result = await compilerBridge.compile().catch((reason) => {
                 expect(reason.lineInfo.line).to.equal(1);
                 expect(reason.lineInfo.column).to.equal(2);
