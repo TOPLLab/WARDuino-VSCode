@@ -1,9 +1,9 @@
-import {WARDuinoDebugBridgeEmulator} from "./WARDuinoDebugBridgeEmulator";
+import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {exec} from "child_process";
 
-export class WOODDebugBridgeEmulator extends WARDuinoDebugBridgeEmulator {
+export class WOODDebugBridge extends EmulatedDebugBridge {
     public async pushSession(woodState: WOODState) {
         console.log("Plugin: WOOD RecvState");
         let offset = await this.getOffset();

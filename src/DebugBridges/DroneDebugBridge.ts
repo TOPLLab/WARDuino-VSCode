@@ -1,4 +1,4 @@
-import {WARDuinoDebugBridge} from "./WARDuinoDebugBridge";
+import {HardwareDebugBridge} from "./HardwareDebugBridge";
 import {exec} from "child_process";
 import {Messages} from "./AbstractDebugBridge";
 
@@ -7,7 +7,7 @@ export interface Socket {
     port: string
 }
 
-export class DroneDebugBridge extends WARDuinoDebugBridge {
+export class DroneDebugBridge extends HardwareDebugBridge {
     private socket: Socket = {host: "", port: "8080"};  // TODO host?
 
     public compileAndUpload(): Promise<boolean> {

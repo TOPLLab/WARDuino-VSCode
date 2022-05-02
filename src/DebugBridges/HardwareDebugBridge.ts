@@ -7,7 +7,7 @@ import {exec, spawn} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
 
-export class WARDuinoDebugBridge extends AbstractDebugBridge {
+export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
     private wasmPath: string;
     protected port: SerialPort | undefined;

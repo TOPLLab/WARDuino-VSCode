@@ -1,12 +1,12 @@
 import {DebugBridge} from "./DebugBridge";
 import {DebugBridgeListener} from "./DebugBridgeListener";
 import {RunTimeTarget} from "./RunTimeTarget";
-import {WARDuinoDebugBridgeEmulator} from "./WARDuinoDebugBridgeEmulator";
+import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
 import {getFileExtension} from '../Parsers/ParseUtils';
-import {WARDuinoDebugBridge} from "./WARDuinoDebugBridge";
+import {HardwareDebugBridge} from "./HardwareDebugBridge";
 import * as vscode from "vscode";
 import {SourceMap} from "../State/SourceMap";
-import {WOODDebugBridgeEmulator} from "./WOODDebugBridgeEmulator";
+import {WOODDebugBridge} from "./WOODDebugBridge";
 import {Messages} from "./AbstractDebugBridge";
 import {DroneDebugBridge} from "./DroneDebugBridge";
 
@@ -25,7 +25,7 @@ export class DebugBridgeFactory {
                 let fqbn: string | undefined;
                 switch (target) {
                     case RunTimeTarget.emulator:
-                        bridge = new WARDuinoDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
+                        bridge = new EmulatedDebugBridge(file, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.embedded:
                         portAddress = vscode.workspace.getConfiguration().get("warduino.Port");
@@ -34,10 +34,10 @@ export class DebugBridgeFactory {
                         if (portAddress === undefined || fqbn === undefined) {
                             throw new Error('Configuration error. No port address set.');
                         }
-                        bridge = new WARDuinoDebugBridge(file, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridge = new HardwareDebugBridge(file, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                     case RunTimeTarget.wood:
-                        bridge = new WOODDebugBridgeEmulator(file, sourceMap, tmpdir, listener, warduinoSDK);
+                        bridge = new WOODDebugBridge(file, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.drone:
                         portAddress = vscode.workspace.getConfiguration().get("warduino.Port");

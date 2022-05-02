@@ -7,7 +7,7 @@ import {SourceMap} from "../State/SourceMap";
 import {AbstractDebugBridge} from "./AbstractDebugBridge";
 import {WOODState} from "../State/WOODState";
 
-export class WARDuinoDebugBridgeEmulator extends AbstractDebugBridge {
+export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client?: net.Socket;
     private wasmPath: string;
     private readonly sdk: string;

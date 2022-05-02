@@ -25,7 +25,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import {WOODState} from "../State/WOODState";
-import {WOODDebugBridgeEmulator} from "../DebugBridges/WOODDebugBridgeEmulator";
+import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {DroneDebugBridge} from "../DebugBridges/DroneDebugBridge";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
@@ -173,7 +173,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.droneBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.drone, that.tmpdir, {
                         connected(): void {
                             const socket = (that.droneBridge as DroneDebugBridge).getSocket();
-                            (that.debugBridge as WOODDebugBridgeEmulator).specifyPrimitives(socket.host, socket.port);
+                            (that.debugBridge as WOODDebugBridge).specifyPrimitives(socket.host, socket.port);
                         }, disconnected(): void {
                         }, notifyError(message: string): void {
                         }, notifyPaused(): void {
