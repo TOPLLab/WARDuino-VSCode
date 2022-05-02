@@ -47,10 +47,9 @@ export class DroneDebugBridge extends HardwareDebugBridge {
 
         this.port?.on("data", data => {
             const text = data.toString();
-            if (this.socket.host.length === 0 && text.search('localip') >= 0) {
-                let search = /localip: ([0-9.]*)/.exec(text);
-                // @ts-ignore
-                this.socket.host = search && search.length > 1 ? search[1] : "";
+            const search = /(?:[0-9]{1,3}\.){3}[0-9]{1,3}/.exec(text);
+            if (this.socket.host.length === 0 && search !== null) {
+                this.socket.host = search && search.length > 0 ? search[0] : "";
                 this.listener.connected();
             }
         });
