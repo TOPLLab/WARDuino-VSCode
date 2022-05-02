@@ -179,10 +179,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    private sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
-        return this.port?.write(`${i} \n`, callback);
-    }
-
     getCurrentFunctionIndex(): number {
         if (this.callstack.length === 0) {
             return -1;

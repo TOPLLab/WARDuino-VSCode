@@ -8,7 +8,7 @@ import {AbstractDebugBridge} from "./AbstractDebugBridge";
 import {WOODState} from "../State/WOODState";
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
-    public client?: net.Socket;
+    public port: net.Socket | undefined;
     private wasmPath: string;
     private readonly sdk: string;
     private readonly tmpdir: string;
@@ -37,7 +37,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
             console.log(`setting ${name} ${value}`);
             try {
                 let command = this.getVariableCommand(name, value);
-                this.client?.write(command, err => {
+                this.port?.write(command, err => {
                     resolve("Interrupt send.");
                 });
             } catch {
@@ -78,22 +78,22 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             let that = this;
-            if (this.client === undefined) {
+            if (this.port === undefined) {
                 let address = {port: 8192, host: "127.0.0.1"};  // TODO config
-                this.client = new net.Socket();
-                this.client.connect(address, () => {
+                this.port = new net.Socket();
+                this.port.connect(address, () => {
                     this.listener.notifyProgress("Connected to socket");
                     resolve(`${address.host}:${address.port}`);
                 });
 
-                this.client.on("error", err => {
+                this.port.on("error", err => {
                         this.listener.notifyError("Lost connection to the board");
                         console.error(err);
                         reject(err);
                     }
                 );
 
-                this.client.on("data", data => {
+                this.port.on("data", data => {
                         data.toString().split("\n").forEach((line) => {
                             if (line.startsWith("Interrupt:")) {
                                 this.buffer = line;
@@ -119,10 +119,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
-        return this.client?.write(`${i} \n`, callback);
-    }
-
     public step() {
         this.sendInterrupt(InterruptTypes.interruptSTEP);
     }
@@ -141,7 +137,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
     private executeCommand(command: InterruptTypes) {
         console.log(command.toString());
-        this.client?.write(command.toString + '\n');
+        this.port?.write(command.toString + '\n');
     }
 
     private startEmulator(): Promise<string> {
@@ -172,7 +168,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
     public disconnect(): void {
         this.cp?.kill();
-        this.client?.destroy();
+        this.port?.destroy();
     }
 
     private spawnEmulatorProcess(): ChildProcess {

@@ -4,6 +4,8 @@ import {VariableInfo} from "../State/VariableInfo";
 import {SourceMap} from "../State/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
 import {WOODState} from "../State/WOODState";
+import {InterruptTypes} from "./InterruptTypes";
+import {Writable} from "stream";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -39,6 +41,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected listener: DebugBridgeListener;
     protected pc: number = 0;
     protected callstack: Frame[] = [];
+    protected abstract port: Writable | undefined;
 
     protected constructor(sourceMap: SourceMap | void, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
@@ -70,6 +73,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     abstract step(): void;
 
     abstract upload(): void;
+
+    protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
+        return this.port?.write(`${i} \n`, callback);
+    }
 
     protected getVariableCommand(name: string, value: number): string {
         let local = this.getLocals(this.getCurrentFunctionIndex()).find(o => o.name === name);

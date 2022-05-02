@@ -11,7 +11,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         const messages: string[] = await woodState.toBinary(offset);
         for (let i = 0; i < messages.length; i++) {
             console.log(`send 62 message: ${messages[i]}\n`);
-            this.client?.write(`${messages[i]} \n`);
+            this.port?.write(`${messages[i]} \n`);
         }
     }
 
@@ -49,7 +49,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
             //     reject(`encode_monitor_proxies exited with code: ${code}`);
             // });
         });
-        this.client?.write(message);
+        this.port?.write(message);
     }
 
     private getOffset(): Promise<string> {
@@ -61,13 +61,13 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
                 data.toString().split("\n").forEach((line) => {
                     console.log(line);
                     if (line.startsWith("{")) {
-                        that.client?.removeListener("data", parseOffset);
+                        that.port?.removeListener("data", parseOffset);
                         resolve(JSON.parse(line).offset);
                     }
                 });
             }
 
-            this.client?.on("data", parseOffset);
+            this.port?.on("data", parseOffset);
         });
     }
 }
