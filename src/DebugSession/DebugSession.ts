@@ -27,6 +27,7 @@ import * as path from "path";
 import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {DroneDebugBridge} from "../DebugBridges/DroneDebugBridge";
+import {EventsProvider} from "../Views/EventsProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -114,6 +115,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log(args.program);
         this.reporter.clear();
         this.program = args.program;
+
+        vscode.window.registerTreeDataProvider("events", new EventsProvider());
 
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {

@@ -41,6 +41,15 @@
         "title": "Pull debugsession"
       }
     ],
+    "views": {
+      "debug": [
+        {
+          "id": "events",
+          "name": "events",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "WARDuino Debugger",
       "properties": {
