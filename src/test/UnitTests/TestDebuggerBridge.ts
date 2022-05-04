@@ -52,7 +52,8 @@ async function init(target: RunTimeTarget) {
                                 undefined,
                                 tmpdir,
                                 listener,
-                                warduinoSDK
+                                warduinoSDK,
+                                ""
                             );
                             break;
                         case RunTimeTarget.emulator:
