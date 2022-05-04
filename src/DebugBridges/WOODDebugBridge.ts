@@ -2,8 +2,23 @@ import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {exec} from "child_process";
+import {FunctionInfo} from "../State/FunctionInfo";
+import {SourceMap} from "../State/SourceMap";
+import {DebugBridgeListener} from "./DebugBridgeListener";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
+    private readonly outOfThings: string;
+
+    constructor(wasmPath: string, sourceMap: SourceMap | void, tmpdir: string, listener: DebugBridgeListener,
+                warduinoSDK: string, outOfThings: string) {
+        super(wasmPath, sourceMap, tmpdir, listener, warduinoSDK);
+        this.outOfThings = outOfThings;
+    }
+
+    private getPrimitives(): number[] {
+        return this.sourceMap?.importInfos.map((primitive: FunctionInfo) => (primitive.index)) ?? [];
+    }
+
     public async pushSession(woodState: WOODState) {
         console.log("Plugin: WOOD RecvState");
         let offset = await this.getOffset();
@@ -21,33 +36,16 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         }
 
         console.log(`Connected to drone (${host}:${port}).`);
-        let primitives = [0, 1, 2]; // TODO get list from UI
-        let message: string = await new Promise((resolve, reject) => {
-            // let process = spawn(`cd /home/tolauwae/Documents/out-of-things/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${host}', ${port}, [${primitives}])"`);
-            // TODO use spawn
-
-            exec(`cd /home/tolauwae/Documents/out-of-things/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${host}', ${port}, [${primitives}])"`, (err, stdout, stderr) => {
+        const primitives = this.getPrimitives();  // TODO filter in GUI
+        const message: string = await new Promise((resolve, reject) => {
+            exec(`cd ${this.outOfThings}/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${host}', ${port}, [${primitives}])"`, (err, stdout, stderr) => {
                 resolve(stdout);
                 console.error(stderr);
                 if (err) {
                     reject(err.message);
                 }
             });
-            // TODO add to config (or better yet remove need for python script)
-
-            // process.stdout?.on("data", (data: Buffer) => {
-            //     console.log(data.toString());
-            //     resolve(data.toString());
-            // });
-
-            // process.stderr?.on("data", (data: Buffer) => {
-            //     console.log(`stderr: ${data.toString()}`);
-            //     reject(data.toString());
-            // });
-
-            // process.on("close", code => {
-            //     reject(`encode_monitor_proxies exited with code: ${code}`);
-            // });
+            // TODO remove need for python script
         });
         this.port?.write(message);
     }

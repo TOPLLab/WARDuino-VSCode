@@ -90,6 +90,12 @@
           "scope": "resource",
           "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/build",
           "description": "TOPLLab WABT toolchain path (build folder)"
+        },
+        "warduino.OutOfThings": {
+          "type": "string",
+          "scope": "resource",
+          "default": "/home/tolauwae/Documents/out-of-things",
+          "description": "Out Of Things SDK path (repo root folder)"
         }
       }
     }
