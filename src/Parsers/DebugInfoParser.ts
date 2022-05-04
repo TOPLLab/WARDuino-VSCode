@@ -22,6 +22,11 @@ export class DebugInfoParser {
             }
         }
 
+        if (line.startsWith("{\"events")) {
+            let obj = JSON.parse(line);
+            bridge.refreshEvents(line.events);
+        }
+
         if (line.startsWith("{")) {
             let obj = JSON.parse(line);
             this.addressBeginning = parseInt(obj.start);

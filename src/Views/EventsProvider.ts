@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import {ProviderResult, TreeItem, TreeItemCollapsibleState} from 'vscode';
 
 export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
+    private events: EventItem[] = [];
+
     getChildren(element?: EventItem): ProviderResult<EventItem[]> {
         if (element === undefined) {
-            return [
-                new EventItem("button1", "", TreeItemCollapsibleState.Collapsed),
-                new EventItem("hello/world", "Hello World!", TreeItemCollapsibleState.Collapsed)];
+            return this.events;
         } else if (element.collapsibleState !== TreeItemCollapsibleState.None) {
             let children = [new EventItem(`topic: ${element.topic}`, "")];
             if (element.payload.length > 0) {
@@ -20,9 +20,13 @@ export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
     getTreeItem(element: EventItem): TreeItem | Thenable<TreeItem> {
         return element;
     }
+
+    setEvents(events: EventItem[]) {
+        this.events = events;
+    }
 }
 
-class EventItem extends vscode.TreeItem {
+export class EventItem extends vscode.TreeItem {
     topic: string;
     payload: string;
 

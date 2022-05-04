@@ -5,13 +5,14 @@ import {exec} from "child_process";
 import {FunctionInfo} from "../State/FunctionInfo";
 import {SourceMap} from "../State/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
+import {EventsProvider} from "../Views/EventsProvider";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
     private readonly outOfThings: string;
 
-    constructor(wasmPath: string, sourceMap: SourceMap | void, tmpdir: string, listener: DebugBridgeListener,
+    constructor(wasmPath: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
                 warduinoSDK: string, outOfThings: string) {
-        super(wasmPath, sourceMap, tmpdir, listener, warduinoSDK);
+        super(wasmPath, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
         this.outOfThings = outOfThings;
     }
 

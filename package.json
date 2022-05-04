@@ -34,11 +34,21 @@
     "commands": [
       {
         "command": "warduinodebug.upload",
-        "title": "upload file"
+        "category": "WARDuino",
+        "title": "Upload file",
+        "icon": "$(arrow-circle-up)"
       },
       {
         "command": "warduinodebug.multiverse",
-        "title": "Pull debugsession"
+        "category": "WARDuino",
+        "title": "Pull debugsession",
+        "icon": "$(arrow-circle-down)"
+      },
+      {
+        "command": "warduinodebug.popEvent",
+        "category": "WARDuino",
+        "title": "Pop event",
+        "icon": "$(debug-step-over)"
       }
     ],
     "views": {
@@ -79,7 +89,7 @@
           "default": "esp32:esp32:esp32wrover",
           "description": "The FQBN of the target device"
         },
-        "warduino.WarduinoToolChainPath": {
+        "warduino.WARDuinoToolChainPath": {
           "type": "string",
           "scope": "resource",
           "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/",

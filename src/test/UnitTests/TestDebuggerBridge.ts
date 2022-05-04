@@ -50,6 +50,7 @@ async function init(target: RunTimeTarget) {
                         case RunTimeTarget.wood:
                             bridge = new WOODDebugBridge("",
                                 undefined,
+                                undefined,
                                 tmpdir,
                                 listener,
                                 warduinoSDK,
@@ -59,6 +60,7 @@ async function init(target: RunTimeTarget) {
                         case RunTimeTarget.emulator:
                         default:
                             bridge = new EmulatedDebugBridge("",
+                                undefined,
                                 undefined,
                                 tmpdir,
                                 listener,

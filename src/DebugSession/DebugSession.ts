@@ -116,7 +116,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.reporter.clear();
         this.program = args.program;
 
-        vscode.window.registerTreeDataProvider("events", new EventsProvider());
+        const eventsProvider = new EventsProvider();
+        vscode.window.registerTreeDataProvider("events", eventsProvider);
 
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
@@ -137,7 +138,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         let that = this;
         const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
-        this.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap,
+        this.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface
@@ -150,7 +151,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 startMultiverseDebugging(woodState: WOODState) {
                     that.debugBridge?.disconnect();
 
-                    that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.wood, that.tmpdir, {
+                    that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
                         connected(): void {
@@ -173,7 +174,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         }
                     });
 
-                    that.droneBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, RunTimeTarget.drone, that.tmpdir, {
+                    that.droneBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.drone, that.tmpdir, {
                         connected(): void {
                             const socket = (that.droneBridge as DroneDebugBridge).getSocket();
                             (that.debugBridge as WOODDebugBridge).specifyPrimitives(socket.host, socket.port);
@@ -226,6 +227,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         });
     }
 
+    // Commands
+
     public upload() {
         this.debugBridge?.upload();
     }
@@ -233,6 +236,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     public startMultiverseDebugging() {
         this.debugBridge?.pullSession();
     }
+
+    public popEvent() {
+        this.debugBridge?.popEvent();
+    }
+
+    //
 
     private handleCompileError(handleCompileError: CompileTimeError) {
         let range = new vscode.Range(handleCompileError.lineInfo.line - 1,

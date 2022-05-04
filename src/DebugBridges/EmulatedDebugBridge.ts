@@ -6,6 +6,7 @@ import {DebugInfoParser} from "../Parsers/DebugInfoParser";
 import {SourceMap} from "../State/SourceMap";
 import {AbstractDebugBridge} from "./AbstractDebugBridge";
 import {WOODState} from "../State/WOODState";
+import {EventsProvider} from "../Views/EventsProvider";
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public port: net.Socket | undefined;
@@ -17,9 +18,9 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private startAddress: number = 0;
     private buffer: string = "";
 
-    constructor(wasmPath: string, sourceMap: SourceMap | void, tmpdir: string, listener: DebugBridgeListener,
+    constructor(wasmPath: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
                 warduinoSDK: string) {
-        super(sourceMap, listener);
+        super(sourceMap, eventsProvider, listener);
 
         this.wasmPath = wasmPath;
         this.sdk = warduinoSDK;

@@ -13,6 +13,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.multiverse', () => {
         factory.warduino?.startMultiverseDebugging();
     }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.popEvent', () => {
+        factory.warduino?.popEvent();
+    }));
 }
 
 function installDiagnosticReporting(context: vscode.ExtensionContext) {

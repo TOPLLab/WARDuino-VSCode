@@ -6,6 +6,7 @@ import {DebugBridgeListener} from "./DebugBridgeListener";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {Writable} from "stream";
+import {EventItem, EventsProvider} from "../Views/EventsProvider";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -43,26 +44,38 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected callstack: Frame[] = [];
     protected abstract port: Writable | undefined;
 
-    protected constructor(sourceMap: SourceMap | void, listener: DebugBridgeListener) {
+    private eventsProvider: EventsProvider | void;
+
+    protected constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
+        this.eventsProvider = eventsProvider;
         this.listener = listener;
     }
+
+    // General Bridge functionality
 
     abstract connect(): Promise<string>;
 
     abstract disconnect(): void;
 
-    abstract getCurrentFunctionIndex(): number;
+    abstract upload(): void;
 
-    abstract pause(): void;
+    // Debug API
 
-    abstract pullSession(): void;
+    run(): void {
+        this.sendInterrupt(InterruptTypes.interruptRUN);
+    }
 
-    abstract pushSession(woodState: WOODState): void;
+    pause(): void {
+        this.sendInterrupt(InterruptTypes.interruptPAUSE);
+        this.listener.notifyPaused();
+    }
+
+    abstract step(): void;
 
     abstract refresh(): void;
 
-    abstract run(): void;
+    abstract getCurrentFunctionIndex(): number;
 
     abstract setBreakPoint(x: number): void;
 
@@ -70,9 +83,19 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract setVariable(name: string, value: number): Promise<string>;
 
-    abstract step(): void;
+    abstract pullSession(): void;
 
-    abstract upload(): void;
+    abstract pushSession(woodState: WOODState): void;
+
+    refreshEvents(events: EventItem[]) {
+        this.eventsProvider?.setEvents(events);
+    }
+
+    popEvent(): void {
+        this.sendInterrupt(InterruptTypes.interruptPOPEvent);
+    }
+
+    // Helper functions
 
     protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
         return this.port?.write(`${i} \n`, callback);
@@ -86,6 +109,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             throw new Error("Failed to set variables.");
         }
     }
+
+    // Getters and Setters
 
     getProgramCounter(): number {
         return this.pc;

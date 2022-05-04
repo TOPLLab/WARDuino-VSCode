@@ -6,6 +6,7 @@ import {InterruptTypes} from "./InterruptTypes";
 import {exec, spawn} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
+import {EventsProvider} from "../Views/EventsProvider";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
@@ -20,12 +21,13 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     constructor(wasmPath: string,
                 sourceMap: SourceMap | void,
+                eventsProvider: EventsProvider | void,
                 tmpdir: string,
                 listener: DebugBridgeListener,
                 portAddress: string,
                 fqbn: string,
                 warduinoSDK: string) {
-        super(sourceMap, listener);
+        super(sourceMap, eventsProvider, listener);
 
         this.wasmPath = wasmPath;
         this.sourceMap = sourceMap;
@@ -52,15 +54,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     setStartAddress(startAddress: number) {
         this.startAddress = startAddress;
-    }
-
-    run(): void {
-        this.sendInterrupt(InterruptTypes.interruptRUN);
-    }
-
-    pause(): void {
-        this.sendInterrupt(InterruptTypes.interruptPAUSE);
-        this.listener.notifyPaused();
     }
 
     async connect(): Promise<string> {

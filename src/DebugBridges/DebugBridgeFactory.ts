@@ -9,6 +9,7 @@ import {SourceMap} from "../State/SourceMap";
 import {WOODDebugBridge} from "./WOODDebugBridge";
 import {Messages} from "./AbstractDebugBridge";
 import {DroneDebugBridge} from "./DroneDebugBridge";
+import {EventsProvider} from "../Views/EventsProvider";
 
 function getConfig(id: string): string {
     const config: string | undefined = vscode.workspace.getConfiguration().get(id);
@@ -19,29 +20,29 @@ function getConfig(id: string): string {
 }
 
 export class DebugBridgeFactory {
-    static makeDebugBridge(file: string, sourceMap: SourceMap | void, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
+    static makeDebugBridge(file: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
             case "wast" :
-                const warduinoSDK: string = getConfig("warduino.WarduinoToolChainPath");
+                const warduinoSDK: string = getConfig("warduino.WARDuinoToolChainPath");
                 const portAddress: string = getConfig("warduino.Port");
                 const fqbn: string = getConfig("warduino.Device");
                 const outOfThings: string = getConfig("warduino.OutOfThings");
                 switch (target) {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:
-                        bridge = new EmulatedDebugBridge(file, sourceMap, tmpdir, listener, warduinoSDK);
+                        bridge = new EmulatedDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.wood:
-                        bridge = new WOODDebugBridge(file, sourceMap, tmpdir, listener, warduinoSDK, outOfThings);
+                        bridge = new WOODDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK, outOfThings);
                         break;
                     // Hardware runtimes
                     case RunTimeTarget.embedded:
-                        bridge = new HardwareDebugBridge(file, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridge = new HardwareDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                     case RunTimeTarget.drone:
-                        bridge = new DroneDebugBridge(file, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridge = new DroneDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                 }
 
