@@ -28,7 +28,7 @@ import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {DroneDebugBridge} from "../DebugBridges/DroneDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
-import {CallbackItem, CallbacksProvider} from "../Views/CallbacksProvider";
+import {ProxiesProvider, ProxyItem} from "../Views/ProxiesProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -46,7 +46,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private droneBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
     private reporter: ErrorReporter;
-    private callbacksProvider?: CallbacksProvider;
+    private callbacksProvider?: ProxiesProvider;
 
     private variableHandles = new Handles<'locals' | 'globals'>();
 
@@ -121,8 +121,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const eventsProvider = new EventsProvider();
         vscode.window.registerTreeDataProvider("events", eventsProvider);
 
-        this.callbacksProvider = new CallbacksProvider();
-        vscode.window.registerTreeDataProvider("callbacks", this.callbacksProvider);
+        this.callbacksProvider = new ProxiesProvider();
+        vscode.window.registerTreeDataProvider("proxies", this.callbacksProvider);
 
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
@@ -247,10 +247,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.debugBridge?.popEvent();
     }
 
-    public toggleProxy(resource: CallbackItem) {
+    public toggleProxy(resource: ProxyItem) {
         resource.toggle();
         this.callbacksProvider?.refresh();
-        this.debugBridge?.updateSelectedCallbacks(resource);
+        this.debugBridge?.updateSelectedProxies(resource);
     }
 
     //
@@ -266,11 +266,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
         console.log("breakpointLocationsRequest");
-
     }
 
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {
-
         if (this.sourceMap === undefined) {
             console.log("no source map yet");
         } else {

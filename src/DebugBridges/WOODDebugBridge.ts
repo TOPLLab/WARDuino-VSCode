@@ -33,7 +33,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         }
 
         console.log(`Connected to drone (${host}:${port}).`);
-        const primitives = this.getSelectedCallbacks();  // TODO filter in GUI
+        const primitives = this.getSelectedProxies();  // TODO filter in GUI
         const message: string = await new Promise((resolve, reject) => {
             exec(`cd ${this.outOfThings}/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${host}', ${port}, [${primitives}])"`, (err, stdout, stderr) => {
                 resolve(stdout);

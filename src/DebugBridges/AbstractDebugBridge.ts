@@ -8,7 +8,7 @@ import {InterruptTypes} from "./InterruptTypes";
 import {Writable} from "stream";
 import {EventItem, EventsProvider} from "../Views/EventsProvider";
 import {FunctionInfo} from "../State/FunctionInfo";
-import {CallbackItem} from "../Views/CallbacksProvider";
+import {ProxyItem} from "../Views/ProxiesProvider";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -48,7 +48,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected abstract port: Writable | undefined;
 
     private eventsProvider: EventsProvider | void;
-    private selectedCallbacks: Set<CallbackItem> = new Set<CallbackItem>();
+    private selectedProxies: Set<ProxyItem> = new Set<ProxyItem>();
 
     protected constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
@@ -116,11 +116,11 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.sendInterrupt(InterruptTypes.interruptPOPEvent);
     }
 
-    updateSelectedCallbacks(callback: CallbackItem) {
-        if (callback.isSelected()) {
-            this.selectedCallbacks.add(callback);
+    updateSelectedProxies(proxy: ProxyItem) {
+        if (proxy.isSelected()) {
+            this.selectedProxies.add(proxy);
         } else {
-            this.selectedCallbacks.delete(callback);
+            this.selectedProxies.delete(proxy);
         }
     };
 
@@ -143,8 +143,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return this.sourceMap?.importInfos.map((primitive: FunctionInfo) => (primitive.index)) ?? [];
     }
 
-    protected getSelectedCallbacks(): number[] {
-        return [...this.selectedCallbacks].map((callback: CallbackItem) => (callback.index));
+    protected getSelectedProxies(): number[] {
+        return [...this.selectedProxies].map((callback: ProxyItem) => (callback.index));
     }
 
     // Getters and Setters
