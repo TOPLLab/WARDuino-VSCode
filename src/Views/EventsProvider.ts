@@ -4,6 +4,9 @@ import {ProviderResult, TreeItem, TreeItemCollapsibleState} from 'vscode';
 export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
     private events: EventItem[] = [];
 
+    private _onDidChangeTreeData: vscode.EventEmitter<EventItem | undefined | null | void> = new vscode.EventEmitter<EventItem | undefined | null | void>();
+    readonly onDidChangeTreeData: vscode.Event<EventItem | undefined | null | void> = this._onDidChangeTreeData.event;
+
     getChildren(element?: EventItem): ProviderResult<EventItem[]> {
         if (element === undefined) {
             return this.events;
@@ -23,6 +26,7 @@ export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
 
     setEvents(events: EventItem[]) {
         this.events = events;
+        this._onDidChangeTreeData.fire();
     }
 }
 

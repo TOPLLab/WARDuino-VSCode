@@ -7,6 +7,8 @@ import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {Writable} from "stream";
 import {EventItem, EventsProvider} from "../Views/EventsProvider";
+import {FunctionInfo} from "../State/FunctionInfo";
+import {CallbackItem} from "../Views/CallbacksProvider";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -45,6 +47,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected abstract port: Writable | undefined;
 
     private eventsProvider: EventsProvider | void;
+    private selectedCallbacks: Set<CallbackItem> = new Set<CallbackItem>();
 
     protected constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
@@ -95,6 +98,14 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.sendInterrupt(InterruptTypes.interruptPOPEvent);
     }
 
+    updateSelectedCallbacks(callback: CallbackItem) {
+        if (callback.isSelected()) {
+            this.selectedCallbacks.add(callback);
+        } else {
+            this.selectedCallbacks.delete(callback);
+        }
+    };
+
     // Helper functions
 
     protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
@@ -108,6 +119,14 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         } else {
             throw new Error("Failed to set variables.");
         }
+    }
+
+    protected getPrimitives(): number[] {
+        return this.sourceMap?.importInfos.map((primitive: FunctionInfo) => (primitive.index)) ?? [];
+    }
+
+    protected getSelectedCallbacks(): number[] {
+        return [...this.selectedCallbacks].map((callback: CallbackItem) => (callback.index));
     }
 
     // Getters and Setters

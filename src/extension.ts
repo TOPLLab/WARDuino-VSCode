@@ -16,6 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.popEvent', () => {
         factory.warduino?.popEvent();
     }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.toggleCallback', resource => {
+        factory.warduino?.toggleProxy(resource);
+    }));
 }
 
 function installDiagnosticReporting(context: vscode.ExtensionContext) {

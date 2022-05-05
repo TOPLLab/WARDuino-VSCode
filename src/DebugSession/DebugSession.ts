@@ -28,6 +28,7 @@ import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {DroneDebugBridge} from "../DebugBridges/DroneDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
+import {CallbackItem, CallbacksProvider} from "../Views/CallbacksProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -45,6 +46,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private droneBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
     private reporter: ErrorReporter;
+    private callbacksProvider?: CallbacksProvider;
 
     private variableHandles = new Handles<'locals' | 'globals'>();
 
@@ -119,6 +121,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const eventsProvider = new EventsProvider();
         vscode.window.registerTreeDataProvider("events", eventsProvider);
 
+        this.callbacksProvider = new CallbacksProvider();
+        vscode.window.registerTreeDataProvider("callbacks", this.callbacksProvider);
+
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
                 if (err === null) {
@@ -135,6 +140,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let sourceMap: SourceMap | void = await compiler.compile().catch((reason) => this.handleCompileError(reason));
         if (sourceMap) {
             this.sourceMap = sourceMap;
+            this.callbacksProvider.setCallbacks(sourceMap?.importInfos ?? []);
         }
         let that = this;
         const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
@@ -239,6 +245,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     public popEvent() {
         this.debugBridge?.popEvent();
+    }
+
+    public toggleProxy(resource: CallbackItem) {
+        resource.toggle();
+        this.callbacksProvider?.refresh();
+        this.debugBridge?.updateSelectedCallbacks(resource);
     }
 
     //

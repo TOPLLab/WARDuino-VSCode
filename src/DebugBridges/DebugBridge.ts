@@ -2,6 +2,7 @@ import {VariableInfo} from "../State/VariableInfo";
 import {Frame} from "../Parsers/Frame";
 import {WOODState} from "../State/WOODState";
 import {EventItem} from "../Views/EventsProvider";
+import {CallbackItem} from "../Views/CallbacksProvider";
 
 export interface DebugBridge {
     setStartAddress(startAddress: number): void;
@@ -35,6 +36,9 @@ export interface DebugBridge {
     refreshEvents(events: EventItem[]): void;
 
     popEvent(): void;
+
+    // Adds or removes the current callback depending on whether is selected or not respectively
+    updateSelectedCallbacks(callback: CallbackItem): void;
 
     setBreakPoint(x: number): void;
 

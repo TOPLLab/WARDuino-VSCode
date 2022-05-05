@@ -16,10 +16,6 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         this.outOfThings = outOfThings;
     }
 
-    private getPrimitives(): number[] {
-        return this.sourceMap?.importInfos.map((primitive: FunctionInfo) => (primitive.index)) ?? [];
-    }
-
     public async pushSession(woodState: WOODState) {
         console.log("Plugin: WOOD RecvState");
         let offset = await this.getOffset();
@@ -37,7 +33,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         }
 
         console.log(`Connected to drone (${host}:${port}).`);
-        const primitives = this.getPrimitives();  // TODO filter in GUI
+        const primitives = this.getSelectedCallbacks();  // TODO filter in GUI
         const message: string = await new Promise((resolve, reject) => {
             exec(`cd ${this.outOfThings}/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${host}', ${port}, [${primitives}])"`, (err, stdout, stderr) => {
                 resolve(stdout);
