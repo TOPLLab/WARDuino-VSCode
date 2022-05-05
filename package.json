@@ -126,8 +126,8 @@
     "pretest": "yarn run compile && yarn run lint",
     "lint": "eslint src --ext ts",
     "extension-test": "node ./out/test/runTest.js",
-    "debugger-test": "mocha --ui tdd --require ts-node/register src/test/UnitTests/TestCompilerBridge.ts",
-    "compiler-test": "mocha --ui tdd --require ts-node/register src/test/UnitTests/TestDebuggerBridge.ts --grep '^Debug API Test Suite \\(emulated\\)'",
+    "compiler-test": "mocha --ui tdd --require ts-node/register src/test/UnitTests/TestCompilerBridge.ts",
+    "debugger-test": "mocha --ui tdd --require ts-node/register src/test/UnitTests/TestDebuggerBridge.ts --grep '^Debug API Test Suite \\(emulated\\)'",
     "unit-test": "npm run compiler-test && npm run debugger-test"
   },
   "devDependencies": {

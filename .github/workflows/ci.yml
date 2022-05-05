@@ -142,5 +142,5 @@ jobs:
                 key: ${{ env.WDCLI_CACHE }}-${{ steps.version.outputs.COMMIT }}
 
             - name: Run tests
-              run: npm run unit-test
+              run: npm run compiler-test
 
