@@ -41,6 +41,7 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
 
 export abstract class AbstractDebugBridge implements DebugBridge {
     protected sourceMap: SourceMap | void;
+    protected startAddress: number = 0;
     protected listener: DebugBridgeListener;
     protected pc: number = 0;
     protected callstack: Frame[] = [];
@@ -80,11 +81,28 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract getCurrentFunctionIndex(): number;
 
-    abstract setBreakPoint(x: number): void;
+    public setBreakPoint(address: number) {
+        let breakPointAddress: string = (this.startAddress + address).toString(16).toUpperCase();
+        let command = `060${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
+        console.log(`Plugin: sent ${command}`);
+        this.port?.write(command);
+    }
 
     abstract setStartAddress(startAddress: number): void;
 
-    abstract setVariable(name: string, value: number): Promise<string>;
+    setVariable(name: string, value: number): Promise<string> {
+        return new Promise<string>((resolve, reject) => {
+            console.log(`setting ${name} ${value}`);
+            try {
+                let command = this.getVariableCommand(name, value);
+                this.port?.write(command, err => {
+                    resolve("Interrupt send.");
+                });
+            } catch {
+                reject("Local not found.");
+            }
+        });
+    }
 
     abstract pullSession(): void;
 

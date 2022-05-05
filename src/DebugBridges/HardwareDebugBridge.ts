@@ -16,7 +16,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     protected readonly fqbn: string;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
-    private startAddress: number = 0;
     private woodDumpDetected: boolean = false;
 
     constructor(wasmPath: string,
@@ -38,19 +37,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.tmpdir = tmpdir;
     }
 
-    setVariable(name: string, value: number): Promise<string> {
-        return new Promise<string>((resolve, reject) => {
-            console.log(`setting ${name} ${value}`);
-            try {
-                let command = this.getVariableCommand(name, value);
-                this.port?.write(command, err => {
-                    resolve("Interrupt send.");
-                });
-            } catch {
-                reject("Local not found.");
-            }
-        });
-    }
 
     setStartAddress(startAddress: number) {
         this.startAddress = startAddress;
@@ -81,13 +67,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
                 }
             }
         );
-    }
-
-    public setBreakPoint(address: number) {
-        let breakPointAddress: string = (this.startAddress + address).toString(16).toUpperCase();
-        let command = `060${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
-        console.log(`Plugin: sent ${command}`);
-        this.port?.write(command);
     }
 
     private installInputStreamListener() {

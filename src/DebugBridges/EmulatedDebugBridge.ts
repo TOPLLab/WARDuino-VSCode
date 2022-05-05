@@ -15,7 +15,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private readonly tmpdir: string;
     private cp?: ChildProcess;
     private parser: DebugInfoParser;
-    private startAddress: number = 0;
     private buffer: string = "";
 
     constructor(wasmPath: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
@@ -33,36 +32,8 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         throw new Error("Method not implemented.");
     }
 
-    setVariable(name: string, value: number): Promise<string> {
-        return new Promise<string>((resolve, reject) => {
-            console.log(`setting ${name} ${value}`);
-            try {
-                let command = this.getVariableCommand(name, value);
-                this.port?.write(command, err => {
-                    resolve("Interrupt send.");
-                });
-            } catch {
-                reject("Local not found.");
-            }
-        });
-    }
-
-    pause(): void {
-        this.sendInterrupt(InterruptTypes.interruptPAUSE);
-        this.listener.notifyPaused();
-    }
-
     setStartAddress(startAddress: number) {
         this.startAddress = startAddress;
-    }
-
-    run(): void {
-        this.sendInterrupt(InterruptTypes.interruptRUN);
-    }
-
-    setBreakPoint(x: number): void {
-        console.log(`Plugin: set breakpoint at ${this.startAddress}`);
-        throw new Error('Method not implemented.');
     }
 
     public connect(): Promise<string> {
