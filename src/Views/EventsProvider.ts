@@ -31,10 +31,7 @@ export class EventItem extends vscode.TreeItem {
     payload: string;
 
     constructor(topic: string, payload: string, treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
-        let label = topic;
-        if (treeItemCollapsibleState !== TreeItemCollapsibleState.None) {
-            label = `Event for [${topic}]`;
-        }
+        const label = treeItemCollapsibleState !== TreeItemCollapsibleState.None ? `Event for [${topic}]` : topic;
         super(label, treeItemCollapsibleState);
         this.topic = topic;
         this.payload = payload;

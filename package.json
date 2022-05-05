@@ -48,7 +48,7 @@
         "command": "warduinodebug.popEvent",
         "category": "WARDuino",
         "title": "Pop event",
-        "icon": "$(debug-step-over)"
+        "icon": "$(arrow-down)"
       }
     ],
     "views": {
@@ -56,6 +56,15 @@
         {
           "id": "events",
           "name": "events",
+          "group": "navigation"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "warduinodebug.popEvent",
+          "when": "view == events",
           "group": "navigation"
         }
       ]
