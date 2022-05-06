@@ -28,6 +28,9 @@ const listener = {
     notifyPaused(): void {
 
     },
+    notifyBreakpointHit(): void {
+
+    },
     disconnected(): void {
 
     },
