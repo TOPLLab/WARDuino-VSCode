@@ -169,6 +169,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                             that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
                             that.debugBridge?.refresh();
                         },
+                        notifyBreakpointHit(): void {
+                            that.sendEvent(new StoppedEvent('breakpoint', that.THREAD_ID));
+                            that.debugBridge?.refresh();
+                        },
                         disconnected(): void {
 
                         },
@@ -187,6 +191,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         }, disconnected(): void {
                         }, notifyError(message: string): void {
                         }, notifyPaused(): void {
+                        }, notifyBreakpointHit() {
                         }, notifyProgress(message: string): void {
                         }, notifyStateUpdate(): void {
                         }, startMultiverseDebugging(woodState: WOODState): void {
@@ -195,6 +200,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 },
                 notifyPaused(): void {
                     that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
+                    that.debugBridge?.refresh();
+                },
+                notifyBreakpointHit(): void {
+                    that.sendEvent(new StoppedEvent('breakpoint', that.THREAD_ID));
                     that.debugBridge?.refresh();
                 },
                 disconnected(): void {

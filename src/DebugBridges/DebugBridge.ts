@@ -29,6 +29,8 @@ export interface DebugBridge {
 
     pause(): void;
 
+    hitBreakpoint(): void;
+
     pullSession(): void;
 
     pushSession(woodState: WOODState): void;

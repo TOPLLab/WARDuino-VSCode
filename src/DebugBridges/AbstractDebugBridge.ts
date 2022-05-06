@@ -75,6 +75,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.listener.notifyPaused();
     }
 
+    hitBreakpoint() {
+        this.listener.notifyBreakpointHit();
+    }
+
     abstract step(): void;
 
     abstract refresh(): void;
