@@ -81,6 +81,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
                 return;
             }
             this.woodDumpDetected = line.includes("DUMP!");
+            console.log(`hardware: ${line}`);
             this.parser.parse(this, line);
         });
     }

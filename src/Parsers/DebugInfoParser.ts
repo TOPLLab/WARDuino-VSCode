@@ -7,8 +7,6 @@ export class DebugInfoParser {
     private addressBeginning: number = 0;
 
     public parse(bridge: DebugBridge, line: any): void {
-        console.log(line);
-
         if (line.includes("STEP")) {
             bridge.refresh();
         }

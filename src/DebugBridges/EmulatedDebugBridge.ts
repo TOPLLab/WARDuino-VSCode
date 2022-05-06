@@ -67,6 +67,8 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
                 this.port.on("data", data => {
                         data.toString().split("\n").forEach((line) => {
+                            console.log(`emulator: ${line}`);
+
                             if (line.startsWith("Interrupt:")) {
                                 this.buffer = line;
                             } else if (this.buffer.length > 0) {
