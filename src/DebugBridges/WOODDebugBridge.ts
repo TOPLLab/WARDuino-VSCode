@@ -2,7 +2,6 @@ import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {exec} from "child_process";
-import {FunctionInfo} from "../State/FunctionInfo";
 import {SourceMap} from "../State/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
 import {EventsProvider} from "../Views/EventsProvider";
@@ -20,7 +19,9 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         console.log("Plugin: WOOD RecvState");
         let offset = await this.getOffset();
 
-        const messages: string[] = await woodState.toBinary(offset);
+        const messages: string[] = await woodState.toBinary(this.tmpdir, offset).catch(reason => {
+            throw new Error(`Plugin: toBinary failed: ${reason}`);
+        }) ?? [];
         for (let i = 0; i < messages.length; i++) {
             console.log(`send 62 message: ${messages[i]}\n`);
             this.port?.write(`${messages[i]} \n`);

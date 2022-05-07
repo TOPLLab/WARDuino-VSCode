@@ -1,4 +1,5 @@
 import {spawn} from "child_process";
+import {promises as fsPromises} from 'fs';
 
 const path: string = "/home/tolauwae/Documents/out-of-things/warduino"; // TODO add to config
 
@@ -9,9 +10,11 @@ export class WOODState {
         this.unparsedJSON = state.trimEnd();
     }
 
-    async toBinary(offset: string): Promise<string[]> {
+    async toBinary(tmpdir: string, offset: string): Promise<string[]> {
+        await fsPromises.writeFile(`${tmpdir}/unparsed.json`, this.unparsedJSON);
+
         return new Promise((resolve, reject) => {
-            let process = spawn("python3", ["cli.py", this.unparsedJSON, offset], {
+            let process = spawn("python3", ["cli.py", `${tmpdir}/unparsed.json`, offset], {
                 cwd: path
             });
 

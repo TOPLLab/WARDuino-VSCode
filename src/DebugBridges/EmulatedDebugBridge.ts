@@ -10,9 +10,9 @@ import {EventsProvider} from "../Views/EventsProvider";
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public port: net.Socket | undefined;
+    protected readonly tmpdir: string;
     private wasmPath: string;
     private readonly sdk: string;
-    private readonly tmpdir: string;
     private cp?: ChildProcess;
     private parser: DebugInfoParser;
     private buffer: string = "";
