@@ -116,6 +116,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.eventsProvider?.setEvents(events);
     }
 
+    notifyNewEvent(): void {
+        this.sendInterrupt(InterruptTypes.interruptDUMPEvents);
+    }
+
     popEvent(): void {
         this.sendInterrupt(InterruptTypes.interruptPOPEvent);
     }

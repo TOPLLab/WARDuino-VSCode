@@ -1,6 +1,7 @@
 import {DebugBridge} from "../DebugBridges/DebugBridge";
 import {VariableInfo} from "../State/VariableInfo";
 import {Frame} from "./Frame";
+import {EventItem} from "../Views/EventsProvider";
 
 export class DebugInfoParser {
 
@@ -20,19 +21,21 @@ export class DebugInfoParser {
             }
         }
 
-        if (line.startsWith("{\"events")) {
-            let obj = JSON.parse(line);
-            bridge.refreshEvents(line.events);
+        if (line.includes("new pushed event")) {
+            bridge.notifyNewEvent();
         }
 
-        if (line.startsWith("{")) {
-            let obj = JSON.parse(line);
-            this.addressBeginning = parseInt(obj.start);
-            bridge.setProgramCounter((parseInt(obj.pc) - this.addressBeginning));
+        if (line.startsWith("{\"events")) {
+            bridge.refreshEvents(JSON.parse(line).events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
+        } else if (line.startsWith("{")) {
+            const parsed = JSON.parse(line);
+            this.addressBeginning = parseInt(parsed.start);
+            bridge.setProgramCounter((parseInt(parsed.pc) - this.addressBeginning));
             bridge.setStartAddress(this.addressBeginning);
-            bridge.setCallstack(this.parseCallstack(obj.callstack));
+            bridge.refreshEvents(parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
+            bridge.setCallstack(this.parseCallstack(parsed.callstack));
             let fidx = bridge.getCurrentFunctionIndex();
-            bridge.setLocals(fidx, this.parseLocals(bridge, obj.locals.locals));
+            bridge.setLocals(fidx, this.parseLocals(bridge, parsed.locals.locals));
             console.log(bridge.getProgramCounter().toString(16));
         }
     }

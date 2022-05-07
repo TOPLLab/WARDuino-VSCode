@@ -25,7 +25,7 @@ export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
     }
 
     setEvents(events: EventItem[]) {
-        this.events = events;
+        this.events = events ?? [];
         this._onDidChangeTreeData.fire();
     }
 }

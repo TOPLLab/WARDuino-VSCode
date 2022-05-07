@@ -46,6 +46,8 @@ export interface DebugBridge {
 
     refresh(): void;
 
+    notifyNewEvent(): void;
+
     disconnect(): void;
 
     setVariable(name: string, value: number): Promise<string>;
