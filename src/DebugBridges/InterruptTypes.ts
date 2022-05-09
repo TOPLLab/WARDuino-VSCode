@@ -18,5 +18,7 @@ export enum InterruptTypes {
     interruptDUMPAllEvents = '70',
     interruptDUMPEvents = '71',
     interruptPOPEvent = '72',
-    interruptPUSHEvent = '73'
+    interruptPUSHEvent = '73',
+    interruptDUMPCallbackmapping = '74',
+    interruptRecvCallbackmapping = '75'
 }

@@ -5,6 +5,7 @@ const path: string = "/home/tolauwae/Documents/out-of-things/warduino"; // TODO 
 
 export class WOODState {
     private unparsedJSON = "";
+    public callbacks = "";
 
     constructor(state: string) {
         this.unparsedJSON = state.trimEnd();

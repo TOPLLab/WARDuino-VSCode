@@ -26,6 +26,10 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
             console.log(`send 62 message: ${messages[i]}\n`);
             this.port?.write(`${messages[i]} \n`);
         }
+
+        const command = `${InterruptTypes.interruptRecvCallbackmapping}${woodState.callbacks} \n`;
+        console.log(`send 75 message: ${command}`);
+        this.port?.write(command);
     }
 
     public async specifyPrimitives(host: string, port: string) {

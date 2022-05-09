@@ -16,6 +16,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     protected readonly fqbn: string;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
+    private woodState?: WOODState;
     private woodDumpDetected: boolean = false;
 
     constructor(wasmPath: string,
@@ -76,9 +77,14 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             if (this.woodDumpDetected) {
                 // Next line will be a WOOD dump
                 // TODO receive state from WOOD Dump and call bridge.pushSession(state)
-                this.pushSession(new WOODState(line));
+                this.woodState = new WOODState(line);
+                this.requestCallbackmapping();
                 this.woodDumpDetected = false;
                 return;
+            }
+            if (line.startsWith('{"callbacks": ') && this.woodState !== undefined) {
+                this.woodState.callbacks = line;
+                this.pushSession();
             }
             this.woodDumpDetected = line.includes("DUMP!");
             console.log(`hardware: ${line}`);
@@ -177,9 +183,16 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    pushSession(woodState: WOODState): void {
+    pushSession(): void {
         console.log("Plugin: listener start multiverse debugging");
-        this.listener.startMultiverseDebugging(woodState);
+        if (this.woodState === undefined) {
+            return;
+        }
+        this.listener.startMultiverseDebugging(this.woodState);
+    }
+
+    requestCallbackmapping() {
+        this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);
     }
 
     refresh(): void {
