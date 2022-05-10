@@ -27,6 +27,8 @@ export class DebugInfoParser {
 
         if (line.startsWith("{\"events")) {
             bridge.refreshEvents(JSON.parse(line).events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
+        } else if (line.startsWith("{\"callbacks")) {
+            bridge.notifyNewEvent();
         } else if (line.startsWith("{")) {
             const parsed = JSON.parse(line);
             this.addressBeginning = parseInt(parsed.start);
