@@ -41,6 +41,8 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
 }
 
 export abstract class AbstractDebugBridge implements DebugBridge {
+    private history: RuntimeState[] = [];
+
     protected sourceMap: SourceMap | void;
     protected startAddress: number = 0;
     protected listener: DebugBridgeListener;
@@ -156,9 +158,19 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return [...this.selectedProxies].map((callback: ProxyItem) => (callback.index));
     }
 
+    private notInHistory(runtimeState: RuntimeState) {
+        return this.history.length === 0 || this.history.some((state: RuntimeState) => (
+            state.getRawProgramCounter() === runtimeState.getRawProgramCounter() &&
+            state.callstack.length === runtimeState.callstack.length));
+    }
+
     // Getters and Setters
 
     updateRuntimeState(runtimeState: RuntimeState) {
+        if (this.notInHistory(runtimeState)) {
+            this.history.push(runtimeState);
+        }
+
         this.setProgramCounter(runtimeState.getAdjustedProgramCounter());
         this.setStartAddress(runtimeState.startAddress);
         this.refreshEvents(runtimeState.events);
