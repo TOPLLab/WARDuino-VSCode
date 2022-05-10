@@ -18,8 +18,8 @@ export class RuntimeState {
     public locals: VariableInfo[] = [];
     public events: EventItem[] = [];
 
-    constructor(source: string) {
-        this.id = hash(source);
+    constructor(source?: string) {
+        this.id = hash(source ?? "");
     }
 
     public getId(): number {
@@ -43,5 +43,16 @@ export class RuntimeState {
             return -1;
         }
         return this.callstack[this.callstack.length - 1].index;
+    }
+
+    public deepcopy(): RuntimeState {
+        const copy = new RuntimeState(undefined);
+        copy.id = this.id;
+        copy.programCounter = this.programCounter;
+        copy.startAddress = this.startAddress;
+        copy.callstack = this.callstack.map(obj => Object.assign({}, obj));
+        copy.locals = this.locals.map(obj => Object.assign({}, obj));
+        copy.events = this.events.map(obj => new EventItem(obj.topic, obj.payload, obj.collapsibleState));
+        return copy;
     }
 }

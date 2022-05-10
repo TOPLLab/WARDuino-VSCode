@@ -68,7 +68,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         response.body.supportsEvaluateForHovers = false;
 
         // make VS Code show a 'step back' button
-        response.body.supportsStepBack = false;
+        response.body.supportsStepBack = true;
 
         // make VS Code support data breakpoints
         response.body.supportsDataBreakpoints = false;
@@ -407,6 +407,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log("nextRequest");
         this.sendResponse(response);
         this.debugBridge?.step();
+    }
+
+    protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments, request?: DebugProtocol.Request): void {
+        console.log("backRequest");
+        this.sendResponse(response);
+        this.debugBridge?.stepBack();
     }
 
     override shutdown(): void {

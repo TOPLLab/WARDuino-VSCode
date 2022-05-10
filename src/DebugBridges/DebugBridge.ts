@@ -28,6 +28,8 @@ export interface DebugBridge {
 
     step(): void;
 
+    stepBack(): void;
+
     run(): void;
 
     pause(): void;

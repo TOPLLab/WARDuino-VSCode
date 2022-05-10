@@ -42,6 +42,7 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
 
 export abstract class AbstractDebugBridge implements DebugBridge {
     private history: RuntimeState[] = [];
+    private present = -1;
 
     protected sourceMap: SourceMap | void;
     protected startAddress: number = 0;
@@ -82,7 +83,27 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.listener.notifyBreakpointHit();
     }
 
-    abstract step(): void;
+    step(): void {
+        if (this.present + 1 < this.history.length) {
+            // Time travel forward
+            this.present++;
+            this.updateRuntimeState(this.history[this.present]);
+        } else {
+            // Normal step forward
+            this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
+                console.log("Plugin: Step");
+                if (err) {
+                    return console.log("Error on write: ", err.message);
+                }
+            });
+        }
+    }
+
+    stepBack() {
+        // Time travel backward
+        this.present = this.present > 0 ? this.present - 1 : 0;
+        this.updateRuntimeState(this.history[this.present]);
+    }
 
     abstract refresh(): void;
 
@@ -158,17 +179,16 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return [...this.selectedProxies].map((callback: ProxyItem) => (callback.index));
     }
 
-    private notInHistory(runtimeState: RuntimeState) {
-        return this.history.length === 0 || this.history.some((state: RuntimeState) => (
-            state.getRawProgramCounter() === runtimeState.getRawProgramCounter() &&
-            state.callstack.length === runtimeState.callstack.length));
+    private inHistory() {
+        return this.present + 1 < this.history.length;
     }
 
     // Getters and Setters
 
     updateRuntimeState(runtimeState: RuntimeState) {
-        if (this.notInHistory(runtimeState)) {
-            this.history.push(runtimeState);
+        if (!this.inHistory()) {
+            this.present++;
+            this.history.push(runtimeState.deepcopy());
         }
 
         this.setProgramCounter(runtimeState.getAdjustedProgramCounter());

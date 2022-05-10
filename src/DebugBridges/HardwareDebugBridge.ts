@@ -165,15 +165,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         return this.callstack[this.callstack.length - 1].index;
     }
 
-    step(): void {
-        this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
-            console.log("Plugin: Step");
-            if (err) {
-                return console.log("Error on write: ", err.message);
-            }
-        });
-    }
-
     pullSession(): void {
         this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
             console.log("Plugin: WOOD Dump");

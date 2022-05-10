@@ -93,10 +93,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    public step() {
-        this.sendInterrupt(InterruptTypes.interruptSTEP);
-    }
-
     public refresh() {
         this.sendInterrupt(InterruptTypes.interruptDUMPFull);
     }
