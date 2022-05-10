@@ -2,6 +2,7 @@ import {DebugBridge} from "../DebugBridges/DebugBridge";
 import {VariableInfo} from "../State/VariableInfo";
 import {Frame} from "./Frame";
 import {EventItem} from "../Views/EventsProvider";
+import {RuntimeState} from "../State/RuntimeState";
 
 export class DebugInfoParser {
 
@@ -31,19 +32,19 @@ export class DebugInfoParser {
             bridge.notifyNewEvent();
         } else if (line.startsWith("{")) {
             const parsed = JSON.parse(line);
-            this.addressBeginning = parseInt(parsed.start);
-            bridge.setProgramCounter((parseInt(parsed.pc) - this.addressBeginning));
-            bridge.setStartAddress(this.addressBeginning);
-            bridge.refreshEvents(parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
-            bridge.setCallstack(this.parseCallstack(parsed.callstack));
-            let fidx = bridge.getCurrentFunctionIndex();
-            bridge.setLocals(fidx, this.parseLocals(bridge, parsed.locals.locals));
+            const runtimeState: RuntimeState = new RuntimeState(line);
+            runtimeState.startAddress = parseInt(parsed.start);
+            runtimeState.setRawProgramCounter(parseInt(parsed.pc));
+            runtimeState.callstack = this.parseCallstack(parsed.callstack);
+            runtimeState.locals = this.parseLocals(runtimeState.currentFunction(), bridge, parsed.locals.locals);
+            runtimeState.events = parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
+
+            bridge.updateRuntimeState(runtimeState);
             console.log(bridge.getProgramCounter().toString(16));
         }
     }
 
-    private parseLocals(bridge: DebugBridge, objs: any[]): VariableInfo[] {
-        let fidx = bridge.getCurrentFunctionIndex();
+    private parseLocals(fidx: number, bridge: DebugBridge, objs: any[]): VariableInfo[] {
         let locals: VariableInfo[] = bridge.getLocals(fidx);
         objs.forEach((obj) => {
             let local = locals[obj.index];

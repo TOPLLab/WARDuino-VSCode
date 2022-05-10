@@ -9,6 +9,7 @@ import {Writable} from "stream";
 import {EventItem, EventsProvider} from "../Views/EventsProvider";
 import {FunctionInfo} from "../State/FunctionInfo";
 import {ProxyItem} from "../Views/ProxiesProvider";
+import {RuntimeState} from "../State/RuntimeState";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -156,6 +157,14 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     // Getters and Setters
+
+    updateRuntimeState(runtimeState: RuntimeState) {
+        this.setProgramCounter(runtimeState.getAdjustedProgramCounter());
+        this.setStartAddress(runtimeState.startAddress);
+        this.refreshEvents(runtimeState.events);
+        this.setCallstack(runtimeState.callstack);
+        this.setLocals(runtimeState.currentFunction(), runtimeState.locals);
+    }
 
     getProgramCounter(): number {
         return this.pc;

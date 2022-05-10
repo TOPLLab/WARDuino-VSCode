@@ -3,11 +3,14 @@ import {Frame} from "../Parsers/Frame";
 import {WOODState} from "../State/WOODState";
 import {EventItem} from "../Views/EventsProvider";
 import {ProxyItem} from "../Views/ProxiesProvider";
+import {RuntimeState} from "../State/RuntimeState";
 
 export interface DebugBridge {
     setStartAddress(startAddress: number): void;
 
     connect(): Promise<string>;
+
+    updateRuntimeState(runtimeState: RuntimeState): void;
 
     getProgramCounter(): number;
 
