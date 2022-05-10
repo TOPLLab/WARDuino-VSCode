@@ -11,7 +11,7 @@ import {EventsProvider} from "../Views/EventsProvider";
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
     private wasmPath: string;
-    protected port: SerialPort | undefined;
+    protected client: SerialPort | undefined;
     protected readonly portAddress: string;
     protected readonly fqbn: string;
     protected readonly sdk: string;
@@ -58,7 +58,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     protected openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
-        this.port = new SerialPort({path: this.portAddress, baudRate: 115200},
+        this.client = new SerialPort({path: this.portAddress, baudRate: 115200},
             (error) => {
                 if (error) {
                     reject(`Could not connect to serial port: ${this.portAddress}`);
@@ -72,7 +72,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     private installInputStreamListener() {
         const parser = new ReadlineParser();
-        this.port?.pipe(parser);
+        this.client?.pipe(parser);
         parser.on("data", (line: any) => {
             if (this.woodDumpDetected) {
                 // Next line will be a WOOD dump
@@ -93,7 +93,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     public disconnect(): void {
-        this.port?.close();
+        this.client?.close();
         this.listener.notifyProgress(Messages.disconnected);
     }
 

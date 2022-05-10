@@ -41,18 +41,21 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
 }
 
 export abstract class AbstractDebugBridge implements DebugBridge {
-    private history: RuntimeState[] = [];
-    private present = -1;
-
+    // State
     protected sourceMap: SourceMap | void;
     protected startAddress: number = 0;
-    protected listener: DebugBridgeListener;
     protected pc: number = 0;
     protected callstack: Frame[] = [];
-    protected abstract port: Writable | undefined;
+    protected selectedProxies: Set<ProxyItem> = new Set<ProxyItem>();
 
+    // Interfaces
+    protected listener: DebugBridgeListener;
+    protected abstract client: Writable | undefined;
     private eventsProvider: EventsProvider | void;
-    private selectedProxies: Set<ProxyItem> = new Set<ProxyItem>();
+
+    // History (time-travel)
+    private history: RuntimeState[] = [];
+    private present = -1;
 
     protected constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
@@ -70,20 +73,21 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Debug API
 
-    run(): void {
+    public run(): void {
+        this.resetHistory();
         this.sendInterrupt(InterruptTypes.interruptRUN);
     }
 
-    pause(): void {
+    public pause(): void {
         this.sendInterrupt(InterruptTypes.interruptPAUSE);
         this.listener.notifyPaused();
     }
 
-    hitBreakpoint() {
+    public hitBreakpoint() {
         this.listener.notifyBreakpointHit();
     }
 
-    step(): void {
+    public step(): void {
         if (this.present + 1 < this.history.length) {
             // Time travel forward
             this.present++;
@@ -99,7 +103,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
     }
 
-    stepBack() {
+    public stepBack() {
         // Time travel backward
         this.present = this.present > 0 ? this.present - 1 : 0;
         this.updateRuntimeState(this.history[this.present]);
@@ -113,17 +117,17 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         let breakPointAddress: string = (this.startAddress + address).toString(16).toUpperCase();
         let command = `060${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
-        this.port?.write(command);
+        this.client?.write(command);
     }
 
     abstract setStartAddress(startAddress: number): void;
 
-    setVariable(name: string, value: number): Promise<string> {
+    public setVariable(name: string, value: number): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             console.log(`setting ${name} ${value}`);
             try {
                 let command = this.getVariableCommand(name, value);
-                this.port?.write(command, err => {
+                this.client?.write(command, err => {
                     resolve("Interrupt send.");
                 });
             } catch {
@@ -136,30 +140,31 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract pushSession(woodState: WOODState): void;
 
-    refreshEvents(events: EventItem[]) {
+    public refreshEvents(events: EventItem[]) {
         this.eventsProvider?.setEvents(events);
     }
 
-    notifyNewEvent(): void {
+    public notifyNewEvent(): void {
         this.sendInterrupt(InterruptTypes.interruptDUMPAllEvents);
     }
 
-    popEvent(): void {
+    public popEvent(): void {
         this.sendInterrupt(InterruptTypes.interruptPOPEvent);
     }
 
-    updateSelectedProxies(proxy: ProxyItem) {
+    public updateSelectedProxies(proxy: ProxyItem) {
         if (proxy.isSelected()) {
             this.selectedProxies.add(proxy);
         } else {
             this.selectedProxies.delete(proxy);
         }
-    };
+        console.warn("Only WOOD Emulator Debug Bridge needs proxies");
+    }
 
     // Helper functions
 
     protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
-        return this.port?.write(`${i} \n`, callback);
+        return this.client?.write(`${i} \n`, callback);
     }
 
     protected getVariableCommand(name: string, value: number): string {
@@ -181,6 +186,11 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     private inHistory() {
         return this.present + 1 < this.history.length;
+    }
+
+    private resetHistory() {
+        this.present = -1;
+        this.history = [];
     }
 
     // Getters and Setters

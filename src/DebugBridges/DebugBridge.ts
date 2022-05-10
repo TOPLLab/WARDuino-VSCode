@@ -45,7 +45,7 @@ export interface DebugBridge {
     popEvent(): void;
 
     // Adds or removes the current callback depending on whether is selected or not respectively
-    updateSelectedProxies(callback: ProxyItem): void;
+    updateSelectedProxies(proxy: ProxyItem): void;
 
     setBreakPoint(x: number): void;
 

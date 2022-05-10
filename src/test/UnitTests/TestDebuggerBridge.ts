@@ -123,11 +123,11 @@ suite("Debug API Test Suite (emulated)", () => {
     });
 
     beforeEach(() => {
-        bridge.port?.removeAllListeners("data");
+        bridge.client?.removeAllListeners("data");
     });
 
     test("Test `pause` command", function (done) {
-        bridge.port?.on("data", (data: Buffer) => {
+        bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
             console.log(text);
             if (text.includes("PAUSE!")) {
@@ -138,7 +138,7 @@ suite("Debug API Test Suite (emulated)", () => {
     });
 
     test("Test `step` command", function (done) {
-        bridge.port?.on("data", (data: Buffer) => {
+        bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
             console.log(text);
             if (text.includes("STEP!")) {
@@ -152,7 +152,7 @@ suite("Debug API Test Suite (emulated)", () => {
         this.timeout(3000);
         let json = "";
 
-        bridge.port?.on("data", (data: Buffer) => {
+        bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
             console.log(text);
             if (receivingDumpData(json, text)) {
@@ -173,7 +173,7 @@ suite("Debug API Test Suite (emulated)", () => {
     });
 
     test("Test `run` command", function (done) {
-        bridge.port?.on("data", (data: Buffer) => {
+        bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
             console.log(text);
             if (text.includes("GO!")) {
@@ -200,12 +200,12 @@ suite("WOOD Debug API Test Suite (emulated)", () => {
     });
 
     beforeEach(() => {
-        bridge.port?.removeAllListeners("data");
+        bridge.client?.removeAllListeners("data");
     });
 
     test("Test `WOODDUMP` command", function (done) {
         this.timeout(10000);
-        bridge.port?.on("data", (data: Buffer) => {
+        bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
             console.log(text);
             if (text.includes("done")) {

@@ -9,7 +9,7 @@ import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
-    public port: net.Socket | undefined;
+    public client: net.Socket | undefined;
     protected readonly tmpdir: string;
     private wasmPath: string;
     private readonly sdk: string;
@@ -50,22 +50,22 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             let that = this;
-            if (this.port === undefined) {
+            if (this.client === undefined) {
                 let address = {port: 8192, host: "127.0.0.1"};  // TODO config
-                this.port = new net.Socket();
-                this.port.connect(address, () => {
+                this.client = new net.Socket();
+                this.client.connect(address, () => {
                     this.listener.notifyProgress("Connected to socket");
                     resolve(`${address.host}:${address.port}`);
                 });
 
-                this.port.on("error", err => {
+                this.client.on("error", err => {
                         this.listener.notifyError("Lost connection to the board");
                         console.error(err);
                         reject(err);
                     }
                 );
 
-                this.port.on("data", data => {
+                this.client.on("data", data => {
                         data.toString().split("\n").forEach((line) => {
                             console.log(`emulator: ${line}`);
 
@@ -107,7 +107,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
     private executeCommand(command: InterruptTypes) {
         console.log(command.toString());
-        this.port?.write(command.toString + '\n');
+        this.client?.write(command.toString + '\n');
     }
 
     private startEmulator(): Promise<string> {
@@ -138,7 +138,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
     public disconnect(): void {
         this.cp?.kill();
-        this.port?.destroy();
+        this.client?.destroy();
     }
 
     private spawnEmulatorProcess(): ChildProcess {

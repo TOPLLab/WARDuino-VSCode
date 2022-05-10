@@ -46,7 +46,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private droneBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
     private reporter: ErrorReporter;
-    private callbacksProvider?: ProxiesProvider;
+    private proxiesProvider?: ProxiesProvider;
 
     private variableHandles = new Handles<'locals' | 'globals'>();
 
@@ -121,8 +121,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const eventsProvider = new EventsProvider();
         vscode.window.registerTreeDataProvider("events", eventsProvider);
 
-        this.callbacksProvider = new ProxiesProvider();
-        vscode.window.registerTreeDataProvider("proxies", this.callbacksProvider);
+        this.proxiesProvider = new ProxiesProvider();
+        vscode.window.registerTreeDataProvider("proxies", this.proxiesProvider);
 
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
@@ -140,7 +140,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let sourceMap: SourceMap | void = await compiler.compile().catch((reason) => this.handleCompileError(reason));
         if (sourceMap) {
             this.sourceMap = sourceMap;
-            this.callbacksProvider.setCallbacks(sourceMap?.importInfos ?? []);
+            this.proxiesProvider.setCallbacks(sourceMap?.importInfos ?? []);
         }
         let that = this;
         const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
@@ -187,7 +187,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.droneBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.drone, that.tmpdir, {
                         connected(): void {
                             const socket = (that.droneBridge as DroneDebugBridge).getSocket();
-                            (that.debugBridge as WOODDebugBridge).specifyPrimitives(socket.host, socket.port);
+                            (that.debugBridge as WOODDebugBridge).specifySocket(socket.host, socket.port);
                         }, disconnected(): void {
                         }, notifyError(message: string): void {
                         }, notifyPaused(): void {
@@ -258,7 +258,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     public toggleProxy(resource: ProxyItem) {
         resource.toggle();
-        this.callbacksProvider?.refresh();
+        this.proxiesProvider?.refresh();
         this.debugBridge?.updateSelectedProxies(resource);
     }
 

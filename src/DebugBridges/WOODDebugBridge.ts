@@ -5,9 +5,12 @@ import {exec} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
 import {EventsProvider} from "../Views/EventsProvider";
+import {ProxyItem} from "../Views/ProxiesProvider";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
     private readonly outOfThings: string;
+    private host: string = "";
+    private port: string = "";
 
     constructor(wasmPath: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
                 warduinoSDK: string, outOfThings: string) {
@@ -24,23 +27,32 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         }) ?? [];
         for (let i = 0; i < messages.length; i++) {
             console.log(`send 62 message: ${messages[i]}\n`);
-            this.port?.write(`${messages[i]} \n`);
+            this.client?.write(`${messages[i]} \n`);
         }
 
         const command = `${InterruptTypes.interruptRecvCallbackmapping}${woodState.callbacks} \n`;
         console.log(`send 75 message: ${command}`);
-        this.port?.write(command);
+        this.client?.write(command);
     }
 
-    public async specifyPrimitives(host: string, port: string) {
+    // Send socket of drone to emulator
+    public async specifySocket(host: string, port: string) {
         if (host.length === 0 || port.length === 0) {
             return;
         }
 
+        this.host = host;
+        this.port = port;
+
         console.log(`Connected to drone (${host}:${port}).`);
-        const primitives = this.getSelectedProxies();  // TODO filter in GUI
+        await this.specifyProxies();
+    }
+
+    // Send new proxy list to emulator
+    public async specifyProxies() {
+        const primitives = this.getSelectedProxies();
         const message: string = await new Promise((resolve, reject) => {
-            exec(`cd ${this.outOfThings}/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${host}', ${port}, [${primitives}])"`, (err, stdout, stderr) => {
+            exec(`cd ${this.outOfThings}/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${this.host}', ${this.port}, [${primitives}])"`, (err, stdout, stderr) => {
                 resolve(stdout);
                 console.error(stderr);
                 if (err) {
@@ -49,7 +61,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
             });
             // TODO remove need for python script
         });
-        this.port?.write(message);
+        this.client?.write(message);
     }
 
     private getOffset(): Promise<string> {
@@ -61,13 +73,23 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
                 data.toString().split("\n").forEach((line) => {
                     console.log(line);
                     if (line.startsWith("{")) {
-                        that.port?.removeListener("data", parseOffset);
+                        that.client?.removeListener("data", parseOffset);
                         resolve(JSON.parse(line).offset);
                     }
                 });
             }
 
-            this.port?.on("data", parseOffset);
+            this.client?.on("data", parseOffset);
         });
     }
+
+    async updateSelectedProxies(proxy: ProxyItem) {
+        console.log("Updating proxies");
+        if (proxy.isSelected()) {
+            this.selectedProxies.add(proxy);
+        } else {
+            this.selectedProxies.delete(proxy);
+        }
+        await this.specifyProxies();
+    };
 }

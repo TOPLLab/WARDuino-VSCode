@@ -45,7 +45,7 @@ export class DroneDebugBridge extends HardwareDebugBridge {
     protected openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
         super.openSerialPort(reject, resolve);
 
-        this.port?.on("data", data => {
+        this.client?.on("data", data => {
             const text = data.toString();
             const search = /(?:[0-9]{1,3}\.){3}[0-9]{1,3}/.exec(text);
             if (this.socket.host.length === 0 && search !== null) {
