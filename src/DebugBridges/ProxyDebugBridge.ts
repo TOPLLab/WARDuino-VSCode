@@ -7,7 +7,7 @@ export interface Socket {
     port: string
 }
 
-export class DroneDebugBridge extends HardwareDebugBridge {
+export class ProxyDebugBridge extends HardwareDebugBridge {
     private socket: Socket = {host: "", port: "8080"};  // TODO host?
 
     public compileAndUpload(): Promise<boolean> {

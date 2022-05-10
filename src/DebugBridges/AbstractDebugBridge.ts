@@ -8,7 +8,7 @@ import {InterruptTypes} from "./InterruptTypes";
 import {Writable} from "stream";
 import {EventItem, EventsProvider} from "../Views/EventsProvider";
 import {FunctionInfo} from "../State/FunctionInfo";
-import {ProxyItem} from "../Views/ProxiesProvider";
+import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 import {RuntimeState} from "../State/RuntimeState";
 
 export class Messages {
@@ -46,7 +46,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected startAddress: number = 0;
     protected pc: number = 0;
     protected callstack: Frame[] = [];
-    protected selectedProxies: Set<ProxyItem> = new Set<ProxyItem>();
+    protected selectedProxies: Set<ProxyCallItem> = new Set<ProxyCallItem>();
 
     // Interfaces
     protected listener: DebugBridgeListener;
@@ -152,7 +152,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.sendInterrupt(InterruptTypes.interruptPOPEvent);
     }
 
-    public updateSelectedProxies(proxy: ProxyItem) {
+    public updateSelectedProxies(proxy: ProxyCallItem) {
         if (proxy.isSelected()) {
             this.selectedProxies.add(proxy);
         } else {
@@ -181,7 +181,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     protected getSelectedProxies(): number[] {
-        return [...this.selectedProxies].map((callback: ProxyItem) => (callback.index));
+        return [...this.selectedProxies].map((callback: ProxyCallItem) => (callback.index));
     }
 
     private inHistory() {

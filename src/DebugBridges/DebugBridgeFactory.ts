@@ -8,7 +8,7 @@ import * as vscode from "vscode";
 import {SourceMap} from "../State/SourceMap";
 import {WOODDebugBridge} from "./WOODDebugBridge";
 import {Messages} from "./AbstractDebugBridge";
-import {DroneDebugBridge} from "./DroneDebugBridge";
+import {ProxyDebugBridge} from "./ProxyDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
 
 function getConfig(id: string): string {
@@ -41,8 +41,8 @@ export class DebugBridgeFactory {
                     case RunTimeTarget.embedded:
                         bridge = new HardwareDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
-                    case RunTimeTarget.drone:
-                        bridge = new DroneDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                    case RunTimeTarget.proxy:
+                        bridge = new ProxyDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                 }
 

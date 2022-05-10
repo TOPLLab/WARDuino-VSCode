@@ -2,7 +2,7 @@ import {VariableInfo} from "../State/VariableInfo";
 import {Frame} from "../Parsers/Frame";
 import {WOODState} from "../State/WOODState";
 import {EventItem} from "../Views/EventsProvider";
-import {ProxyItem} from "../Views/ProxiesProvider";
+import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 import {RuntimeState} from "../State/RuntimeState";
 
 export interface DebugBridge {
@@ -45,7 +45,7 @@ export interface DebugBridge {
     popEvent(): void;
 
     // Adds or removes the current callback depending on whether is selected or not respectively
-    updateSelectedProxies(proxy: ProxyItem): void;
+    updateSelectedProxies(proxy: ProxyCallItem): void;
 
     setBreakPoint(x: number): void;
 

@@ -5,7 +5,7 @@ import {exec} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
 import {EventsProvider} from "../Views/EventsProvider";
-import {ProxyItem} from "../Views/ProxiesProvider";
+import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
     private readonly outOfThings: string;
@@ -35,7 +35,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         this.client?.write(command);
     }
 
-    // Send socket of drone to emulator
+    // Send socket of the proxy to the emulator
     public async specifySocket(host: string, port: string) {
         if (host.length === 0 || port.length === 0) {
             return;
@@ -44,12 +44,12 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         this.host = host;
         this.port = port;
 
-        console.log(`Connected to drone (${host}:${port}).`);
-        await this.specifyProxies();
+        console.log(`Connected to proxy (${host}:${port}).`);
+        await this.specifyProxyCalls();
     }
 
-    // Send new proxy list to emulator
-    public async specifyProxies() {
+    // Send new proxy call list to the emulator
+    public async specifyProxyCalls() {
         const primitives = this.getSelectedProxies();
         const message: string = await new Promise((resolve, reject) => {
             exec(`cd ${this.outOfThings}/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${this.host}', ${this.port}, [${primitives}])"`, (err, stdout, stderr) => {
@@ -83,13 +83,13 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         });
     }
 
-    async updateSelectedProxies(proxy: ProxyItem) {
+    async updateSelectedProxies(proxy: ProxyCallItem) {
         console.log("Updating proxies");
         if (proxy.isSelected()) {
             this.selectedProxies.add(proxy);
         } else {
             this.selectedProxies.delete(proxy);
         }
-        await this.specifyProxies();
+        await this.specifyProxyCalls();
     };
 }

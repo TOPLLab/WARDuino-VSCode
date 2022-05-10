@@ -2,25 +2,25 @@ import {FunctionInfo} from "../State/FunctionInfo";
 import * as vscode from 'vscode';
 import {ProviderResult, ThemeIcon, TreeItem, TreeItemCollapsibleState} from 'vscode';
 
-export class ProxiesProvider implements vscode.TreeDataProvider<ProxyItem> {
-    private callbacks: ProxyItem[] = [];
+export class ProxyCallsProvider implements vscode.TreeDataProvider<ProxyCallItem> {
+    private callbacks: ProxyCallItem[] = [];
 
-    private _onDidChangeTreeData: vscode.EventEmitter<ProxyItem | undefined | null | void> = new vscode.EventEmitter<ProxyItem | undefined | null | void>();
-    readonly onDidChangeTreeData: vscode.Event<ProxyItem | undefined | null | void> = this._onDidChangeTreeData.event;
+    private _onDidChangeTreeData: vscode.EventEmitter<ProxyCallItem | undefined | null | void> = new vscode.EventEmitter<ProxyCallItem | undefined | null | void>();
+    readonly onDidChangeTreeData: vscode.Event<ProxyCallItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-    getChildren(element?: ProxyItem): ProviderResult<ProxyItem[]> {
+    getChildren(element?: ProxyCallItem): ProviderResult<ProxyCallItem[]> {
         if (element === undefined) {
             return this.callbacks;
         }
         return undefined;
     }
 
-    getTreeItem(element: ProxyItem): TreeItem | Thenable<TreeItem> {
+    getTreeItem(element: ProxyCallItem): TreeItem | Thenable<TreeItem> {
         return element;
     }
 
     setCallbacks(callbacks: FunctionInfo[]) {
-        this.callbacks = callbacks.map((primitive: FunctionInfo) => (new ProxyItem(primitive))) ?? [];
+        this.callbacks = callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))) ?? [];
         this.refresh();
     }
 
@@ -29,7 +29,7 @@ export class ProxiesProvider implements vscode.TreeDataProvider<ProxyItem> {
     }
 }
 
-export class ProxyItem extends vscode.TreeItem {
+export class ProxyCallItem extends vscode.TreeItem {
     private selected: boolean = false;
     public index;
 

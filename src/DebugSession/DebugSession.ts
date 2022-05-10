@@ -26,9 +26,9 @@ import * as os from "os";
 import * as path from "path";
 import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
-import {DroneDebugBridge} from "../DebugBridges/DroneDebugBridge";
+import {ProxyDebugBridge} from "../DebugBridges/ProxyDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
-import {ProxiesProvider, ProxyItem} from "../Views/ProxiesProvider";
+import {ProxyCallsProvider, ProxyCallItem} from "../Views/ProxyCallsProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -43,10 +43,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private THREAD_ID: number = 42;
     private testCurrentLine = 0;
     private debugBridge?: DebugBridge;
-    private droneBridge?: DebugBridge;
+    private proxyBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
     private reporter: ErrorReporter;
-    private proxiesProvider?: ProxiesProvider;
+    private proxyCallsProvider?: ProxyCallsProvider;
 
     private variableHandles = new Handles<'locals' | 'globals'>();
 
@@ -121,8 +121,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const eventsProvider = new EventsProvider();
         vscode.window.registerTreeDataProvider("events", eventsProvider);
 
-        this.proxiesProvider = new ProxiesProvider();
-        vscode.window.registerTreeDataProvider("proxies", this.proxiesProvider);
+        this.proxyCallsProvider = new ProxyCallsProvider();
+        vscode.window.registerTreeDataProvider("proxies", this.proxyCallsProvider);
 
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
@@ -140,7 +140,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let sourceMap: SourceMap | void = await compiler.compile().catch((reason) => this.handleCompileError(reason));
         if (sourceMap) {
             this.sourceMap = sourceMap;
-            this.proxiesProvider.setCallbacks(sourceMap?.importInfos ?? []);
+            this.proxyCallsProvider.setCallbacks(sourceMap?.importInfos ?? []);
         }
         let that = this;
         const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
@@ -184,9 +184,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         }
                     });
 
-                    that.droneBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.drone, that.tmpdir, {
+                    that.proxyBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.proxy, that.tmpdir, {
                         connected(): void {
-                            const socket = (that.droneBridge as DroneDebugBridge).getSocket();
+                            const socket = (that.proxyBridge as ProxyDebugBridge).getSocket();
                             (that.debugBridge as WOODDebugBridge).specifySocket(socket.host, socket.port);
                         }, disconnected(): void {
                         }, notifyError(message: string): void {
@@ -256,9 +256,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.debugBridge?.popEvent();
     }
 
-    public toggleProxy(resource: ProxyItem) {
+    public toggleProxy(resource: ProxyCallItem) {
         resource.toggle();
-        this.proxiesProvider?.refresh();
+        this.proxyCallsProvider?.refresh();
         this.debugBridge?.updateSelectedProxies(resource);
     }
 
