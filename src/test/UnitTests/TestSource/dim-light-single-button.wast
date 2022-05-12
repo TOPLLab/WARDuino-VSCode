@@ -13,25 +13,18 @@
   (global $brigthness (mut i32) (i32.const 0))
   (global $maxBrigthness i32 (i32.const 255))
   (global $delta (mut i32) (i32.const 0))
-  (global $upButton i32 (i32.const 37)) ;; button to increase brigthness
-  (global $downButton i32 (i32.const 39)) ;; button to decrease brigthness
+  (global $upButton i32 (i32.const 37)) ;; button to change brightness
   (global $channel i32 (i32.const 0)) ;; channel for analog write
   
   ;; needed for subscribe_interrupt
   (memory $memory 1)
-  (table 2 funcref)
-  (elem (i32.const 0) func $incrDelta $decrDelta)
+  (table 1 funcref)
+  (elem (i32.const 0) func $incrDelta)
 
-  (func $setupButtons (type $void->void)
+  (func $setupButton (type $void->void)
     ;; register up Button
     global.get $upButton
     i32.const 0 ;; Table idx of $incrDelta
-    i32.const 2 ;; trigger callback on CHANGE
-    (call $env.subscribeInterrupt)
-
-    ;; register down Button
-    global.get $downButton
-    i32.const 1 ;; Table idx of $decrDelta
     i32.const 2 ;; trigger callback on CHANGE
     (call $env.subscribeInterrupt))
       
@@ -50,45 +43,37 @@
     global.get $channel
     (call $env.ledcAttachPin))
 
-  (func $decrDelta  (type $void->void)
-    (global.set $delta (i32.const 10)))
-
   (func $incrDelta  (type $void->void)
-    (global.set $delta (i32.const -20)))
+    (i32.add
+      (global.get $delta)
+      (i32.const 10))
+    global.set $delta)
 
   (func $isDeltaNotZero (type $void->i32)
     (i32.ne
       (i32.const 0)
       (global.get $delta)))
 
-  (func $updateBrigthness (type $void->void)
+  (func $updateBrightness (type $void->void)
+    (local $newBrightness i32)
 
     ;; change global $brigthness
     (i32.add (global.get $brigthness)
              (global.get $delta))
-    global.set $brigthness
+    local.set $newBrightness
      
     ;; if newbrightness greater than max rebase brightness
-    (if (i32.gt_s
-          (global.get $brigthness)
+    (if (i32.gt_u
+          (local.get $newBrightness)
           (global.get $maxBrigthness))
         (then
           (i32.sub
-            (global.get $brigthness)
+            (local.get $newBrightness)
             (global.get $maxBrigthness))
            global.set $brigthness)
-        (else nop))
-
-    ;; if newbrightness is less than zero rebase brightness
-    (if (i32.lt_s
-          (global.get $brigthness)
-          (i32.const 0))
-        (then
-          (i32.add
-            (global.get $maxBrigthness)
-            (global.get $brigthness))
-          global.set $brigthness)
-        (else nop))
+        (else
+          (local.get $newBrightness)
+          global.set $brigthness))
 
     ;; write to pin
     global.get $channel
@@ -102,12 +87,12 @@
   
   (func $main  (type $void->void)
     (call $initLed)
-    (call $setupButtons)
+    (call $setupButton)
 
     (loop $infinite
       (if (call $isDeltaNotZero)
           (then
-            (call $updateBrigthness))
+            (call $updateBrightness))
           (else nop))
       (br $infinite)))
   (export "main" (func $main)))
