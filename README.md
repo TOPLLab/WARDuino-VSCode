@@ -16,7 +16,7 @@ The debugger contributes the following settings:
 
 Before first time use make sure you have:
 
-- Installed VS Code (version 1.64 or higher)
+- Installed VS Code (version 1.63.2 or higher)
 - Installed [this WebAssembly Plugin](https://github.com/AlanCezarAraujo/vscode-webassembly-syntax-highlight)
 - Enabled the `Debug: Allow Breakpoints Everywhere` setting
 - Install `node` and `yarn`
