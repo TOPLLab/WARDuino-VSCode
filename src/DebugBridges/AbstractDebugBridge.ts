@@ -109,6 +109,13 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.updateRuntimeState(this.history[this.present]);
     }
 
+    public reverseContinue() {
+        // Time travel backward
+        // TODO: This should actually implement going back to the previous breakpoint
+        this.present = 0;
+        this.updateRuntimeState(this.history[this.present]);
+    }
+
     abstract refresh(): void;
 
     abstract getCurrentFunctionIndex(): number;
