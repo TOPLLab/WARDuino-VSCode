@@ -17,7 +17,7 @@ The debugger contributes the following settings:
 Before first time use make sure you have:
 
 - Installed VS Code (version 1.63.2 or higher)
-- Installed [this WebAssembly Plugin](https://github.com/AlanCezarAraujo/vscode-webassembly-syntax-highlight)
+- Installed [this WebAssembly Plugin](https://marketplace.visualstudio.com/items?itemName=Alan.webassembly)
 - Enabled the `Debug: Allow Breakpoints Everywhere` setting
 - Install `node` and `yarn`
 - Install [WARDuino](https://github.com/TOPLLab/WARDuino)
@@ -29,7 +29,7 @@ To run the extension in developer mode, perform the following steps:
 - Build [the custom WABT toolkit](https://github.com/TOPLLab/wabt) and add both `wat2wasm` and `wasm-objdump` to `$PATH`
 
 When you have performed each step above. You should be able to open this directory in VS Code and run the extension.
-When you run `Run Extension` a new VS Code instance should start.
+When you run `Run Extension` a new VS Code instance should start (found in the debug pane).
 In order to launch the debugger in this new VS Code window, perform the following steps:
 
 - open a directory with a WAT file (example folder in this repo: src/test/UnitTests/TestSource/)
