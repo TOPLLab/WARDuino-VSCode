@@ -28,14 +28,13 @@ export class DebugBridgeFactory {
                 const warduinoSDK: string = getConfig("warduino.WARDuinoToolChainPath");
                 const portAddress: string = getConfig("warduino.Port");
                 const fqbn: string = getConfig("warduino.Device");
-                const outOfThings: string = getConfig("warduino.OutOfThings");
                 switch (target) {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:
                         bridge = new EmulatedDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.wood:
-                        bridge = new WOODDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK, outOfThings);
+                        bridge = new WOODDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
                         break;
                     // Hardware runtimes
                     case RunTimeTarget.embedded:

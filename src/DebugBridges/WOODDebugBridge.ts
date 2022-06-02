@@ -1,22 +1,11 @@
 import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
-import {exec} from "child_process";
-import {SourceMap} from "../State/SourceMap";
-import {DebugBridgeListener} from "./DebugBridgeListener";
-import {EventsProvider} from "../Views/EventsProvider";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
-    private readonly outOfThings: string;
     private host: string = "";
     private port: string = "";
-
-    constructor(wasmPath: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
-                warduinoSDK: string, outOfThings: string) {
-        super(wasmPath, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
-        this.outOfThings = outOfThings;
-    }
 
     public async pushSession(woodState: WOODState) {
         console.log("Plugin: WOOD RecvState");
@@ -48,19 +37,28 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         await this.specifyProxyCalls();
     }
 
+    private monitorProxiesCommand(primitives: number[]): string {
+        function encode(i: number, byteLength: number, byteorder = 'big'): string {
+            const result: Buffer = new Buffer(byteLength);
+            result.writeIntBE(i, 0, byteLength);
+            return result.toString("hex");
+        }
+
+        let command = InterruptTypes.interruptMonitorProxies + encode(primitives.length, 4);
+        for (const primitive of primitives) {
+            command += encode(primitive, 4);
+        }
+        command += encode(+this.port, 4);
+        command += encode(this.host.length, 4);
+        command += Buffer.from(this.host).toString("hex");
+        command += '\n';
+        return command.toUpperCase();
+    }
+
     // Send new proxy call list to the emulator
     public async specifyProxyCalls() {
         const primitives = this.getSelectedProxies();
-        const message: string = await new Promise((resolve, reject) => {
-            exec(`cd ${this.outOfThings}/warduino; python3 -c "import cli;cli.encode_monitor_proxies('${this.host}', ${this.port}, [${primitives}])"`, (err, stdout, stderr) => {
-                resolve(stdout);
-                console.error(stderr);
-                if (err) {
-                    reject(err.message);
-                }
-            });
-            // TODO remove need for python script
-        });
+        const message: string = this.monitorProxiesCommand(primitives);
         this.client?.write(message);
     }
 
