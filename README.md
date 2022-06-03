@@ -24,15 +24,25 @@ Before first time use make sure you have:
 
 To run the extension in developer mode, perform the following steps:
 
-- Run `yarn install`
 - (optional) Compile the WARDuino CLI (Emulator version) in this directory
-- Build [the custom WABT toolkit](https://github.com/TOPLLab/wabt) and add both `wat2wasm` and `wasm-objdump` to `$PATH`
+  - create `WARDuino/platforms/Arduino-socket/.config` with the content
+    ```
+    SSID=NetworkName
+    PASSWORD=NetworkPass
+    ```
+- Run `install.sh`: this builds the dependencies like our [the custom WABT](https://github.com/TOPLLab/wabt).
+- Add add both `wat2wasm` and `wasm-objdump` to your `$PATH`
+    ```
+    export PATH=$(realpath WABT/build/):$PATH
+    ```
 
 When you have performed each step above. You should be able to open this directory in VS Code and run the extension.
 When you run `Run Extension` a new VS Code instance should start.
 In order to launch the debugger in this new VS Code window, perform the following steps:
 
 - open a directory with a WAT file (example folder in this repo: src/test/UnitTests/TestSource/)
+- Go to the settings of VS Code and fill in all the WARDuino debugger settings
+  - Yoyu will need to add a path to a folder that cloned https://github.com/carllocos/out-of-things
 - add a `.vscode/launch.json` file with the same content as the launch file in the example folder: `src/test/UnitTests/TestSource/.vscode/launch.json` (you can skip this step if you opened the example folder)
 - start the debugger with the `Debug WARDuino` button
 
