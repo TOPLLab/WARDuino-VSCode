@@ -15,6 +15,7 @@ export enum InterruptTypes {
     interruptOffset = '61',
     interruptWOODRecvState = '62', // WOOD Change state
     interruptMonitorProxies = '63',
+    interruptDronify = '65',
     // Push debugging messages
     interruptDUMPAllEvents = '70',
     interruptDUMPEvents = '71',

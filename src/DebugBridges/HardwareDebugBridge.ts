@@ -70,7 +70,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         );
     }
 
-    private installInputStreamListener() {
+    protected installInputStreamListener() {
         const parser = new ReadlineParser();
         this.client?.pipe(parser);
         parser.on("data", (line: any) => {

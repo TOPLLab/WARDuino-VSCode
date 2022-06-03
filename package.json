@@ -91,6 +91,18 @@
             "Connect to a WARDuino debugger running on an embedded device"
           ]
         },
+        "warduino.SSID": {
+          "type": "string",
+          "scope": "resource",
+          "default": "ssid",
+          "description": "The SSID of the local Wi-Fi network"
+        },
+        "warduino.Password": {
+          "type": "string",
+          "scope": "resource",
+          "default": "password",
+          "description": "The password of the local Wi-Fi network"
+        },
         "warduino.Port": {
           "type": "string",
           "scope": "resource",
