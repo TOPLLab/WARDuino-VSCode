@@ -1,4 +1,11 @@
+#!/bin/sh
+
+set -e
+
 # install script - for use during development only
+
+echo "> Plugin: build VSCode extention"
+yarn install
 
 echo "> Plugin: fetching submodules"
 git submodule update --init
@@ -21,7 +28,7 @@ cd WABT
 git submodule update --init
 
 echo "> WABT: building tools"
-mkdir build
+mkdir -p build
 cd build
 cmake ..
 make
