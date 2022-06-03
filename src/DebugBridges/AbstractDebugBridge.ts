@@ -94,6 +94,14 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             this.updateRuntimeState(this.history[this.present]);
         } else {
             // Normal step forward
+            require('fs').appendFile('/tmp/hardwareOut', `\n@#@-@#@-@#@-@#@-@#@-@#@-@#@\n`, function (err:any) {
+                if (err) {
+                    console.error(`COULD not add hardware`);
+                }})
+                require('fs').appendFile('/tmp/emusend', `\n@#@-@#@-@#@-@#@-@#@-@#@-@#@\n`, function (err:any) {
+                    if (err) {
+                        console.error(`COULD not add hardware`);
+                    }})
             this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
                 console.log("Plugin: Step");
                 if (err) {

@@ -74,6 +74,11 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         const parser = new ReadlineParser();
         this.client?.pipe(parser);
         parser.on("data", (line: any) => {
+                        // everrying over the serial port
+                        require('fs').appendFile('/tmp/hardwareOut', line, function (err:any) {
+                            if (err) {
+                                console.error(`COULD not add hardware: ${line}`);
+                            }})
             if (this.woodDumpDetected) {
                 // Next line will be a WOOD dump
                 // TODO receive state from WOOD Dump and call bridge.pushSession(state)
@@ -88,8 +93,17 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             }
             this.woodDumpDetected = line.includes("DUMP!");
             console.log(`hardware: ${line}`);
+
             this.parser.parse(this, line);
         });
+    }
+
+    protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void): boolean | undefined {
+        require('fs').appendFile('/tmp/hardwareOut', `${i} \n`, function (err:any) {
+            if (err) {
+                console.error(`COULD not add interuptcall:`);
+            }})
+            return super.sendInterrupt(i,callback);
     }
 
     public disconnect(): void {
