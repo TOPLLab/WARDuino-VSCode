@@ -51,7 +51,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         command += encode(+this.port, 4);
         command += encode(this.host.length, 1);
         command += Buffer.from(this.host).toString("hex");
-        command += '\n';
+        command += ' \n';
         return command.toUpperCase();
     }
 

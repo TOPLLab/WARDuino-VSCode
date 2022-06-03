@@ -1,7 +1,8 @@
 import {spawn} from "child_process";
 import {promises as fsPromises} from 'fs';
+import * as vscode from "vscode";
 
-const path: string = "/home/tolauwae/Documents/out-of-things/warduino"; // TODO add to config
+const path: string = vscode.workspace.getConfiguration().get("warduino.OutOfThings") ?? ".";
 
 export class WOODState {
     private unparsedJSON = "";
