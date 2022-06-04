@@ -16,6 +16,7 @@ export class Messages {
     public static readonly compiling: string = "Compiling the code";
     public static readonly compiled: string = "Compiled Code";
     public static readonly reset: string = "Press reset button";
+    public static readonly transfering: string = "Transfering state";
     public static readonly uploading: string = "Uploading to board";
     public static readonly connecting: string = "Connecting to board";
     public static readonly connected: string = "Connected to board";
