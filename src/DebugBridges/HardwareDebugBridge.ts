@@ -180,6 +180,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     pullSession(): void {
+        this.listener.notifyProgress(Messages.transfering);
         this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
             console.log("Plugin: WOOD Dump");
             if (err) {
