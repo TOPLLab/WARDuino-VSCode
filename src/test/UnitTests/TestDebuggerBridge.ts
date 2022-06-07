@@ -9,30 +9,25 @@ import {EmulatedDebugBridge} from "../../DebugBridges/EmulatedDebugBridge";
 import {WASMCompilerBridge} from "../../CompilerBridges/WASMCompilerBridge";
 import {RunTimeTarget} from "../../DebugBridges/RunTimeTarget";
 import {WOODDebugBridge} from "../../DebugBridges/WOODDebugBridge";
+import {DebugBridgeListener} from "../../DebugBridges/DebugBridgeListener";
 import ErrnoException = NodeJS.ErrnoException;
 
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
 const wabtSDK = `${runPath}/WABT/build`;
 const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
-const listener = {
+const listener: DebugBridgeListener = {
     notifyError(): void {
-
     },
     connected(): void {
-
     },
     startMultiverseDebugging(woodState: WOODState): void {
-
     },
     notifyPaused(): void {
-
     },
     notifyBreakpointHit(): void {
-
     },
     disconnected(): void {
-
     },
     notifyProgress(message: string): void {
         console.log(message);

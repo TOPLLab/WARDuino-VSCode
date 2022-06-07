@@ -28,7 +28,7 @@ import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {ProxyDebugBridge} from "../DebugBridges/ProxyDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
-import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
+import {ProxyCallsProvider, ProxyCallItem} from "../Views/ProxyCallsProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -143,7 +143,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.tmpdir,
             {   // VS Code Interface
                 notifyError(): void {
-
+                    that.stop();
                 },
                 connected(): void {
                     that.debugBridge?.pause();
@@ -184,6 +184,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                             (that.debugBridge as WOODDebugBridge).specifySocket(socket.host, socket.port);
                         }, disconnected(): void {
                         }, notifyError(message: string): void {
+                            that.stop();
                         }, notifyPaused(): void {
                         }, notifyBreakpointHit() {
                         }, notifyProgress(message: string): void {
@@ -191,6 +192,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         }, startMultiverseDebugging(woodState: WOODState): void {
                         }
                     });
+
                 },
                 notifyPaused(): void {
                     that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));

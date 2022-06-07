@@ -73,35 +73,50 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     protected installInputStreamListener() {
         const parser = new ReadlineParser();
         this.client?.pipe(parser);
-        parser.on("data", (line: any) => {
-            if (this.woodDumpDetected) {
-                // Next line will be a WOOD dump
-                // TODO receive state from WOOD Dump and call bridge.pushSession(state)
-                this.woodState = new WOODState(line);
-                this.requestCallbackmapping();
-                this.woodDumpDetected = false;
-                return;
-            }
-            if (line.startsWith('{"callbacks": ') && this.woodState !== undefined) {
-                this.woodState.callbacks = line;
-                this.pushSession();
-            }
-            this.woodDumpDetected = line.includes("DUMP!");
-            console.log(`hardware: ${line}`);
-            this.parser.parse(this, line);
+        parser.on("data", (line: string) => {
+            this.handleLine(line);
         });
     }
 
+    protected handleLine(line: string) {
+        if (this.woodDumpDetected) {
+            // Next line will be a WOOD dump
+            // TODO receive state from WOOD Dump and call bridge.pushSession(state)
+            this.woodState = new WOODState(line);
+            this.requestCallbackmapping();
+            this.woodDumpDetected = false;
+            return;
+        }
+
+        if (this.woodState !== undefined && line.startsWith('{"callbacks": ')) {
+            this.woodState.callbacks = line;
+            this.pushSession();
+        }
+        this.woodDumpDetected = line.includes("DUMP!");
+        console.log(`hardware: ${line}`);
+        this.parser.parse(this, line);
+
+        this.woodDumpDetected = line.includes("DUMP!");
+        console.log(`hardware: ${line}`);
+
+        this.parser.parse(this, line);
+    }
+
     public disconnect(): void {
-        this.client?.close();
+        console.error("CLOSED!"), this.client;
+        this.client?.close((e) => {
+            console.log(e)
+        });
         this.listener.notifyProgress(Messages.disconnected);
     }
 
-    protected uploadArduino(path: string, resolver: (value: boolean) => void): void {
+    protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
+        let lastStdOut = "";
         this.listener.notifyProgress(Messages.reset);
 
         const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, {cwd: path}, (err, stdout, stderr) => {
                 console.error(err);
+                lastStdOut = stdout + stderr;
                 this.listener.notifyProgress(Messages.initialisationFailure);
             }
         );
@@ -114,11 +129,15 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
 
         upload.on("close", (code) => {
-            resolver(code === 0);
+            if (code === 0) {
+                resolver(true)
+            } else {
+                reject(`Could not flash ended with ${code} \n${lastStdOut}`);
+            }
         });
     }
 
-    public compileArduino(path: string, resolver: (value: boolean) => void): void {
+    public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
         const compile = spawn("make", ["compile", `FQBN=${this.fqbn}`], {
             cwd: path
         });
@@ -130,17 +149,17 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         compile.stderr.on("data", (data: string) => {
             console.error(`stderr: ${data}`);
             this.listener.notifyProgress(Messages.initialisationFailure);
-            resolver(false);
+            reject(data);
         });
 
         compile.on("close", (code) => {
             console.log(`Arduino compilation exited with code ${code}`);
             if (code === 0) {
                 this.listener.notifyProgress(Messages.compiled);
-                this.uploadArduino(path, resolver);
+                this.uploadArduino(path, resolver, reject);
             } else {
                 this.listener.notifyProgress(Messages.initialisationFailure);
-                resolver(false);
+                reject(false);
             }
         });
     }
@@ -150,22 +169,26 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             const sdkpath: string = this.sdk + "/platforms/Arduino/";
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
             cp.on("error", err => {
-                resolve(false);
+                reject("Could not store upload file to sdk path.");
             });
             cp.on("close", (code) => {
-                this.compileArduino(sdkpath, resolve);
+                this.compileArduino(sdkpath, resolve, reject);
             });
         });
     }
 
-    getCurrentFunctionIndex(): number {
+    getCurrentFunctionIndex()
+        :
+        number {
         if (this.callstack.length === 0) {
             return -1;
         }
         return this.callstack[this.callstack.length - 1].index;
     }
 
-    pullSession(): void {
+    pullSession()
+        :
+        void {
         this.listener.notifyProgress(Messages.transfering);
         this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
             console.log("Plugin: WOOD Dump");
@@ -175,9 +198,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    pushSession(): void {
+    pushSession()
+        :
+        void {
         console.log("Plugin: listener start multiverse debugging");
-        if (this.woodState === undefined) {
+        if (this.woodState === undefined
+        ) {
             return;
         }
         this.listener.startMultiverseDebugging(this.woodState);
@@ -187,7 +213,9 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);
     }
 
-    refresh(): void {
+    refresh()
+        :
+        void {
         console.log("Plugin: Refreshing");
         this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {
             if (err) {
