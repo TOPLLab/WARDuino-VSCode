@@ -99,10 +99,6 @@ export abstract class AbstractDebugBridge implements DebugBridge {
                 if (err) {
                     console.error(`COULD not add hardware`);
                 }})
-                require('fs').appendFile('/tmp/emusend', `\n@#@-@#@-@#@-@#@-@#@-@#@-@#@\n`, function (err:any) {
-                    if (err) {
-                        console.error(`COULD not add hardware`);
-                    }})
             this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
                 console.log("Plugin: Step");
                 if (err) {

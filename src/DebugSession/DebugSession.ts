@@ -1,5 +1,5 @@
-import {DebugProtocol} from 'vscode-debugprotocol';
-import {basename} from 'path-browserify';
+import { DebugProtocol } from 'vscode-debugprotocol';
+import { basename } from 'path-browserify';
 import * as vscode from 'vscode';
 
 import {
@@ -13,22 +13,22 @@ import {
     TerminatedEvent,
     Thread
 } from 'vscode-debugadapter';
-import {CompileTimeError} from "../CompilerBridges/CompileTimeError";
-import {ErrorReporter} from "./ErrorReporter";
-import {DebugBridge} from '../DebugBridges/DebugBridge';
-import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
-import {RunTimeTarget} from "../DebugBridges/RunTimeTarget";
-import {CompileBridgeFactory} from "../CompilerBridges/CompileBridgeFactory";
-import {SourceMap} from "../State/SourceMap";
-import {VariableInfo} from "../State/VariableInfo";
+import { CompileTimeError } from "../CompilerBridges/CompileTimeError";
+import { ErrorReporter } from "./ErrorReporter";
+import { DebugBridge } from '../DebugBridges/DebugBridge';
+import { DebugBridgeFactory } from '../DebugBridges/DebugBridgeFactory';
+import { RunTimeTarget } from "../DebugBridges/RunTimeTarget";
+import { CompileBridgeFactory } from "../CompilerBridges/CompileBridgeFactory";
+import { SourceMap } from "../State/SourceMap";
+import { VariableInfo } from "../State/VariableInfo";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import {WOODState} from "../State/WOODState";
-import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
-import {ProxyDebugBridge} from "../DebugBridges/ProxyDebugBridge";
-import {EventsProvider} from "../Views/EventsProvider";
-import {ProxyCallsProvider, ProxyCallItem} from "../Views/ProxyCallsProvider";
+import { WOODState } from "../State/WOODState";
+import { WOODDebugBridge } from "../DebugBridges/WOODDebugBridge";
+import { ProxyDebugBridge } from "../DebugBridges/ProxyDebugBridge";
+import { EventsProvider } from "../Views/EventsProvider";
+import { ProxyCallsProvider, ProxyCallItem } from "../Views/ProxyCallsProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -149,7 +149,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.tmpdir,
             {   // VS Code Interface
                 notifyError(): void {
-
+                    that.stop();
                 },
                 connected(): void {
                     that.debugBridge?.pause();
@@ -181,7 +181,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         },
                         notifyStateUpdate(): void {
                             that.notifyStepCompleted();
-                        }
+                        },
+                        todoremove_sendCallbacks(callbacks: string): void {}
                     });
 
                     that.proxyBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.proxy, that.tmpdir, {
@@ -190,13 +191,17 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                             (that.debugBridge as WOODDebugBridge).specifySocket(socket.host, socket.port);
                         }, disconnected(): void {
                         }, notifyError(message: string): void {
+                            that.stop();
                         }, notifyPaused(): void {
                         }, notifyBreakpointHit() {
                         }, notifyProgress(message: string): void {
                         }, notifyStateUpdate(): void {
                         }, startMultiverseDebugging(woodState: WOODState): void {
+                        }, todoremove_sendCallbacks(callbacks: string): void {
+                            return (that.debugBridge as WOODDebugBridge)?.todo_remove_sendCallbacks(callbacks);
                         }
                     });
+
                 },
                 notifyPaused(): void {
                     that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
@@ -214,7 +219,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 },
                 notifyStateUpdate(): void {
                     that.notifyStepCompleted();
-                }
+                },
+                todoremove_sendCallbacks(callbacks: string): void {}
             }
         );
 
@@ -334,8 +340,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected variablesRequest(response: DebugProtocol.VariablesResponse,
-                               args: DebugProtocol.VariablesArguments,
-                               request?: DebugProtocol.Request) {
+        args: DebugProtocol.VariablesArguments,
+        request?: DebugProtocol.Request) {
         if (this.sourceMap === undefined) {
             return;
         }
@@ -357,7 +363,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         } else {
             response.body = {
                 variables: Array.from(this.sourceMap.globalInfos, (info) => {
-                    return {name: info.name, value: info.value, variablesReference: 0};
+                    return { name: info.name, value: info.value, variablesReference: 0 };
                 })
             };
             this.sendResponse(response);
@@ -365,7 +371,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse,
-                                args: DebugProtocol.StackTraceArguments): void {
+        args: DebugProtocol.StackTraceArguments): void {
         const pc = this.debugBridge!.getProgramCounter();
         this.setLineNumberFromPC(pc);
 
@@ -419,7 +425,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log("Shutting the debugger down");
         this.debugBridge?.disconnect();
         if (this.tmpdir) {
-            fs.rm(this.tmpdir, {recursive: true}, err => {
+            fs.rm(this.tmpdir, { recursive: true }, err => {
                 if (err) {
                     throw new Error('Could not delete temporary directory.');
                 }

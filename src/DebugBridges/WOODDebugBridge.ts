@@ -4,6 +4,10 @@ import {InterruptTypes} from "./InterruptTypes";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
+    todo_remove_sendCallbacks(callbacks: string): void {
+        this.pushCallbacks(callbacks);
+    }
+
     private host: string = "";
     private port: string = "";
 
@@ -19,7 +23,12 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
             this.client?.write(`${messages[i]} \n`);
         }
 
-        const command = `${InterruptTypes.interruptRecvCallbackmapping}${woodState.callbacks} \n`;
+        this.pushCallbacks(woodState.callbacks)
+
+    }
+
+    private pushCallbacks(callbacks:string) {
+        const command = `${InterruptTypes.interruptRecvCallbackmapping}${callbacks} \n`;
         console.log(`send 75 message: ${command}`);
         this.client?.write(command);
     }
@@ -39,7 +48,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
 
     private monitorProxiesCommand(primitives: number[]): string {
         function encode(i: number, byteLength: number, byteorder = 'big'): string {
-            const result: Buffer = new Buffer(byteLength);
+            const result: Buffer = Buffer.alloc(byteLength);
             result.writeIntBE(i, 0, byteLength);
             return result.toString("hex");
         }

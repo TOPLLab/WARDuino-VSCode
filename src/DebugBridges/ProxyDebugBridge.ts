@@ -1,6 +1,7 @@
 import {HardwareDebugBridge} from "./HardwareDebugBridge";
 import {InterruptTypes} from "./InterruptTypes";
 import * as vscode from "vscode";
+import { WOODDebugBridge } from "./WOODDebugBridge";
 
 export interface Socket {
     host: string,
@@ -43,6 +44,13 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
                 }
             });
         });
+    }
+
+    protected handleLine(line: string): void {
+        if(line.startsWith('{"callbacks": ')){
+            this.listener.todoremove_sendCallbacks(line);
+        }
+        super.handleLine(line);
     }
 
     public getSocket(): Socket {
