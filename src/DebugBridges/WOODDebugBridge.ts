@@ -57,7 +57,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
 
     // Send new proxy call list to the emulator
     public async specifyProxyCalls() {
-        const primitives = this.getSelectedProxies();
+        const primitives = this.getSelectedProxiesByIndex();
         const message: string = this.monitorProxiesCommand(primitives);
         this.client?.write(message);
     }

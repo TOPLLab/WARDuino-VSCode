@@ -59,6 +59,9 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     protected constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
+        const callbacks = sourceMap?.importInfos ?? [];
+        this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
+            ?? new Set<ProxyCallItem>();
         this.eventsProvider = eventsProvider;
         this.listener = listener;
     }
@@ -152,15 +155,6 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.sendInterrupt(InterruptTypes.interruptPOPEvent);
     }
 
-    public updateSelectedProxies(proxy: ProxyCallItem) {
-        if (proxy.isSelected()) {
-            this.selectedProxies.add(proxy);
-        } else {
-            this.selectedProxies.delete(proxy);
-        }
-        console.warn("Only WOOD Emulator Debug Bridge needs proxies");
-    }
-
     // Helper functions
 
     protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
@@ -180,8 +174,25 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return this.sourceMap?.importInfos.map((primitive: FunctionInfo) => (primitive.index)) ?? [];
     }
 
-    protected getSelectedProxies(): number[] {
+    public getSelectedProxies(): Set<ProxyCallItem> {
+        return this.selectedProxies;
+    }
+
+    protected getSelectedProxiesByIndex(): number[] {
         return [...this.selectedProxies].map((callback: ProxyCallItem) => (callback.index));
+    }
+
+    public setSelectedProxies(proxies: Set<ProxyCallItem>) {
+        this.selectedProxies = proxies;
+    }
+
+    public updateSelectedProxies(proxy: ProxyCallItem) {
+        if (proxy.isSelected()) {
+            this.selectedProxies.add(proxy);
+        } else {
+            this.selectedProxies.delete(proxy);
+        }
+        console.warn("Only WOOD Emulator Debug Bridge needs proxies");
     }
 
     private inHistory() {

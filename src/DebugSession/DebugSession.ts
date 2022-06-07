@@ -121,9 +121,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const eventsProvider = new EventsProvider();
         vscode.window.registerTreeDataProvider("events", eventsProvider);
 
-        this.proxyCallsProvider = new ProxyCallsProvider();
-        vscode.window.registerTreeDataProvider("proxies", this.proxyCallsProvider);
-
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
                 if (err === null) {
@@ -140,11 +137,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let sourceMap: SourceMap | void = await compiler.compile().catch((reason) => this.handleCompileError(reason));
         if (sourceMap) {
             this.sourceMap = sourceMap;
-            this.proxyCallsProvider.setCallbacks(sourceMap?.importInfos ?? []);
         }
         let that = this;
         const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
-        this.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider,
+        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface
@@ -157,7 +153,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 startMultiverseDebugging(woodState: WOODState) {
                     that.debugBridge?.disconnect();
 
-                    that.debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
+                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
                         connected(): void {
@@ -182,7 +178,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         notifyStateUpdate(): void {
                             that.notifyStepCompleted();
                         }
-                    });
+                    }));
 
                     that.proxyBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.proxy, that.tmpdir, {
                         connected(): void {
@@ -216,12 +212,24 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.notifyStepCompleted();
                 }
             }
-        );
+        ));
 
         this.sendResponse(response);
         this.sendEvent(new StoppedEvent('entry', this.THREAD_ID));
     }
 
+    private setDebugBridge(next: DebugBridge) {
+        if (this.debugBridge !== undefined) {
+            next.setSelectedProxies(this.debugBridge.getSelectedProxies());
+        }
+        this.debugBridge = next;
+        if (this.proxyCallsProvider === undefined) {
+            this.proxyCallsProvider = new ProxyCallsProvider(next);
+            vscode.window.registerTreeDataProvider("proxies", this.proxyCallsProvider);
+        } else {
+            this.proxyCallsProvider?.setDebugBridge(next);
+        }
+    }
 
     protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
         this.debugBridge?.run();
@@ -258,8 +266,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     public toggleProxy(resource: ProxyCallItem) {
         resource.toggle();
-        this.proxyCallsProvider?.refresh();
         this.debugBridge?.updateSelectedProxies(resource);
+        this.proxyCallsProvider?.refresh();
     }
 
     //

@@ -1,16 +1,21 @@
 import {FunctionInfo} from "../State/FunctionInfo";
 import * as vscode from 'vscode';
-import {ProviderResult, ThemeIcon, TreeItem, TreeItemCollapsibleState} from 'vscode';
+import {ProviderResult, ThemeIcon, TreeItem} from 'vscode';
+import {DebugBridge} from "../DebugBridges/DebugBridge";
 
 export class ProxyCallsProvider implements vscode.TreeDataProvider<ProxyCallItem> {
-    private callbacks: ProxyCallItem[] = [];
+    private debugBridge: DebugBridge;
 
     private _onDidChangeTreeData: vscode.EventEmitter<ProxyCallItem | undefined | null | void> = new vscode.EventEmitter<ProxyCallItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<ProxyCallItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
+    constructor(debugBridge: DebugBridge) {
+        this.debugBridge = debugBridge;
+    }
+
     getChildren(element?: ProxyCallItem): ProviderResult<ProxyCallItem[]> {
         if (element === undefined) {
-            return this.callbacks;
+            return Array.from(this.debugBridge.getSelectedProxies());
         }
         return undefined;
     }
@@ -19,9 +24,8 @@ export class ProxyCallsProvider implements vscode.TreeDataProvider<ProxyCallItem
         return element;
     }
 
-    setCallbacks(callbacks: FunctionInfo[]) {
-        this.callbacks = callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))) ?? [];
-        this.refresh();
+    setDebugBridge(debugBridge: DebugBridge) {
+        this.debugBridge = debugBridge;
     }
 
     refresh() {
@@ -30,12 +34,12 @@ export class ProxyCallsProvider implements vscode.TreeDataProvider<ProxyCallItem
 }
 
 export class ProxyCallItem extends vscode.TreeItem {
-    private selected: boolean = false;
+    private selected: boolean = true;
     public index;
 
     constructor(primitive: FunctionInfo) {
         super(primitive.name);
-        this.iconPath = new ThemeIcon("circle-large-outline");
+        this.iconPath = new ThemeIcon("pass-filled");
         this.command = {title: "Toggle callback", command: "warduinodebug.toggleCallback", arguments: [this]};
         this.index = primitive.index;
     }
