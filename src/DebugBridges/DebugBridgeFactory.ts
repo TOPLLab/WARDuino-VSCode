@@ -49,8 +49,8 @@ export class DebugBridgeFactory {
                     console.log("Plugin: Connected.");
                     listener.connected();
                 }).catch(reason => {
-                    console.log(reason);
-                    listener.notifyProgress(Messages.connectionFailure);
+                    console.error(reason);
+                    listener.notifyError(Messages.connectionFailure);
                 });
                 return bridge;
         }

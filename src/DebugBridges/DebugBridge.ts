@@ -65,4 +65,5 @@ export interface DebugBridge {
     setVariable(name: string, value: number): Promise<string>;
 
     upload(): void;
+
 }
