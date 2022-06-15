@@ -282,7 +282,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
-        console.log("breakpointLocationsRequest");
+        response.body.breakpoints = this.debugBridge?.getBreakpointPossibilities() ?? [];
     }
 
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {

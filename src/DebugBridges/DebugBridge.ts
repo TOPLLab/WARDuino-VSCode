@@ -16,6 +16,8 @@ export interface DebugBridge {
 
     setProgramCounter(pc: number): void;
 
+    getBreakpointPossibilities(): Breakpoint[];
+
     getLocals(fidx: number): VariableInfo[];
 
     setLocals(fidx: number, locals: VariableInfo[]): void;
@@ -62,4 +64,9 @@ export interface DebugBridge {
     setVariable(name: string, value: number): Promise<string>;
 
     upload(): void;
+}
+
+export interface Breakpoint {
+    line: number;
+    column?: number;
 }

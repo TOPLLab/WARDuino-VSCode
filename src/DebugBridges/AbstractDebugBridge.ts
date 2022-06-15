@@ -1,4 +1,4 @@
-import {DebugBridge} from "./DebugBridge";
+import {Breakpoint, DebugBridge} from "./DebugBridge";
 import {Frame} from "../Parsers/Frame";
 import {VariableInfo} from "../State/VariableInfo";
 import {SourceMap} from "../State/SourceMap";
@@ -225,6 +225,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     setProgramCounter(pc: number) {
         this.pc = pc;
+    }
+
+    getBreakpointPossibilities(): Breakpoint[] {
+        return [];  // TODO implement
     }
 
     getLocals(fidx: number): VariableInfo[] {
