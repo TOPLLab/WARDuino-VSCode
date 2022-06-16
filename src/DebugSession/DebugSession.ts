@@ -28,7 +28,7 @@ import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {ProxyDebugBridge} from "../DebugBridges/ProxyDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
-import {ProxyCallsProvider, ProxyCallItem} from "../Views/ProxyCallsProvider";
+import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -81,14 +81,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         response.body.supportsCancelRequest = false;
 
         // make VS Code send the breakpointLocations request
-        response.body.supportsBreakpointLocationsRequest = true;
+        response.body.supportsBreakpointLocationsRequest = false;
 
         // make VS Code provide "Step in Target" functionality
-        response.body.supportsStepInTargetsRequest = true;
+        response.body.supportsStepInTargetsRequest = false;
 
         // the adapter defines two exceptions filters, one with support for conditions.
         response.body.supportsExceptionFilterOptions = false;
-
 
         // make VS Code send exceptionInfo request
         response.body.supportsExceptionInfoRequest = false;
@@ -103,7 +102,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         response.body.supportsDisassembleRequest = false;
         response.body.supportsSteppingGranularity = false;
         response.body.supportsInstructionBreakpoints = false;
-
 
         this.sendResponse(response);
         this.sendEvent(new InitializedEvent());
@@ -286,19 +284,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {
-        if (this.sourceMap === undefined) {
-            console.log("no source map yet");
-        } else {
-            args.lines?.forEach((breakpoint: number) => {
-                let lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === breakpoint);
-                if (lineInfoPair) {
-                    console.log(lineInfoPair);
-                    this.debugBridge?.setBreakPoint(parseInt("0x" + lineInfoPair.lineAddress));
-                }
-
-            });
-
-        }
+        response.body.breakpoints = this.debugBridge?.setBreakPoints(args.lines ?? []) ?? [];
+        this.sendResponse(response);
     }
 
     protected setInstructionBreakpointsRequest(response: DebugProtocol.SetInstructionBreakpointsResponse, args: DebugProtocol.SetInstructionBreakpointsArguments) {
