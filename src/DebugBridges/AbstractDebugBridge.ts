@@ -1,4 +1,4 @@
-import {Breakpoint, DebugBridge} from "./DebugBridge";
+import {Breakpoint, DebugBridge, UniqueSet} from "./DebugBridge";
 import {Frame} from "../Parsers/Frame";
 import {VariableInfo} from "../State/VariableInfo";
 import {SourceMap} from "../State/SourceMap";
@@ -47,6 +47,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected pc: number = 0;
     protected callstack: Frame[] = [];
     protected selectedProxies: Set<ProxyCallItem> = new Set<ProxyCallItem>();
+    protected breakpoints: UniqueSet<Breakpoint> = new UniqueSet<Breakpoint>();
 
     // Interfaces
     protected listener: DebugBridgeListener;
@@ -116,11 +117,27 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract getCurrentFunctionIndex(): number;
 
-    public setBreakPoint(address: number) {
-        let breakPointAddress: string = (this.startAddress + address).toString(16).toUpperCase();
+    private setBreakPoint(breakpoint: Breakpoint) {
+        this.breakpoints.add(breakpoint);
+        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
         let command = `060${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
         this.client?.write(command);
+    }
+
+    public setBreakPoints(lines: number[]): Breakpoint[] {
+        if (this.sourceMap === undefined) {
+            console.log("setBreakPointsRequest: no source map");
+            return [];
+        }
+        lines.forEach((lineNumber: number) => {
+            const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === lineNumber);
+            if (lineInfoPair) {
+                const breakpoint: Breakpoint = new Breakpoint(lineNumber, parseInt("0x" + lineInfoPair.lineAddress));
+                this.setBreakPoint(breakpoint);
+            }
+        });
+        return Array.from(this.breakpoints.values());
     }
 
     abstract setStartAddress(startAddress: number): void;
