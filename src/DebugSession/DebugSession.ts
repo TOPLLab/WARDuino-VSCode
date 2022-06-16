@@ -81,7 +81,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         response.body.supportsCancelRequest = false;
 
         // make VS Code send the breakpointLocations request
-        response.body.supportsBreakpointLocationsRequest = false;
+        response.body.supportsBreakpointLocationsRequest = true;
 
         // make VS Code provide "Step in Target" functionality
         response.body.supportsStepInTargetsRequest = false;
@@ -280,11 +280,16 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
-        response.body.breakpoints = this.debugBridge?.getBreakpointPossibilities() ?? [];
+        response.body = {
+            breakpoints: this.debugBridge?.getBreakpointPossibilities() ?? []
+        };
+        this.sendResponse(response);
     }
 
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {
-        response.body.breakpoints = this.debugBridge?.setBreakPoints(args.lines ?? []) ?? [];
+        response.body = {
+            breakpoints: this.debugBridge?.setBreakPoints(args.lines ?? []) ?? []
+        };
         this.sendResponse(response);
     }
 

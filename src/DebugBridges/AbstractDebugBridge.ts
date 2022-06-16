@@ -264,7 +264,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     getBreakpointPossibilities(): Breakpoint[] {
-        return [];  // TODO implement
+        return this.sourceMap?.lineInfoPairs.map(info => new Breakpoint(this.lineToAddress(info.lineInfo.line), info.lineInfo.line)) ?? [];
     }
 
     getLocals(fidx: number): VariableInfo[] {
