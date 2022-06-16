@@ -1,4 +1,4 @@
-import {Breakpoint, DebugBridge, UniqueSet} from "./DebugBridge";
+import {DebugBridge} from "./DebugBridge";
 import {Frame} from "../Parsers/Frame";
 import {VariableInfo} from "../State/VariableInfo";
 import {SourceMap} from "../State/SourceMap";
@@ -10,6 +10,7 @@ import {EventItem, EventsProvider} from "../Views/EventsProvider";
 import {FunctionInfo} from "../State/FunctionInfo";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 import {RuntimeState} from "../State/RuntimeState";
+import {Breakpoint, UniqueSet} from "../State/Breakpoint";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
