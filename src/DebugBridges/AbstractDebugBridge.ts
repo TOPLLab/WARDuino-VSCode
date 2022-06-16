@@ -131,14 +131,32 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             console.log("setBreakPointsRequest: no source map");
             return [];
         }
-        lines.forEach((lineNumber: number) => {
-            const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === lineNumber);
-            if (lineInfoPair) {
-                const breakpoint: Breakpoint = new Breakpoint(lineNumber, parseInt("0x" + lineInfoPair.lineAddress));
+
+        // Delete absent breakpoints
+        Array.from<Breakpoint>(this.breakpoints.values())
+            .filter((breakpoint) => !lines.includes(breakpoint.id))
+            .forEach(breakpoint => this.breakpoints.delete(breakpoint));
+
+        // Add missing breakpoints
+        lines.forEach((line) => {
+            if (this.isNewBreakpoint(line)) {
+                const breakpoint: Breakpoint = new Breakpoint(this.lineToAddress(line), line);
                 this.setBreakPoint(breakpoint);
             }
         });
-        return Array.from(this.breakpoints.values());
+
+        return Array.from(this.breakpoints.values());  // return new breakpoints list
+    }
+
+    private isNewBreakpoint(line: Number): boolean {
+        const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === line);
+        return lineInfoPair !== undefined
+            && !Array.from<Breakpoint>(this.breakpoints.values()).some(value => value.id === line);
+    }
+
+    private lineToAddress(line: number): number {
+        const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === line);
+        return parseInt("0x" + lineInfoPair?.lineAddress ?? "");
     }
 
     abstract setStartAddress(startAddress: number): void;
