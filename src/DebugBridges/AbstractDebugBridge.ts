@@ -118,10 +118,18 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract getCurrentFunctionIndex(): number;
 
+    private unsetBreakPoint(breakpoint: Breakpoint) {
+        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
+        let command = `${InterruptTypes.interruptBPRem}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
+        console.log(`Plugin: sent ${command}`);
+        this.client?.write(command);
+        this.breakpoints.delete(breakpoint);
+    }
+
     private setBreakPoint(breakpoint: Breakpoint) {
         this.breakpoints.add(breakpoint);
         let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
-        let command = `060${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
+        let command = `${InterruptTypes.interruptBPAdd}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
         this.client?.write(command);
     }
@@ -135,7 +143,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         // Delete absent breakpoints
         Array.from<Breakpoint>(this.breakpoints.values())
             .filter((breakpoint) => !lines.includes(breakpoint.id))
-            .forEach(breakpoint => this.breakpoints.delete(breakpoint));
+            .forEach(breakpoint => this.unsetBreakPoint(breakpoint));
 
         // Add missing breakpoints
         lines.forEach((line) => {
