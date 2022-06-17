@@ -10,7 +10,7 @@
   (import "env" "chip_digital_write" (func $env.chip_digital_write (type $int32->int32->void)))
 
   ;; Non-mutable globals
-  (global $led i32 (i32.const 23))
+  (global $led i32 (i32.const 26))
   (global $on i32 (i32.const 1))
   (global $off i32 (i32.const 0))
 

@@ -16,13 +16,13 @@
     i32.ne
     call $f7)
   (func $main (type $t4)
-    i32.const 37
+    i32.const 25
     i32.const 0
     call $f6
     i32.const 26
     i32.const 2
     call $f6
-    i32.const 37
+    i32.const 25
     i32.const 1
     i32.const 2
     call $f9
