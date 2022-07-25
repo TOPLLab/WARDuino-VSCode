@@ -12,7 +12,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client: net.Socket | undefined;
     protected readonly tmpdir: string;
     private wasmPath: string;
-    private readonly sdk: string;
+    protected readonly sdk: string;
     private cp?: ChildProcess;
     private parser: DebugInfoParser;
     private buffer: string = "";
@@ -141,7 +141,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.client?.destroy();
     }
 
-    private spawnEmulatorProcess(): ChildProcess {
+    protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
         return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`]);
     }
