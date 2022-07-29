@@ -2,8 +2,6 @@ import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
-import {ChildProcess, spawn} from "child_process";
-import * as vscode from "vscode";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
     private host: string = "";
@@ -92,9 +90,4 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         }
         await this.specifyProxyCalls();
     };
-
-    protected spawnEmulatorProcess(): ChildProcess {
-        // TODO package extension with upload.wasm and compile WARDuino during installation.
-        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`, '--proxy', vscode.workspace.getConfiguration().get("warduino.port") as string]);
-    }
 }
