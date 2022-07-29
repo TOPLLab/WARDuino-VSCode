@@ -35,7 +35,7 @@ const debugmodeMap = new Map<string, RunTimeTarget>([
     ["embedded", RunTimeTarget.embedded]
 ]);
 
-// Interface between the debugger and the VS runtime 
+// Interface between the debugger and the VS runtime
 export class WARDuinoDebugSession extends LoggingDebugSession {
     private sourceMap?: SourceMap = undefined;
     private program: string = "";
@@ -413,6 +413,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log("backRequest");
         this.sendResponse(response);
         this.debugBridge?.stepBack();
+    }
+    j
+    protected reverseContinue(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments, request?: DebugProtocol.Request): void {
+        console.log("reverseContinue");
+        this.sendResponse(response);
+        this.debugBridge?.reverseContinue();
     }
 
     override shutdown(): void {

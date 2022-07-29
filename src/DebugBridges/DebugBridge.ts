@@ -33,6 +33,8 @@ export interface DebugBridge {
 
     stepBack(): void;
 
+    reverseContinue(): void;
+
     run(): void;
 
     pause(): void;
