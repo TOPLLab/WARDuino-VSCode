@@ -17,14 +17,14 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
                 this.openSerialPort(_reject, _resolve);
             });
             // Dronify
-            const host: string = await this.dronify();
+            await this.dronify();
             this.client?.removeAllListeners();
             this.installInputStreamListener();
-            resolve(host);
+            resolve("");
         });
     }
 
-    private async dronify(): Promise<string> {
+    private async dronify(): Promise<void> {
         this.client?.on("data", data => {
             console.log(`hardware: ${data}`);
         });
@@ -33,13 +33,10 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
             Buffer.from(config.get("warduino.SSID") as string).toString("hex")}00${
             Buffer.from(config.get("warduino.Password") as string).toString("hex")}00 \n`;
         this.client?.write(message);
-        return new Promise<string>(resolve => {
+        return new Promise<void>(resolve => {
             this.client?.on("data", data => {
-                const text = data.toString();
-                const search = /(?:[0-9]{1,3}\.){3}[0-9]{1,3}/.exec(text);
-                if (this.socket.host.length === 0 && search !== null) {
-                    this.socket.host = search && search.length > 0 ? search[0] : "";
-                    resolve(this.socket.host);
+                if (data.toString().includes("Dronified")) {
+                    resolve();
                 }
             });
         });
