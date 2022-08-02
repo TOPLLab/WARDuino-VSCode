@@ -138,7 +138,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         let that = this;
         const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
-        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider,
+        await this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface

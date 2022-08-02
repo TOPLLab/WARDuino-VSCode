@@ -92,20 +92,16 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             this.woodState.callbacks = line;
             this.pushSession();
         }
-        this.woodDumpDetected = line.includes("DUMP!");
-        console.log(`hardware: ${line}`);
-        this.parser.parse(this, line);
 
         this.woodDumpDetected = line.includes("DUMP!");
         console.log(`hardware: ${line}`);
-
         this.parser.parse(this, line);
     }
 
     public disconnect(): void {
-        console.error("CLOSED!"), this.client;
+        console.error("CLOSED!");
         this.client?.close((e) => {
-            console.log(e)
+            console.log(e);
         });
         this.listener.notifyProgress(Messages.disconnected);
     }
@@ -130,7 +126,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
         upload.on("close", (code) => {
             if (code === 0) {
-                resolver(true)
+                resolver(true);
             } else {
                 reject(`Could not flash ended with ${code} \n${lastStdOut}`);
             }
@@ -177,18 +173,14 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    getCurrentFunctionIndex()
-        :
-        number {
+    getCurrentFunctionIndex(): number {
         if (this.callstack.length === 0) {
             return -1;
         }
         return this.callstack[this.callstack.length - 1].index;
     }
 
-    pullSession()
-        :
-        void {
+    pullSession(): void {
         this.listener.notifyProgress(Messages.transfering);
         this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
             console.log("Plugin: WOOD Dump");
@@ -198,9 +190,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    pushSession()
-        :
-        void {
+    pushSession(): void {
         console.log("Plugin: listener start multiverse debugging");
         if (this.woodState === undefined
         ) {
@@ -213,9 +203,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);
     }
 
-    refresh()
-        :
-        void {
+    refresh(): void {
         console.log("Plugin: Refreshing");
         this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {
             if (err) {
