@@ -7,8 +7,8 @@ import {SourceMap} from "../State/SourceMap";
 import {AbstractDebugBridge} from "./AbstractDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
-import { Readable } from 'stream';
-import { ReadlineParser } from 'serialport';
+import {Readable} from 'stream';
+import {ReadlineParser} from 'serialport';
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client: net.Socket | undefined;
@@ -52,8 +52,8 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             let that = this;
+            let address = {port: 8192, host: "127.0.0.1"};  // TODO config
             if (this.client === undefined) {
-                let address = {port: 8192, host: "127.0.0.1"};  // TODO config
                 this.client = new net.Socket();
                 this.client.connect(address, () => {
                     this.listener.notifyProgress("Connected to socket");
@@ -91,6 +91,8 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
                         });
                     }
                 );
+            } else {
+                resolve(`${address.host}:${address.port}`);
             }
         });
     }
@@ -113,45 +115,47 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     private startEmulator(): Promise<string> {
-        return new Promise((resolve,reject)=>{
+        return new Promise((resolve, reject) => {
             this.cp = this.spawnEmulatorProcess();
 
             this.listener.notifyProgress('Started emulator');
             while (this.cp.stdout === undefined) {
             }
-            if(isReadable(this.cp.stdout) && isReadable(this.cp.stderr) ){
+            if (isReadable(this.cp.stdout) && isReadable(this.cp.stderr)) {
                 const outParser = new ReadlineParser();
-                this.cp.stdout.pipe(outParser)                
+                this.cp.stdout.pipe(outParser);
                 const errParser = new ReadlineParser();
-                this.cp.stderr.pipe(errParser)
+                this.cp.stderr.pipe(errParser);
 
                 outParser.on('data', (data) => {  // Print debug and trace information
                     console.log(`stdout: ${data}`);
+                    if (data.includes("Listening")) {
+                        this.initClient().then(resolve).catch(reject);
+                    }
                 });
                 errParser.on('data', (data) => {  // Print debug and trace information
                     console.log(`stderr: ${data}`);
                 });
-        
+
                 this.cp.on('error', (err) => {
                     console.error('Failed to start subprocess.');
                     reject(err);
                 });
-        
+
                 this.cp.on('close', (code) => {
                     this.listener.notifyProgress('Disconnected from emulator');
                     this.cp?.kill();
                     this.cp = undefined;
                 });
-        
-                this.initClient().then(resolve).catch(reject);
+
             } else {
-                reject("No stdout of stderr on emulator")
+                reject("No stdout of stderr on emulator");
             }
-        })
+        });
     }
 
     public disconnect(): void {
-        console.error("Disconnected emulator")
+        console.error("Disconnected emulator");
         this.cp?.kill();
         this.client?.destroy();
     }
@@ -162,7 +166,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
 }
-
 
 function isReadable(x: Readable | null): x is Readable {
     return x != null;
