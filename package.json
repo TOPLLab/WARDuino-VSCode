@@ -170,6 +170,7 @@
     "vscode-debugadapter-testsupport": "^1.51.0-pre.0"
   },
   "dependencies": {
-    "chai": "^4.3.6"
+    "chai": "^4.3.6",
+    "ts-proto": "^1.121.1"
   }
 }
