@@ -116,12 +116,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             }
         );
 
-        upload.on("data", (data: string) => {
-            console.log(`stdout: ${data}`);
-            if (data.search('Uploading') >= 0) {
-                this.listener.notifyProgress(Messages.uploading);
-            }
-        });
+        this.listener.notifyProgress(Messages.uploading);
 
         upload.on("close", (code) => {
             if (code === 0) {
