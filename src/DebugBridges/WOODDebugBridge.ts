@@ -69,7 +69,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
 
     private getOffset(): Promise<string> {
         let that = this;
-        this.sendInterrupt(InterruptTypes.interruptOffset);
+        // this.sendInterrupt(InterruptTypes.interruptOffset);
         return new Promise<string>((resolve, reject) => {
             function parseOffset(data: Buffer) {
                 console.log(`parse offset: ${data.toString().split("\n").length} ${data}`);

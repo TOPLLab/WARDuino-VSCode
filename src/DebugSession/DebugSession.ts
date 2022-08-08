@@ -28,7 +28,7 @@ import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {ProxyDebugBridge} from "../DebugBridges/ProxyDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
-import {ProxyCallsProvider, ProxyCallItem} from "../Views/ProxyCallsProvider";
+import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],

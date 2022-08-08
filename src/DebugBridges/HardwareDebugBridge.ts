@@ -7,6 +7,7 @@ import {exec, spawn} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
+import {Command} from "../Parsers/communication";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
@@ -37,7 +38,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
     }
-
 
     setStartAddress(startAddress: number) {
         this.startAddress = startAddress;
@@ -108,7 +108,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
         let lastStdOut = "";
-        this.listener.notifyProgress(Messages.reset);
 
         const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, {cwd: path}, (err, stdout, stderr) => {
                 console.error(err);
@@ -182,7 +181,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     pullSession(): void {
         this.listener.notifyProgress(Messages.transfering);
-        this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
+        this.sendInterrupt(Command.snapshot, undefined, function (err: any) {
             console.log("Plugin: WOOD Dump");
             if (err) {
                 return console.log("Error on write: ", err.message);
@@ -200,12 +199,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     requestCallbackmapping() {
-        this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);
+        this.sendInterrupt(Command.dumpcallbacks);
     }
 
     refresh(): void {
         console.log("Plugin: Refreshing");
-        this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {
+        this.sendInterrupt(Command.dump, undefined, function (err: any) {
             if (err) {
                 return console.log("Error on write: ", err.message);
             }

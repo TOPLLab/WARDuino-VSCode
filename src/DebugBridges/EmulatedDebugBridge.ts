@@ -9,6 +9,7 @@ import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
 import {Readable} from 'stream';
 import {ReadlineParser} from 'serialport';
+import {Command} from "../Parsers/communication";
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client: net.Socket | undefined;
@@ -98,11 +99,11 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     public refresh() {
-        this.sendInterrupt(InterruptTypes.interruptDUMPFull);
+        this.sendInterrupt(Command.dump);
     }
 
     public pullSession() {
-        this.sendInterrupt(InterruptTypes.interruptWOODDump);
+        this.sendInterrupt(Command.snapshot);
     }
 
     public pushSession(woodState: WOODState) {

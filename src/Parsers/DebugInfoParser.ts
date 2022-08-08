@@ -8,14 +8,14 @@ export class DebugInfoParser {
 
     private addressBeginning: number = 0;
 
-    public parse(bridge: DebugBridge, line: any): void {
+    public parse(bridge: DebugBridge, line: string): void {
         if (line.includes("STEP")) {
             bridge.refresh();
         }
 
         if (line.includes("AT")) {
             let breakpointInfo = line.match(/AT (0x.*)!/);
-            if (breakpointInfo.length > 1) {
+            if (breakpointInfo !== null && breakpointInfo.length > 1) {
                 let pc = parseInt(breakpointInfo[1]);
                 bridge.setProgramCounter(pc);
                 bridge.pause();

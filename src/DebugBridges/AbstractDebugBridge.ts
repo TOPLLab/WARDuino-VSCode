@@ -11,6 +11,7 @@ import {FunctionInfo} from "../State/FunctionInfo";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 import {RuntimeState} from "../State/RuntimeState";
 import {Breakpoint, UniqueSet} from "../State/Breakpoint";
+import {Command, DebugMessage, Payload} from "../Parsers/communication";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -81,11 +82,11 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     public run(): void {
         this.resetHistory();
-        this.sendInterrupt(InterruptTypes.interruptRUN);
+        this.sendInterrupt(Command.run);
     }
 
     public pause(): void {
-        this.sendInterrupt(InterruptTypes.interruptPAUSE);
+        this.sendInterrupt(Command.pause);
         this.listener.notifyPaused();
     }
 
@@ -100,7 +101,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             this.updateRuntimeState(this.history[this.present]);
         } else {
             // Normal step forward
-            this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
+            this.sendInterrupt(Command.step, undefined, function (err: any) {
                 console.log("Plugin: Step");
                 if (err) {
                     return console.log("Error on write: ", err.message);
@@ -193,17 +194,18 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     public notifyNewEvent(): void {
-        this.sendInterrupt(InterruptTypes.interruptDUMPAllEvents);
+        this.sendInterrupt(Command.dumpevents);
     }
 
     public popEvent(): void {
-        this.sendInterrupt(InterruptTypes.interruptPOPEvent);
+        this.sendInterrupt(Command.popevent);
     }
 
     // Helper functions
 
-    protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
-        return this.client?.write(`${i} \n`, callback);
+    protected sendInterrupt(command: Command, payload?: Payload | undefined, callback?: (error: Error | null | undefined) => void) {
+        let message: DebugMessage = {command: command, payload: payload};
+        return this.client?.write(`${DebugMessage.encode(message).finish().toString()}\n`, callback);
     }
 
     protected getVariableCommand(name: string, value: number): string {
