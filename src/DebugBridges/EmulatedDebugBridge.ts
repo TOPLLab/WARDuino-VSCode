@@ -9,7 +9,7 @@ import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
 import {Readable} from 'stream';
 import {ReadlineParser} from 'serialport';
-import {Command} from "../Parsers/communication";
+import {Command} from "../Parsers/debug";
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client: net.Socket | undefined;

@@ -7,7 +7,7 @@ import {exec, spawn} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
-import {Command} from "../Parsers/communication";
+import {Command} from "../Parsers/debug";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();

@@ -138,7 +138,7 @@
   },
   "scripts": {
     "vscode:prepublish": "yarn run compile",
-    "protoc": "cd WARDuino/src/Debug/; protoc --plugin=../../../node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=../../../src/Parsers/ communication.proto",
+    "protoc": "cd WARDuino/src/Debug/; protoc --plugin=../../../node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=../../../src/Parsers/ debug.proto",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "yarn run compile && yarn run lint",

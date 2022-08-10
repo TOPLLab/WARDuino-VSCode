@@ -11,7 +11,7 @@ import {FunctionInfo} from "../State/FunctionInfo";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 import {RuntimeState} from "../State/RuntimeState";
 import {Breakpoint, UniqueSet} from "../State/Breakpoint";
-import {Command, DebugMessage, Payload} from "../Parsers/communication";
+import {Command, DebugMessage, Payload} from "../Parsers/debug";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
