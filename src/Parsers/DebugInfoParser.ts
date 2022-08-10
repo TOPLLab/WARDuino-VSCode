@@ -3,42 +3,76 @@ import {VariableInfo} from "../State/VariableInfo";
 import {Frame} from "./Frame";
 import {EventItem} from "../Views/EventsProvider";
 import {RuntimeState} from "../State/RuntimeState";
+import {Event, Notification, Notification_Type, Snapshot} from "./debug";
+import {TextEncoder} from "util";
+import {Reader} from "protobufjs/minimal";
 
 export class DebugInfoParser {
 
     private addressBeginning: number = 0;
 
     public parse(bridge: DebugBridge, line: string): void {
-        if (line.includes("STEP")) {
-            bridge.refresh();
-        }
+        console.debug(`parsing: received message of length... ${line.length}`);
+        let bin: Uint8Array = new TextEncoder().encode(line);
+        console.debug(`parsing: encoding input... ${bin !== null ? "succeeded" : "failed"}`);
+        let message: Notification = Notification.decode(Reader.create(bin));
+        console.debug(`parsing: checking if message is well-formed... ${message !== null ? "yes" : "no"}`);
+        console.debug(`parsing: checking type of message... ${message.type}`);
 
-        if (line.includes("AT")) {
-            let breakpointInfo = line.match(/AT (0x.*)!/);
-            if (breakpointInfo !== null && breakpointInfo.length > 1) {
-                let pc = parseInt(breakpointInfo[1]);
-                bridge.setProgramCounter(pc);
-                bridge.pause();
-            }
-        }
-
-        if (line.includes("new pushed event")) {
-            bridge.notifyNewEvent();
-        }
-
-        if (line.startsWith("{\"events")) {
-            bridge.refreshEvents(JSON.parse(line).events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
-        } else if (line.startsWith("{\"pc")) {
-            const parsed = JSON.parse(line);
-            const runtimeState: RuntimeState = new RuntimeState(line);
-            runtimeState.startAddress = parseInt(parsed.start);
-            runtimeState.setRawProgramCounter(parseInt(parsed.pc));
-            runtimeState.callstack = this.parseCallstack(parsed.callstack);
-            runtimeState.locals = this.parseLocals(runtimeState.currentFunction(), bridge, parsed.locals.locals);
-            runtimeState.events = parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
-
-            bridge.updateRuntimeState(runtimeState);
-            console.log(bridge.getProgramCounter().toString(16));
+        console.debug(`parsing: resolving...`);
+        switch (message.type) {
+            case Notification_Type.continued:  // nothing to do
+            case Notification_Type.halted:
+                // TODO handle halted debugger backend
+            case Notification_Type.paused:
+                break;
+            case Notification_Type.stepped:
+                bridge.refresh();
+                break;
+            case Notification_Type.hitbreakpoint:
+                let breakpointInfo = message.payload?.breakpoint;
+                if (breakpointInfo !== undefined && breakpointInfo.length > 1) {
+                    let pc = parseInt(breakpointInfo);  // TODO test
+                    bridge.setProgramCounter(pc);
+                    bridge.pause();
+                } else {
+                    console.error(`parsing: unrecognized breakpoint`);
+                }
+                break;
+            case Notification_Type.newevent:
+                bridge.notifyNewEvent();
+                break;
+            case Notification_Type.changeaffected:
+                bridge.refresh();
+                break;
+            case Notification_Type.dump:
+                const runtimeState: RuntimeState = new RuntimeState(line);
+                // TODO bridge.updateRuntimeState(runtimeState);
+                break;
+            case Notification_Type.dumplocals:
+                // TODO update locals
+                break;
+            case Notification_Type.snapshot:
+                // TODO send snapshot to new debugger backend (start EDWARD)
+                break;
+            case Notification_Type.dumpevents:
+                bridge.refreshEvents(message.payload?.queue?.events.map((obj: Event) => (new EventItem(obj.topic, obj.payload))) ?? []);
+                break;
+            case Notification_Type.dumpcallbacks:
+                // TODO update callbacks with payload
+                break;
+            case Notification_Type.malformed:
+                console.error(`parsing: debugger backend reports malformed debug message`);
+                break;
+            case Notification_Type.unknown:
+                console.error(`parsing: debugger backend reports debug message with unknown debug type`);
+                break;
+            case Notification_Type.UNRECOGNIZED:
+                console.log(`parsing: unrecognized type of notification`);
+                break;
+            default:
+                console.error(`parsing: notification is of unhand-able type`);
+                break;
         }
     }
 
