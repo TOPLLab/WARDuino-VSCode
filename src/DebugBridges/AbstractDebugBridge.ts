@@ -287,7 +287,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             return;
         }
         if (fidx >= this.sourceMap.functionInfos.length) {
-            console.log(`warning setting locals for new function with index: ${fidx}`);
+            console.warn(`setting locals for new function with index: ${fidx}`);
             this.sourceMap.functionInfos[fidx] = {index: fidx, name: "<anonymous>", locals: []};
         }
         this.sourceMap.functionInfos[fidx].locals = locals;

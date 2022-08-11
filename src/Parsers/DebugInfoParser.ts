@@ -86,7 +86,7 @@ export class DebugInfoParser {
     private parseSnapshot(bridge: DebugBridge, id: string, snapshot: Snapshot): RuntimeState {
         const runtimeState: RuntimeState = new RuntimeState(id);
         runtimeState.programCounter = snapshot?.programCounter ?? 0;
-        runtimeState.callstack = snapshot?.callstack.filter(entry => entry.type !== 0).map(entry => ({
+        runtimeState.callstack = snapshot?.callstack.filter(entry => entry.type === 0).map(entry => ({
             index: entry.fidx,
             returnAddress: entry.ra
         } as Frame)) ?? [];
