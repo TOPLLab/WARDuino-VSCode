@@ -8,16 +8,18 @@ concurrency:
 env:
     WDCLI_CACHE: "build-wdcli"
     WABT_CACHE: "build-wabt"
+    PROTOBUF_VERSION: v21.4
+    PROTOBUF_BUILD_FOLDER: ${{ github.workspace }}/protobuf
 
 jobs:
     formatting-check:
         name: ESLint
         runs-on: ubuntu-latest
-        
+
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
-            
+              uses: actions/checkout@v3
+
             - name: Set up Node.js
               uses: actions/setup-node@v1
               with:
@@ -28,17 +30,17 @@ jobs:
 
             - name: Run ESLint
               run: npm run lint
-    
+
     build-wdcli:
         name: Build WARDuino CLI
         runs-on: ubuntu-latest
-        
+
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                 submodules: recursive
-    
+
             - name: Retrieve version
               run: |
                 cd WARDuino
@@ -47,12 +49,42 @@ jobs:
 
             - name: Cache build files
               id: cache-wdcli
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
                     ./WARDuino/build-emu
                 key: ${{ env.WDCLI_CACHE }}-${{ steps.version.outputs.COMMIT }}
-            
+
+            - name: Cache protobuf
+              if: steps.cache-wdcli.outputs.cache-hit != 'true'
+              id: cache-protobuf
+              uses: actions/cache@v3
+              with:
+                path: ${{ env.PROTOBUF_BUILD_FOLDER }}
+                key: ${{ runner.os }}-protobuf${{ env.PROTOBUF_VERSION }}
+
+            - name: Build protobuf
+              if: steps.cache-wdcli.outputs.cache-hit != 'true' && 
+                  steps.cache-protobuf.outputs.cache-hit != 'true' && 
+                  matrix.os != 'macos-latest'
+              run: |
+                mkdir -p ${{ env.PROTOBUF_BUILD_FOLDER }}    
+                cd ${{ env.PROTOBUF_BUILD_FOLDER }}    
+                git clone https://github.com/protocolbuffers/protobuf.git .    
+                git checkout ${{ env.PROTOBUF_VERSION }}    
+                git submodule update --init --recursive    
+                ./autogen.sh    
+                ./configure    
+                make -j$(nproc) # $(nproc) ensures it uses all cores for compilation    
+                make check    
+
+            - name: Setup protobuf
+              if: steps.cache-wdcli.outputs.cache-hit != 'true'
+              run: |
+                sudo make install    
+                sudo ldconfig # refresh shared library cache.
+              working-directory: ${{ env.PROTOBUF_BUILD_FOLDER }}
+
             - name: Build from source
               if: steps.cache-wdcli.outputs.cache-hit != 'true'
               run: |
@@ -67,13 +99,13 @@ jobs:
     build-wabt:
         name: Build custom WABT
         runs-on: ubuntu-latest
-        
+
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                 submodules: recursive
-    
+
             - name: Retrieve version
               run: |
                 cd WABT
@@ -82,12 +114,12 @@ jobs:
 
             - name: Cache build files
               id: cache-wabt
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
                     ./WABT/build
                 key: ${{ env.WABT_CACHE }}-${{ steps.version.outputs.COMMIT }}
-            
+
             - name: Build from source
               if: steps.cache-wabt.outputs.cache-hit != 'true'
               run: |
@@ -106,7 +138,7 @@ jobs:
     
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
 
             - name: Set up Node.js
               uses: actions/setup-node@v1
@@ -118,7 +150,7 @@ jobs:
 
             - name: Get WABT cache
               id: cache-wabt
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
                     ./WABT/build
@@ -135,7 +167,7 @@ jobs:
 
             - name: Get WARDuino cache
               id: cache-wdcli
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
                     ./WARDuino/build-emu
