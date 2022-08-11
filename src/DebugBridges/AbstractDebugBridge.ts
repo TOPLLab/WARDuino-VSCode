@@ -46,7 +46,6 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
 export abstract class AbstractDebugBridge implements DebugBridge {
     // State
     protected sourceMap: SourceMap | void;
-    protected startAddress: number = 0;
     protected pc: number = 0;
     protected callstack: Frame[] = [];
     protected selectedProxies: Set<ProxyCallItem> = new Set<ProxyCallItem>();
@@ -90,7 +89,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.listener.notifyPaused();
     }
 
-    public hitBreakpoint() {
+    public hitBreakpoint(breakpoint: number) {
+        this.setProgramCounter(breakpoint);
         this.listener.notifyBreakpointHit();
     }
 
@@ -121,7 +121,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     abstract getCurrentFunctionIndex(): number;
 
     private unsetBreakPoint(breakpoint: Breakpoint) {
-        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
+        let breakPointAddress: string = (breakpoint.id).toString(16).toUpperCase();
         let command = `${InterruptTypes.interruptBPRem}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
         this.client?.write(command);
@@ -130,7 +130,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     private setBreakPoint(breakpoint: Breakpoint) {
         this.breakpoints.add(breakpoint);
-        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
+        let breakPointAddress: string = (breakpoint.id).toString(16).toUpperCase();
         let command = `${InterruptTypes.interruptBPAdd}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
         this.client?.write(command);
@@ -168,8 +168,6 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === line);
         return parseInt("0x" + lineInfoPair?.lineAddress ?? "");
     }
-
-    abstract setStartAddress(startAddress: number): void;
 
     public setVariable(name: string, value: number): Promise<string> {
         return new Promise<string>((resolve, reject) => {
@@ -259,8 +257,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             this.history.push(runtimeState.deepcopy());
         }
 
-        this.setProgramCounter(runtimeState.getAdjustedProgramCounter());
-        this.setStartAddress(runtimeState.startAddress);
+        this.setProgramCounter(runtimeState.programCounter);
         this.refreshEvents(runtimeState.events);
         this.setCallstack(runtimeState.callstack);
         this.setLocals(runtimeState.currentFunction(), runtimeState.locals);

@@ -12,8 +12,7 @@ function hash(s: string) {
 
 export class RuntimeState {
     private id: number = 0;
-    private programCounter: number = 0;
-    public startAddress: number = 0;
+    public programCounter: number = 0;
     public callstack: Frame[] = [];
     public locals: VariableInfo[] = [];
     public events: EventItem[] = [];
@@ -24,18 +23,6 @@ export class RuntimeState {
 
     public getId(): number {
         return this.id;
-    }
-
-    public getRawProgramCounter(): number {
-        return this.programCounter;
-    }
-
-    public setRawProgramCounter(raw: number) {
-        this.programCounter = raw;
-    }
-
-    public getAdjustedProgramCounter(): number {
-        return this.programCounter - this.startAddress;
     }
 
     public currentFunction(): number {
@@ -49,7 +36,6 @@ export class RuntimeState {
         const copy = new RuntimeState(undefined);
         copy.id = this.id;
         copy.programCounter = this.programCounter;
-        copy.startAddress = this.startAddress;
         copy.callstack = this.callstack.map(obj => Object.assign({}, obj));
         copy.locals = this.locals.map(obj => Object.assign({}, obj));
         copy.events = this.events.map(obj => new EventItem(obj.topic, obj.payload, obj.collapsibleState));

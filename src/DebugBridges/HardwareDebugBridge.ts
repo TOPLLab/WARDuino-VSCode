@@ -1,8 +1,7 @@
 import {AbstractDebugBridge, Messages} from "./AbstractDebugBridge";
 import {DebugBridgeListener} from "./DebugBridgeListener";
-import {ReadlineParser, SerialPort} from 'serialport';
+import {InterByteTimeoutParser, SerialPort} from 'serialport';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {InterruptTypes} from "./InterruptTypes";
 import {exec, spawn} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
@@ -39,17 +38,16 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.tmpdir = tmpdir;
     }
 
-    setStartAddress(startAddress: number) {
-        this.startAddress = startAddress;
-    }
-
     async connect(): Promise<string> {
         return new Promise(async (resolve, reject) => {
             this.listener.notifyProgress(Messages.compiling);
             await this.compileAndUpload();
             this.listener.notifyProgress(Messages.connecting);
             this.openSerialPort(reject, resolve);
-            this.installInputStreamListener();
+            this.client?.on("data", (chunk: Buffer) => {
+                let success: boolean = this.parser.parse(this, Uint8Array.from(chunk));
+            });
+            // this.installInputStreamListener();
         });
     }
 
@@ -71,31 +69,11 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     protected installInputStreamListener() {
-        const parser = new ReadlineParser();
+        const parser = new InterByteTimeoutParser({interval: 2 /* ms */});
         this.client?.pipe(parser);
-        parser.on("data", (line: string) => {
-            this.handleLine(line);
+        parser.on("data", (data: Buffer) => {
+            this.parser.parse(this, Uint8Array.from(data));
         });
-    }
-
-    protected handleLine(line: string) {
-        if (this.woodDumpDetected) {
-            // Next line will be a WOOD dump
-            // TODO receive state from WOOD Dump and call bridge.pushSession(state)
-            this.woodState = new WOODState(line);
-            this.requestCallbackmapping();
-            this.woodDumpDetected = false;
-            return;
-        }
-
-        if (this.woodState !== undefined && line.startsWith('{"callbacks": ')) {
-            this.woodState.callbacks = line;
-            this.pushSession();
-        }
-
-        this.woodDumpDetected = line.includes("DUMP!");
-        console.log(`hardware: ${line}`);
-        this.parser.parse(this, line);
     }
 
     public disconnect(): void {

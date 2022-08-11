@@ -7,8 +7,6 @@ import {RuntimeState} from "../State/RuntimeState";
 import {Breakpoint} from "../State/Breakpoint";
 
 export interface DebugBridge {
-    setStartAddress(startAddress: number): void;
-
     connect(): Promise<string>;
 
     updateRuntimeState(runtimeState: RuntimeState): void;
@@ -37,7 +35,7 @@ export interface DebugBridge {
 
     pause(): void;
 
-    hitBreakpoint(): void;
+    hitBreakpoint(breakpoint: number): void;
 
     pullSession(): void;
 

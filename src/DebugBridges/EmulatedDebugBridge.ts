@@ -35,10 +35,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         throw new Error("Method not implemented.");
     }
 
-    setStartAddress(startAddress: number) {
-        this.startAddress = startAddress;
-    }
-
     public connect(): Promise<string> {
         return this.startEmulator();
     }
@@ -69,27 +65,8 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
                 );
 
                 this.client.on("data", data => {
-                        data.toString().split("\n").forEach((line) => {
-                            console.log(`emulator: ${line}`);
-
-                            if (line.startsWith("Interrupt:")) {
-                                this.buffer = line;
-                            } else if (this.buffer.length > 0) {
-                                this.buffer += line;
-                            } else if (line.startsWith("{")) {
-                                this.buffer = line;
-                            } else {
-                                that.parser.parse(that, line);
-                                return;
-                            }
-
-                            try {
-                                that.parser.parse(that, this.buffer);
-                                this.buffer = "";
-                            } catch (e) {
-                                return;
-                            }
-                        });
+                        console.log(`emulator: ${Uint8Array.from(data)}`);
+                        that.parser.parse(that, Uint8Array.from(data));
                     }
                 );
             } else {
