@@ -4,8 +4,8 @@ import {Frame} from "./Frame";
 import {EventItem} from "../Views/EventsProvider";
 import {RuntimeState} from "../State/RuntimeState";
 import {Event, Notification, Notification_Type, Snapshot} from "./debug";
-import {TextEncoder} from "util";
 import {Reader} from "protobufjs/minimal";
+import * as vscode from "vscode";
 
 export class DebugInfoParser {
 
@@ -22,17 +22,17 @@ export class DebugInfoParser {
         switch (notification.type) {
             case Notification_Type.continued:  // nothing to do
             case Notification_Type.halted:
-            // TODO handle halted debugger backend
+                vscode.window.showWarningMessage("WARDuino Debugger Backend has halted.");
+                break;
             case Notification_Type.paused:
                 break;
             case Notification_Type.stepped:
                 bridge.refresh();
                 break;
             case Notification_Type.hitbreakpoint:
-                let breakpointInfo = notification.payload?.breakpoint;
-                if (breakpointInfo !== undefined && breakpointInfo.length > 1
-                    && !isNaN(parseInt(breakpointInfo))) {
-                    bridge.hitBreakpoint(parseInt(breakpointInfo));  // TODO test
+                let breakpoint = notification.payload?.breakpoint;
+                if (breakpoint !== undefined) {
+                    bridge.hitBreakpoint(breakpoint);
                 } else {
                     console.error(`parsing: unrecognized breakpoint`);
                     return false;
@@ -74,7 +74,7 @@ export class DebugInfoParser {
                 console.error(`parsing: debugger backend reports debug message with unknown debug type`);
                 return false;
             case Notification_Type.UNRECOGNIZED:
-                console.log(`parsing: unrecognized type of notification`);
+                console.error(`parsing: unrecognized type of notification`);
                 return false;
             default:
                 console.error(`parsing: notification is of unhand-able type`);

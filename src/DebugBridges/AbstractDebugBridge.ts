@@ -129,11 +129,17 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     private setBreakPoint(breakpoint: Breakpoint) {
-        this.breakpoints.add(breakpoint);
-        let breakPointAddress: string = (breakpoint.id).toString(16).toUpperCase();
-        let command = `${InterruptTypes.interruptBPAdd}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
-        console.log(`Plugin: sent ${command}`);
-        this.client?.write(command);
+        this.sendInterrupt(Command.bpadd, {
+            call: undefined,
+            callbacks: undefined,
+            event: undefined,
+            function: undefined,
+            locals: undefined,
+            queue: undefined,
+            range: undefined,
+            snapshot: undefined,
+            breakpoint: breakpoint.id
+        });
     }
 
     public setBreakPoints(lines: number[]): Breakpoint[] {
