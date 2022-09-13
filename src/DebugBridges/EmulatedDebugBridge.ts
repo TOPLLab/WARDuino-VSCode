@@ -7,6 +7,7 @@ import {SourceMap} from "../State/SourceMap";
 import {AbstractDebugBridge} from "./AbstractDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
+import { resolve } from 'path';
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client: net.Socket | undefined;
@@ -47,14 +48,14 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         return this.callstack[this.callstack.length - 1].index;
     }
 
-    private initClient(): Promise<string> {
+    public initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             let that = this;
             if (this.client === undefined) {
                 let address = {port: 8192, host: "127.0.0.1"};  // TODO config
                 this.client = new net.Socket();
                 this.client.connect(address, () => {
-                    this.listener.notifyProgress("Connected to socket");
+                    this.listener.notifyProgress("Connected to Emulator");
                     resolve(`${address.host}:${address.port}`);
                 });
 
@@ -112,14 +113,17 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
     private startEmulator(): Promise<string> {
         this.cp = this.spawnEmulatorProcess();
+        const spawnedProcess = this.cp;
+        const thisBridge = this;
+        const listener = this.listener;
+
+        const defaultOnData = (data: any) => {
+            // Print debug and trace information
+            console.log(`stdout: ${data}`);};
 
         this.listener.notifyProgress('Started emulator');
         while (this.cp.stdout === undefined) {
         }
-
-        this.cp.stdout?.on('data', (data) => {  // Print debug and trace information
-            console.log(`stdout: ${data}`);
-        });
 
         this.cp.stderr?.on('data', (data) => {
             console.error(`stderr: ${data}`);
@@ -133,7 +137,25 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
             this.listener.notifyProgress('Disconnected from emulator');
         });
 
-        return this.initClient();
+
+        const p: Promise<string> =  new Promise((res, rej) => {
+            spawnedProcess.stdout?.on('data', (data) => {
+            console.log(`stdout: ${data}`);
+            if(data.includes("EMULATOR STARTED!")){
+                listener.notifyProgress("Connecting to Emulator...");
+                thisBridge.initClient()
+                .then(v=>{
+                    listener.notifyProgress("Connected to Emulator");
+                    res(v)})
+                .catch(rej);
+            }
+            else if(data.includes("Registering Proxy Host")){
+                listener.notifyProgress("Debugging on Emulator")
+            }
+        });
+
+        });
+        return p;
     }
 
     public disconnect(): void {
