@@ -44,6 +44,7 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
                 const search = /(?:[0-9]{1,3}\.){3}[0-9]{1,3}/.exec(alldata);
                 if (this.socket.host.length === 0 && search !== null) {
                     this.socket.host = search && search.length > 0 ? search[0] : "";
+                    console.log("MCU IP Address Received");
                     resolve(this.socket.host);
                 }
             });
