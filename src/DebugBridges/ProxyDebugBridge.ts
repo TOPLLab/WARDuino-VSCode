@@ -18,9 +18,9 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
                 this.openSerialPort(_reject, _resolve);
             });
             // Dronify
-            this.listener.notifyProgress("Enabling WiFi on MCU [5\..]");
+            this.listener.notifyProgress("Enabling WiFi on MCU");
             const host: string = await this.dronify();
-            this.listener.notifyProgress("WiFi enabled on MCU [6\..]");
+            this.listener.notifyProgress("WiFi enabled on MCU");
             this.client?.removeAllListeners();
             this.installInputStreamListener();
             resolve(host);
@@ -37,9 +37,11 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
             Buffer.from(config.get("warduino.Password") as string).toString("hex")}00 \n`;
         this.client?.write(message);
         return new Promise<string>(resolve => {
+            let alldata = '';
             this.client?.on("data", data => {
-                const text = data.toString();
-                const search = /(?:[0-9]{1,3}\.){3}[0-9]{1,3}/.exec(text);
+                alldata += data.toString();
+                console.log(`Buffering WiFi IP buffer=${alldata}`);
+                const search = /(?:[0-9]{1,3}\.){3}[0-9]{1,3}/.exec(alldata);
                 if (this.socket.host.length === 0 && search !== null) {
                     this.socket.host = search && search.length > 0 ? search[0] : "";
                     resolve(this.socket.host);
@@ -52,10 +54,10 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
         return this.socket;
     }
 
-    // protected handleLine(line: string): void {
-    //     if (line.startsWith('{"callbacks": ')) {
-    //         this.listener.todoremove_sendCallbacks(line);
-    //     }
-    //     super.handleLine(line);
-    // }
+    protected handleLine(line: string): void {
+        if (line.startsWith('{"callbacks": ')) {
+            this.listener.todoremove_sendCallbacks(line);
+        }
+        super.handleLine(line);
+    }
 }

@@ -17,5 +17,5 @@ export interface DebugBridgeListener {
 
     notifyBreakpointHit(): void;
 
-    // todoremove_sendCallbacks(callbacks: string): void;
+    todoremove_sendCallbacks(callbacks: string): void;
 }

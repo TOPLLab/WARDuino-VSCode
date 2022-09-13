@@ -196,4 +196,31 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             }
         });
     }
+
+    protected handleLine(line: string) {
+        // everrying over the serial port
+        require('fs').appendFile('/tmp/hardwareOut', line, function (err: any) {
+            if (err) {
+                console.error(`COULD not add hardware: ${line}`);
+            }
+        })
+        if (this.woodDumpDetected) {
+            // Next line will be a WOOD dump
+            // TODO receive state from WOOD Dump and call bridge.pushSession(state)
+            this.woodState = new WOODState(line);
+            this.requestCallbackmapping();
+            this.woodDumpDetected = false;
+            return;
+        }
+
+        if (this.woodState !== undefined && line.startsWith('{"callbacks": ')) {
+            this.woodState.callbacks = line;
+            this.pushSession();
+        }
+
+        this.woodDumpDetected = line.includes("DUMP!");
+        console.log(`hardware: ${line}`);
+
+        this.parser.parse(this, line);
+    }
 }

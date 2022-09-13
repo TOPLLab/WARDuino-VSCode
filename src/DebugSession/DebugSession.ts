@@ -181,8 +181,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         },
                         notifyStateUpdate(): void {
                             that.notifyStepCompleted();
-                        }
-                        // todoremove_sendCallbacks(callbacks: string): void {};
+                        },
+                        todoremove_sendCallbacks(callbacks: string): void {}
                     });
 
                     that.proxyBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.proxy, that.tmpdir, {
@@ -197,9 +197,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         }, notifyStateUpdate(): void {
                         }, startMultiverseDebugging(woodState: WOODState): void {
                         }, 
-                        // todoremove_sendCallbacks(callbacks: string): void {
-                        //     return (that.debugBridge as WOODDebugBridge)?.todo_remove_sendCallbacks(callbacks);
-                        // }
+                        todoremove_sendCallbacks(callbacks: string): void {
+                            return (that.debugBridge as WOODDebugBridge)?.todo_remove_sendCallbacks(callbacks);
+                        }
                     });
                 },
                 notifyPaused(): void {
@@ -219,7 +219,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 notifyStateUpdate(): void {
                     that.notifyStepCompleted();
                 },
-                // todoremove_sendCallbacks(callbacks: string): void {}
+                todoremove_sendCallbacks(callbacks: string): void {}
 
             }
         );

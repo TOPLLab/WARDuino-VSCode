@@ -38,6 +38,9 @@ const listener = {
         console.log(message);
     },
     notifyStateUpdate() {
+    },
+    todoremove_sendCallbacks: function (callbacks: string): void {
+        throw new Error("Function should not be called implemented.");
     }
 };
 
