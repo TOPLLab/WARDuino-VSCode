@@ -23,6 +23,7 @@ export class DebugBridgeFactory {
     static makeDebugBridge(file: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
         let fileType = getFileExtension(file);
         let bridge;
+        let bridgestr = '';
         switch (fileType) {
             case "wast" :
                 const warduinoSDK: string = getConfig("warduino.WARDuinoToolChainPath");
@@ -32,24 +33,28 @@ export class DebugBridgeFactory {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:
                         bridge = new EmulatedDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
+                        bridgestr = 'Emulated';
                         break;
                     case RunTimeTarget.wood:
                         bridge = new WOODDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
+                        bridgestr = 'WOOD';
                         break;
                     // Hardware runtimes
                     case RunTimeTarget.embedded:
                         bridge = new HardwareDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridgestr = 'Embedded';
                         break;
                     case RunTimeTarget.proxy:
                         bridge = new ProxyDebugBridge(file, sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridgestr = 'Proxy';
                         break;
                 }
 
                 bridge.connect().then(() => {
-                    console.log("Plugin: Connected.");
+                    console.log(`Plugin: Connected to ${bridgestr}`);
                     listener.connected();
                 }).catch(reason => {
-                    console.log(reason);
+                    console.error(`failed to connect to ${bridgestr}: ${reason}`);
                     listener.notifyProgress(Messages.connectionFailure);
                 });
                 return bridge;

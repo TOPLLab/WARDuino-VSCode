@@ -166,8 +166,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     pullSession(): void {
+        const listener = this.listener;
         this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
             console.log("Plugin: WOOD Dump");
+            listener.notifyProgress("Requesting state to MCU");
             if (err) {
                 return console.log("Error on write: ", err.message);
             }

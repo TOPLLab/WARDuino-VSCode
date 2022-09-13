@@ -4,6 +4,7 @@ import {WOODState} from "../State/WOODState";
 import {EventItem} from "../Views/EventsProvider";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 import {RuntimeState} from "../State/RuntimeState";
+import {Breakpoint} from "../State/Breakpoint";
 
 export interface DebugBridge {
     setStartAddress(startAddress: number): void;
@@ -46,8 +47,8 @@ export interface DebugBridge {
 
     // Adds or removes the current callback depending on whether is selected or not respectively
     updateSelectedProxies(proxy: ProxyCallItem): void;
-
-    setBreakPoint(x: number): void;
+    
+    setBreakPoints(lines: number[]): Breakpoint[];
 
     refresh(): void;
 
@@ -58,4 +59,8 @@ export interface DebugBridge {
     setVariable(name: string, value: number): Promise<string>;
 
     upload(): void;
+
+    getBreakpointPossibilities(): Breakpoint[];
+
+    setBreakPoints(lines: number[]): Breakpoint[];
 }

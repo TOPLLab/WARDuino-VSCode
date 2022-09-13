@@ -10,6 +10,7 @@ import {EventItem, EventsProvider} from "../Views/EventsProvider";
 import {FunctionInfo} from "../State/FunctionInfo";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 import {RuntimeState} from "../State/RuntimeState";
+import {Breakpoint, UniqueSet} from "../State/Breakpoint";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -47,6 +48,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected pc: number = 0;
     protected callstack: Frame[] = [];
     protected selectedProxies: Set<ProxyCallItem> = new Set<ProxyCallItem>();
+    protected breakpoints: UniqueSet<Breakpoint> = new UniqueSet<Breakpoint>();
 
     // Interfaces
     protected listener: DebugBridgeListener;
@@ -113,12 +115,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract getCurrentFunctionIndex(): number;
 
-    public setBreakPoint(address: number) {
-        let breakPointAddress: string = (this.startAddress + address).toString(16).toUpperCase();
-        let command = `060${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
-        console.log(`Plugin: sent ${command}`);
-        this.client?.write(command);
-    }
+    
 
     abstract setStartAddress(startAddress: number): void;
 
@@ -241,5 +238,78 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     setCallstack(callstack: Frame[]): void {
         this.callstack = callstack;
         this.listener.notifyStateUpdate();
+    }
+
+    getBreakpointPossibilities(): Breakpoint[] {
+        return this.sourceMap?.lineInfoPairs.map(info => new Breakpoint(this.lineToAddress(info.lineInfo.line), info.lineInfo.line)) ?? [];
+    }
+
+    private lineToAddress(line: number): number {
+        const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === line);
+        return parseInt("0x" + lineInfoPair?.lineAddress ?? "");
+    }
+
+    public setBreakPoints(lines: number[]): Breakpoint[] {
+        if (this.sourceMap === undefined) {
+            console.log("setBreakPointsRequest: no source map");
+            return [];
+        }
+
+        // Delete absent breakpoints
+        Array.from<Breakpoint>(this.breakpoints.values())
+            .filter((breakpoint) => !lines.includes(breakpoint.id))
+            .forEach(breakpoint => this.unsetBreakPoint(breakpoint));
+
+        // Add missing breakpoints
+        lines.forEach((line) => {
+            if (this.isNewBreakpoint(line)) {
+                const breakpoint: Breakpoint = new Breakpoint(this.lineToAddress(line), line);
+                this.setBreakPoint(breakpoint);
+            }
+        });
+
+        return Array.from(this.breakpoints.values());  // return new breakpoints list
+    }
+
+    private setBreakPoint(breakpoint: Breakpoint) {
+        console.log(`Plugin: set breakpoint ${breakpoint.line}`)
+        this.breakpoints.add(breakpoint);
+        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
+        breakPointAddress = this.makeBreakpointAddressEven(breakPointAddress);
+        let command = `${InterruptTypes.interruptBPAdd}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
+        console.log(`Plugin: sent ${command}`);
+        this.client?.write(command);
+    }
+
+    private makeBreakpointAddressEven(breakpointAddress: string) {
+        if (breakpointAddress.length % 2 == 0) {
+            return breakpointAddress;
+        }
+        let missingchars = "0".repeat(breakpointAddress.length % 2);
+        return `${missingchars}${breakpointAddress}`;
+    }
+
+
+    private unsetBreakPoint(breakpoint: Breakpoint) {
+        console.log(`Plugin: unset breakpoint ${breakpoint.line}`)
+        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
+        breakPointAddress = this.makeBreakpointAddressEven(breakPointAddress);
+        let command = `${InterruptTypes.interruptBPRem}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
+        console.log(`Plugin: sent ${command}`);
+        this.client?.write(command);
+        this.breakpoints.delete(breakpoint);
+    }
+
+
+    // public setBreakPoint(address: number) {
+    //         let breakPointAddress: string = (this.startAddress + address).toString(16).toUpperCase();
+    //         let command = `060${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
+    //         console.log(`Plugin: sent ${command}`);
+    //         this.client?.write(command);
+    //     }
+    private isNewBreakpoint(line: Number): boolean {
+        const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === line);
+        return lineInfoPair !== undefined
+            && !Array.from<Breakpoint>(this.breakpoints.values()).some(value => value.id === line);
     }
 }

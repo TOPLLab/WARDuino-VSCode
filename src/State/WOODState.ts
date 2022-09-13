@@ -1,5 +1,5 @@
-import {spawn} from "child_process";
-import {promises as fsPromises} from 'fs';
+import { spawn } from "child_process";
+import { promises as fsPromises } from 'fs';
 import * as vscode from "vscode";
 
 const path: string = vscode.workspace.getConfiguration().get("warduino.OutOfThings") ?? ".";
@@ -20,13 +20,27 @@ export class WOODState {
                 cwd: path
             });
 
-            process.stdout?.on("data", (data: Buffer) => {
+            const b64buffers: Buffer[] = [];
+
+            process.on("close", (code) => {
+                console.log(`Spawned 'cli.py' done exit code: ${code}`);
+                const data = Buffer.concat(b64buffers)
                 resolve(Buffer.from(data.toString(), "base64").toString("ascii").split("\n"));
             });
 
+            process.stdout?.on("data", (data: Buffer) => {
+                b64buffers.push(data);
+            });
+
             process.stderr?.on("data", (data) => {
-                console.log(`stderr: ${data}`);
-                reject(data);
+                // temporary needed for Out of Things Logger 
+                if (data.includes("] OutOfThings")) {
+                    console.log(`${data}`);
+                }
+                else {
+                    console.log(`stderr: ${data}`);
+                    reject(data);
+                }
             });
         });
     }

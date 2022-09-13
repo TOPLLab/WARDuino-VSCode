@@ -14,10 +14,13 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
         return new Promise(async (resolve, reject) => {
             // Connect
             await new Promise((_resolve, _reject) => {
+                this.listener.notifyProgress("Opening Serial Connection to MCU [4\..]");
                 this.openSerialPort(_reject, _resolve);
             });
             // Dronify
+            this.listener.notifyProgress("Enabling WiFi on MCU [5\..]");
             const host: string = await this.dronify();
+            this.listener.notifyProgress("WiFi enabled on MCU [6\..]");
             this.client?.removeAllListeners();
             this.installInputStreamListener();
             resolve(host);
@@ -48,4 +51,11 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
     public getSocket(): Socket {
         return this.socket;
     }
+
+    // protected handleLine(line: string): void {
+    //     if (line.startsWith('{"callbacks": ')) {
+    //         this.listener.todoremove_sendCallbacks(line);
+    //     }
+    //     super.handleLine(line);
+    // }
 }

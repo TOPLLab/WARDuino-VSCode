@@ -11,6 +11,8 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         console.log("Plugin: WOOD RecvState");
         let offset = await this.getOffset();
 
+        this.listener.notifyProgress("Pushing State to Emulator");
+
         const messages: string[] = await woodState.toBinary(this.tmpdir, offset).catch(reason => {
             throw new Error(`Plugin: toBinary failed: ${reason}`);
         }) ?? [];

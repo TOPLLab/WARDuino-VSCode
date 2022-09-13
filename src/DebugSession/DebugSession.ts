@@ -182,6 +182,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         notifyStateUpdate(): void {
                             that.notifyStepCompleted();
                         }
+                        // todoremove_sendCallbacks(callbacks: string): void {};
                     });
 
                     that.proxyBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.proxy, that.tmpdir, {
@@ -195,7 +196,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         }, notifyProgress(message: string): void {
                         }, notifyStateUpdate(): void {
                         }, startMultiverseDebugging(woodState: WOODState): void {
-                        }
+                        }, 
+                        // todoremove_sendCallbacks(callbacks: string): void {
+                        //     return (that.debugBridge as WOODDebugBridge)?.todo_remove_sendCallbacks(callbacks);
+                        // }
                     });
                 },
                 notifyPaused(): void {
@@ -214,7 +218,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 },
                 notifyStateUpdate(): void {
                     that.notifyStepCompleted();
-                }
+                },
+                // todoremove_sendCallbacks(callbacks: string): void {}
+
             }
         );
 
@@ -275,22 +281,29 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
         console.log("breakpointLocationsRequest");
+        response.body = {
+            breakpoints: this.debugBridge?.getBreakpointPossibilities() ?? []
+        };
+        this.sendResponse(response);
     }
 
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {
-        if (this.sourceMap === undefined) {
-            console.log("no source map yet");
-        } else {
-            args.lines?.forEach((breakpoint: number) => {
-                let lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === breakpoint);
-                if (lineInfoPair) {
-                    console.log(lineInfoPair);
-                    this.debugBridge?.setBreakPoint(parseInt("0x" + lineInfoPair.lineAddress));
-                }
+        response.body = {
+            breakpoints: this.debugBridge?.setBreakPoints(args.lines ?? []) ?? []
+        };
+        // if (this.sourceMap === undefined) {
+        //     console.log("no source map yet");
+        // } else {
+        //     args.lines?.forEach((breakpoint: number) => {
+        //         let lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === breakpoint);
+        //         if (lineInfoPair) {
+        //             console.log(lineInfoPair);
+        //             this.debugBridge?.setBreakPoint(parseInt("0x" + lineInfoPair.lineAddress));
+        //         }
 
-            });
+        //     });
 
-        }
+        // }
     }
 
     protected setInstructionBreakpointsRequest(response: DebugProtocol.SetInstructionBreakpointsResponse, args: DebugProtocol.SetInstructionBreakpointsArguments) {
