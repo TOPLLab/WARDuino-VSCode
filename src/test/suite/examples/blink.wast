@@ -32,7 +32,7 @@
       global.get $led
       global.get $on
       call $env.chip_digital_write  ;; turn led on
-      local.get $delay
+        local.get $delay
       call $env.chip_delay          ;; wait
       global.get $led
       global.get $off
