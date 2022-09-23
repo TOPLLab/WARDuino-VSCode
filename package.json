@@ -143,14 +143,15 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "yarn run compile",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "yarn run compile && yarn run lint",
+    "pretest": "npm run compile && npm run lint",
+    "test": "node ./out/test/runTest.js",
     "lint": "eslint src --ext ts",
     "extension-test": "node ./out/test/runTest.js",
-    "compiler-test": "mocha --ui tdd --require ts-node/register src/test/UnitTests/TestCompilerBridge.ts",
-    "debugger-test": "mocha --ui tdd --require ts-node/register src/test/UnitTests/TestDebuggerBridge.ts --grep '^Debug API Test Suite \\(emulated\\)'",
+    "compiler-test": "mocha --ui tdd --require ts-node/register src/test/suite/compilerbridge.test.ts",
+    "debugger-test": "mocha --ui tdd --require ts-node/register src/test/suite/TestDebuggerBridge.ts --grep '^Debug API Test Suite \\\\(emulated\\\\)'",
     "unit-test": "npm run compiler-test && npm run debugger-test"
   },
   "devDependencies": {
@@ -168,6 +169,7 @@
     "glob": "^7.2.0",
     "mocha": "^9.2.1",
     "path-browserify": "^1.0.1",
+    "protobufjs": "^7.1.2",
     "serialport": "^10.4.0",
     "ts-node": "^10.5.0",
     "typescript": "^4.5.5",
