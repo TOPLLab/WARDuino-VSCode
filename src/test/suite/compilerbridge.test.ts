@@ -9,9 +9,9 @@ import ErrnoException = NodeJS.ErrnoException;
 
 const runPath = process.cwd();
 const wabtSDK = `${runPath}/WABT/build`;
-const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
+const wasmDirectoryPath = `${runPath}/src/test/suite/examples`;
 
-suite('WASMCompilerBridge Test Suite', () => {
+suite('WASM Compiler Bridge Test Suite', () => {
     let tmpdir: string = "";
 
     before(async function () {
