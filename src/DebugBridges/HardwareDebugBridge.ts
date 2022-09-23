@@ -10,7 +10,6 @@ import {EventsProvider} from "../Views/EventsProvider";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
-    private wasmPath: string;
     protected client: SerialPort | undefined;
     protected readonly portAddress: string;
     protected readonly fqbn: string;
@@ -19,8 +18,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     private woodState?: WOODState;
     private woodDumpDetected: boolean = false;
 
-    constructor(wasmPath: string,
-                sourceMap: SourceMap | void,
+    constructor(sourceMap: SourceMap | void,
                 eventsProvider: EventsProvider | void,
                 tmpdir: string,
                 listener: DebugBridgeListener,
@@ -29,7 +27,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
                 warduinoSDK: string) {
         super(sourceMap, eventsProvider, listener);
 
-        this.wasmPath = wasmPath;
         this.sourceMap = sourceMap;
         this.listener = listener;
         this.portAddress = portAddress;
