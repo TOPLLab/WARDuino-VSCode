@@ -15,17 +15,15 @@ export const EMULATOR_PORT: number = 8300;
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client: net.Socket | undefined;
     protected readonly tmpdir: string;
-    private wasmPath: string;
     protected readonly sdk: string;
     private cp?: ChildProcess;
     private parser: DebugInfoParser;
     private buffer: string = "";
 
-    constructor(wasmPath: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
+    constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
                 warduinoSDK: string) {
         super(sourceMap, eventsProvider, listener);
 
-        this.wasmPath = wasmPath;
         this.sdk = warduinoSDK;
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
