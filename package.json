@@ -142,11 +142,7 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "test": "node ./out/test/runTest.js",
-    "lint": "eslint src --ext ts",
-    "extension-test": "node ./out/test/runTest.js",
-    "compiler-test": "mocha --ui tdd --require ts-node/register src/test/suite/compilerbridge.test.ts",
-    "debugger-test": "mocha --ui tdd --require ts-node/register src/test/suite/TestDebuggerBridge.ts --grep '^Debug API Test Suite \\\\(emulated\\\\)'",
-    "unit-test": "npm run compiler-test && npm run debugger-test"
+    "lint": "eslint src --ext ts"
   },
   "devDependencies": {
     "@types/chai": "^4.3.0",
