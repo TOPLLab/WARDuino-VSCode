@@ -46,7 +46,7 @@ async function init(target: RunTimeTarget) {
                     tmpdir = dir;
                     switch (target) {
                         case RunTimeTarget.wood:
-                            bridge = new WOODDebugBridge("",
+                            bridge = new WOODDebugBridge(
                                 undefined,
                                 undefined,
                                 tmpdir,
@@ -56,7 +56,7 @@ async function init(target: RunTimeTarget) {
                             break;
                         case RunTimeTarget.emulator:
                         default:
-                            bridge = new EmulatedDebugBridge("",
+                            bridge = new EmulatedDebugBridge(
                                 undefined,
                                 undefined,
                                 tmpdir,
