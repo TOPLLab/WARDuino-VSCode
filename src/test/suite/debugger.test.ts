@@ -8,6 +8,11 @@ import {ReadlineParser} from "serialport";
 import * as net from 'net';
 import {InterruptTypes} from "../../DebugBridges/InterruptTypes";
 
+/**
+ * This file contains test suites of the WARDuino VM and debugger.
+ *
+ * These tests are independent of the plugin and uses the emulator version of the VM (wdcli).
+ */
 const interpreter = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const examples = 'src/test/suite/examples/';
 
@@ -49,9 +54,46 @@ function connectToDebugger(program: string, args: string[] = []): Promise<net.So
     });
 }
 
-suite('Debugger Test Suite', () => {
+function sendInstruction(socket: net.Socket, instruction: InterruptTypes | undefined, timeout: number = 0): Promise<any> {
+    const stack: MessageStack = new MessageStack('\n');
 
-    test('Test exitcode (0)', function (done) {
+    return new Promise(function (resolve, reject) {
+        socket.on('data', (data: Buffer) => {
+            stack.push(data.toString());
+            let message = stack.pop();
+            while (message !== undefined) {
+                try {
+                    const parsed = JSON.parse(message);
+                    resolve(parsed);
+                } catch (e) {
+                    // do nothing
+                } finally {
+                    message = stack.pop();
+                }
+            }
+        });
+
+        if (instruction !== undefined) {
+            socket.write(`${instruction} \n`);
+        }
+        // wait briefly for the operation to take effect
+        // send dump command
+        setTimeout(function () {
+            socket.write(`${InterruptTypes.interruptDUMP} \n`);
+        }, timeout);
+    });
+}
+
+/**
+ * Test Suite of the WARDuino CLI
+ */
+suite('WARDuino CLI Test Suite', () => {
+
+    /**
+     * Tests to see if VM and debugger start properly
+     */
+
+    test('Test: exitcode (0)', function (done) {
         const process = spawn(interpreter, ['--no-debug', '--file', `${examples}hello.wasm`]).on('exit', function (code) {
             expect(code).to.equal(0);
             process.kill("SIGKILL");
@@ -59,16 +101,14 @@ suite('Debugger Test Suite', () => {
         });
     });
 
-    test('Test exitcode (-1)', function (done) {
+    test('Test: exitcode (-1)', function (done) {
         spawn(interpreter, ['--socket', (port++).toString(), '--file', `${examples}nonexistent.wasm`]).on('exit', function (code) {
             expect(code).to.equal(1);
             done();
         });
     });
 
-    test('Start websocket', function (done) {
-        this.timeout(5000);
-
+    test('Test: start websocket', function (done) {
         let succeeded = false;
 
         const process: ChildProcess = startDebugger(`${examples}blink.wasm`);
@@ -93,47 +133,100 @@ suite('Debugger Test Suite', () => {
         }
     });
 
-    test('Connect to websocket', async function () {
+    test('Test: connect to websocket', async function () {
         await connectToDebugger(`${examples}blink.wasm`);
     });
+});
 
-    test('Test pause', async function () {
-        this.timeout(5000);
+/**
+ * Tests of the Remote Debugger API
+ */
+suite('Remote Debugger API Test Suite', () => {
+    test('Test DUMP: valid json', function (done) {
+        connectToDebugger(`${examples}blink.wasm`).then((socket: net.Socket) => {
+            // check if debugger returns valid json
+            sendInstruction(socket, undefined).then(() => {
+                done();
+            }).catch(() => {
+                assert.fail();
+            });
+        });
+    });
+
+    test('Test DUMP: check fields', async function () {
         const socket: net.Socket = await connectToDebugger(`${examples}blink.wasm`);
+        // get dump
+        const dump = await sendInstruction(socket, undefined);
 
-        // save returned program counters
-        const counters: number[] = [];
-        const stack: MessageStack = new MessageStack('\n');
-        socket.on('data', (data: Buffer) => {
-            stack.push(data.toString());
-            let message = stack.pop();
-            while (message !== undefined) {
-                try {
-                    const parsed = JSON.parse(message);
-                    counters.push(parseInt(parsed.pc));
-                } catch (e) {
-                    // do nothing
-                } finally {
-                    message = stack.pop();
-                }
-            }
+        // extract information
+        const functions = dump.functions.map((entry: any) => {
+            return entry.fidx;
+        });
+        const callstack = dump.callstack.filter((entry: any) => {
+            return entry.type === 0;
+        }).map((entry: any) => {
+            return entry.fidx;
         });
 
-        // run test
-        socket.write(`${InterruptTypes.interruptPAUSE} \n`);
-        setTimeout(() => {
-            socket.write(`${InterruptTypes.interruptDUMP} \n`);
-        }, 1000);
-        setTimeout(() => {
-            socket.write(`${InterruptTypes.interruptDUMP} \n`);
-        }, 1000);
+        // perform checks
+        expect(parseInt(dump.start[0])).to.lessThanOrEqual(parseInt(dump.pc));
+        callstack.forEach((entry: string) => {
+            expect(functions).to.contain(entry);
+        });
+        expect(dump.callstack[0].sp).to.equal(-1);
+        expect(dump.callstack[0].fp).to.equal(-1);
+        expect(dump.breakpoints.length).to.equal(0);
+    });
 
+    test('Test PAUSE: execution is stopped', async function () {
+        const socket: net.Socket = await connectToDebugger(`${examples}blink.wasm`);
+
+        // run test
+        const dump = await sendInstruction(socket, InterruptTypes.interruptPAUSE);
+        const check = await sendInstruction(socket, undefined);
 
         // perform checks
-        setTimeout(() => {
-            expect(counters.length).to.equal(2);
-            expect(counters[0]).to.equal(counters[1]);
-        }, 2000);
+        expect(dump.pc).to.equal(check.pc);
+        expect(dump.callstack.length).to.equal(check.callstack.length);
+    });
+
+    test('Test STEP: program counter changes correctly', async function () {
+        const socket: net.Socket = await connectToDebugger(`${examples}blink.wasm`);
+
+        // run test
+        const before = await sendInstruction(socket, InterruptTypes.interruptPAUSE);
+        const after = await sendInstruction(socket, InterruptTypes.interruptSTEP, 100);
+
+        // perform checks
+        expect(parseInt(before.pc)).to.be.greaterThan(parseInt(after.pc));
+    });
+
+    test('Test BREAKPOINTS: add breakpoint', async function () {
+        const socket: net.Socket = await connectToDebugger(`${examples}blink.wasm`);
+
+        // run tests and checks
+        const before = await sendInstruction(socket, InterruptTypes.interruptPAUSE);
+        expect(before.breakpoints.length).to.equal(0);
+        const after = await sendInstruction(socket, InterruptTypes.interruptBPAdd);
+        expect(after.breakpoints.length).to.equal(1);
+    });
+});
+
+/**
+ * Test of the Out-of-place Debugger API
+ */
+suite('Out-of-place Debugger API Test Suite', () => {
+    test('Test Supervisor: connect to proxy', function (done) {
+        const address = {port: port, host: '127.0.0.1'};
+        const proxy: net.Server = new net.Server();
+        proxy.listen(port++);
+        proxy.on('connection', function (socket: net.Socket) {
+            done();
+        });
+
+        connectToDebugger(`${examples}blink.wasm`, ['--proxy', address.port.toString()]).catch(function (message) {
+            assert.fail(message);
+        });
     });
 });
 
@@ -148,7 +241,7 @@ class MessageStack {
 
     public push(data: string): void {
         const messages: string[] = this.split(data);
-        if (this.incomplete()) {
+        if (this.lastMessageIncomplete()) {
             this.stack[this.stack.length - 1] += messages.shift();
         }
         this.stack = this.stack.concat(messages);
@@ -161,15 +254,17 @@ class MessageStack {
     }
 
     private split(text: string): string[] {
-        return text.split(new RegExp(`(.*?${this.delimiter})`, 'g')).filter(s => {return s.length > 0; });
+        return text.split(new RegExp(`(.*?${this.delimiter})`, 'g')).filter(s => {
+            return s.length > 0;
+        });
     }
 
-    private incomplete(): boolean {
+    private lastMessageIncomplete(): boolean {
         const last: string | undefined = this.stack[this.stack.length - 1];
         return last !== undefined && !last.includes(this.delimiter);
     }
 
     private hasCompleteMessage(): boolean {
-        return !this.incomplete() || this.stack.length > 1;
+        return !this.lastMessageIncomplete() || this.stack.length > 1;
     }
 }
