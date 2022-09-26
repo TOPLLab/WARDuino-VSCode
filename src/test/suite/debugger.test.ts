@@ -20,9 +20,15 @@ function isReadable(x: Readable | null): x is Readable {
     return x !== null;
 }
 
-function connectToDebugger(program: string): Promise<net.Socket> {
+function startDebugger(program: string, args: string[] = []): ChildProcess {
+    const _args: string[] = ['--socket', (port++).toString(), '--file', program].concat(args);
+    return spawn(interpreter, _args);
+
+}
+
+function connectToDebugger(program: string, args: string[] = []): Promise<net.Socket> {
     const address = {port: port, host: "127.0.0.1"};
-    const process = spawn(interpreter, ['--socket', (port++).toString(), '--file', program]);
+    const process = startDebugger(program, args);
 
     return new Promise(function (resolve, reject) {
         while (process.stdout === undefined) {
@@ -68,7 +74,7 @@ suite('Debugger Test Suite', () => {
 
         let succeeded = false;
 
-        const process: ChildProcess = spawn(interpreter, ['--socket', (port++).toString(), '--file', `${examples}blink.wasm`]);
+        const process: ChildProcess = startDebugger(`${examples}blink.wasm`);
         process.on('exit', function () {
             assert.isTrue(succeeded, 'Interpreter should not exit.');
             done();
@@ -88,6 +94,10 @@ suite('Debugger Test Suite', () => {
                 }
             });
         }
+    });
+
+    test('Connect to websocket', async function () {
+        await connectToDebugger(`${examples}blink.wasm`);
     });
 
     test('Test pause', async function () {
