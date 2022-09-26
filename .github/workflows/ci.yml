@@ -141,6 +141,11 @@ jobs:
                     ./WARDuino/build-emu
                 key: ${{ env.WDCLI_CACHE }}-${{ steps.version.outputs.COMMIT }}
 
+            - name: Move wdcli
+              run: |
+                mkdir -p $HOME/Arduino/libraries/WARDuino/build-emu/
+                cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
+
             - name: Run tests
               run: xvfb-run -a npm run test
 
