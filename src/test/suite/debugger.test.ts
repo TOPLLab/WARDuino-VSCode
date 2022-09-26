@@ -28,7 +28,12 @@ function startDebugger(program: string, args: string[] = []): ChildProcess {
 
 }
 
-function connectToDebugger(program: string, args: string[] = []): Promise<net.Socket> {
+interface WARDuinoInstance {
+    process: ChildProcess;
+    interface: net.Socket;
+}
+
+function connectToDebugger(program: string, args: string[] = []): Promise<WARDuinoInstance> {
     const address = {port: port, host: "127.0.0.1"};
     const process = startDebugger(program, args);
 
@@ -44,7 +49,7 @@ function connectToDebugger(program: string, args: string[] = []): Promise<net.So
                 if (data.includes('Listening')) {
                     const client = new net.Socket();
                     client.connect(address, () => {
-                        resolve(client);
+                        resolve({process: process, interface: client});
                     });
                 }
             });
@@ -94,9 +99,8 @@ suite('WARDuino CLI Test Suite', () => {
      */
 
     test('Test: exitcode (0)', function (done) {
-        const process = spawn(interpreter, ['--no-debug', '--file', `${examples}hello.wasm`]).on('exit', function (code) {
+        spawn(interpreter, ['--no-debug', '--file', `${examples}hello.wasm`]).on('exit', function (code) {
             expect(code).to.equal(0);
-            process.kill("SIGKILL");
             done();
         });
     });
@@ -136,6 +140,25 @@ suite('WARDuino CLI Test Suite', () => {
     test('Test: connect to websocket', async function () {
         await connectToDebugger(`${examples}blink.wasm`);
     });
+
+    test('Test: --proxy flag', function (done) {
+        const address = {port: port, host: '127.0.0.1'};
+        const proxy: net.Server = new net.Server();
+        proxy.listen(port++);
+        proxy.on('connection', function (socket: net.Socket) {
+            done();
+        });
+
+        connectToDebugger(`${examples}blink.wasm`, ['--proxy', address.port.toString()]).then((instance: WARDuinoInstance) => {
+            instance.process.on('exit', function (code) {
+                assert.fail(`Interpreter should not exit. (code: ${code})`);
+                done();
+            });
+        }).catch(function (message) {
+            assert.fail(message);
+            done();
+        });
+    });
 });
 
 /**
@@ -143,9 +166,9 @@ suite('WARDuino CLI Test Suite', () => {
  */
 suite('Remote Debugger API Test Suite', () => {
     test('Test DUMP: valid json', function (done) {
-        connectToDebugger(`${examples}blink.wasm`).then((socket: net.Socket) => {
+        connectToDebugger(`${examples}blink.wasm`).then((instance: WARDuinoInstance) => {
             // check if debugger returns valid json
-            sendInstruction(socket, undefined).then(() => {
+            sendInstruction(instance.interface, undefined).then(() => {
                 done();
             }).catch(() => {
                 assert.fail();
@@ -154,9 +177,9 @@ suite('Remote Debugger API Test Suite', () => {
     });
 
     test('Test DUMP: check fields', async function () {
-        const socket: net.Socket = await connectToDebugger(`${examples}blink.wasm`);
+        const instance: WARDuinoInstance = await connectToDebugger(`${examples}blink.wasm`);
         // get dump
-        const dump = await sendInstruction(socket, undefined);
+        const dump = await sendInstruction(instance.interface, undefined);
 
         // extract information
         const functions = dump.functions.map((entry: any) => {
@@ -179,11 +202,11 @@ suite('Remote Debugger API Test Suite', () => {
     });
 
     test('Test PAUSE: execution is stopped', async function () {
-        const socket: net.Socket = await connectToDebugger(`${examples}blink.wasm`);
+        const instance: WARDuinoInstance = await connectToDebugger(`${examples}blink.wasm`);
 
         // run test
-        const dump = await sendInstruction(socket, InterruptTypes.interruptPAUSE);
-        const check = await sendInstruction(socket, undefined);
+        const dump = await sendInstruction(instance.interface, InterruptTypes.interruptPAUSE);
+        const check = await sendInstruction(instance.interface, undefined);
 
         // perform checks
         expect(dump.pc).to.equal(check.pc);
@@ -191,23 +214,23 @@ suite('Remote Debugger API Test Suite', () => {
     });
 
     test('Test STEP: program counter changes correctly', async function () {
-        const socket: net.Socket = await connectToDebugger(`${examples}blink.wasm`);
+        const instance: WARDuinoInstance = await connectToDebugger(`${examples}blink.wasm`);
 
         // run test
-        const before = await sendInstruction(socket, InterruptTypes.interruptPAUSE);
-        const after = await sendInstruction(socket, InterruptTypes.interruptSTEP, 100);
+        const before = await sendInstruction(instance.interface, InterruptTypes.interruptPAUSE);
+        const after = await sendInstruction(instance.interface, InterruptTypes.interruptSTEP, 100);
 
         // perform checks
         expect(parseInt(before.pc)).to.be.greaterThan(parseInt(after.pc));
     });
 
     test('Test BREAKPOINTS: add breakpoint', async function () {
-        const socket: net.Socket = await connectToDebugger(`${examples}blink.wasm`);
+        const instance: WARDuinoInstance = await connectToDebugger(`${examples}blink.wasm`);
 
         // run tests and checks
-        const before = await sendInstruction(socket, InterruptTypes.interruptPAUSE);
+        const before = await sendInstruction(instance.interface, InterruptTypes.interruptPAUSE);
         expect(before.breakpoints.length).to.equal(0);
-        const after = await sendInstruction(socket, InterruptTypes.interruptBPAdd);
+        const after = await sendInstruction(instance.interface, InterruptTypes.interruptBPAdd);
         expect(after.breakpoints.length).to.equal(1);
     });
 });
@@ -216,18 +239,7 @@ suite('Remote Debugger API Test Suite', () => {
  * Test of the Out-of-place Debugger API
  */
 suite('Out-of-place Debugger API Test Suite', () => {
-    test('Test Supervisor: connect to proxy', function (done) {
-        const address = {port: port, host: '127.0.0.1'};
-        const proxy: net.Server = new net.Server();
-        proxy.listen(port++);
-        proxy.on('connection', function (socket: net.Socket) {
-            done();
-        });
-
-        connectToDebugger(`${examples}blink.wasm`, ['--proxy', address.port.toString()]).catch(function (message) {
-            assert.fail(message);
-        });
-    });
+    // TODO
 });
 
 class MessageStack {
