@@ -7,9 +7,6 @@ import {assert, expect} from "chai";
 import {ReadlineParser} from "serialport";
 import * as net from 'net';
 import {InterruptTypes} from "../../DebugBridges/InterruptTypes";
-import {DebugInfoParser} from "../../Parsers/DebugInfoParser";
-import {RuntimeState} from "../../State/RuntimeState";
-import {EventItem} from "../../Views/EventsProvider";
 
 const interpreter = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const examples = 'src/test/suite/examples/';
@@ -106,25 +103,73 @@ suite('Debugger Test Suite', () => {
 
         // save returned program counters
         const counters: number[] = [];
-        socket.on("data", (data: Buffer) => {
-            data.toString().split("\n").forEach((line) => {
-                if (line.startsWith("{\"pc")) {
-                    const parsed = JSON.parse(line);
+        const stack: MessageStack = new MessageStack('\n');
+        socket.on('data', (data: Buffer) => {
+            stack.push(data.toString());
+            let message = stack.pop();
+            while (message !== undefined) {
+                try {
+                    const parsed = JSON.parse(message);
                     counters.push(parseInt(parsed.pc));
+                } catch (e) {
+                    // do nothing
+                } finally {
+                    message = stack.pop();
                 }
-            });
+            }
         });
 
         // run test
         socket.write(`${InterruptTypes.interruptPAUSE} \n`);
-        socket.write(`${InterruptTypes.interruptDUMP} \n`);
-        await new Promise(f => setTimeout(f, 1000));
-        socket.write(`${InterruptTypes.interruptDUMP} \n`);
+        setTimeout(() => {
+            socket.write(`${InterruptTypes.interruptDUMP} \n`);
+        }, 1000);
+        setTimeout(() => {
+            socket.write(`${InterruptTypes.interruptDUMP} \n`);
+        }, 1000);
 
-        await new Promise(f => setTimeout(f, 1000));
 
         // perform checks
-        expect(counters.length).to.equal(2);
-        expect(counters[0]).to.equal(counters[1]);
+        setTimeout(() => {
+            expect(counters.length).to.equal(2);
+            expect(counters[0]).to.equal(counters[1]);
+        }, 2000);
     });
 });
+
+class MessageStack {
+    private readonly delimiter: string;
+    private stack: string[];
+
+    constructor(delimiter: string) {
+        this.delimiter = delimiter;
+        this.stack = [];
+    }
+
+    public push(data: string): void {
+        const messages: string[] = this.split(data);
+        if (this.incomplete()) {
+            this.stack[this.stack.length - 1] += messages.shift();
+        }
+        this.stack = this.stack.concat(messages);
+    }
+
+    public pop(): string | undefined {
+        if (this.hasCompleteMessage()) {
+            return this.stack.shift();
+        }
+    }
+
+    private split(text: string): string[] {
+        return text.split(new RegExp(`(.*?${this.delimiter})`, 'g')).filter(s => {return s.length > 0; });
+    }
+
+    private incomplete(): boolean {
+        const last: string | undefined = this.stack[this.stack.length - 1];
+        return last !== undefined && !last.includes(this.delimiter);
+    }
+
+    private hasCompleteMessage(): boolean {
+        return !this.incomplete() || this.stack.length > 1;
+    }
+}
