@@ -88,12 +88,17 @@ export class Describer {
                 instance = await connectToDebugger(this.interpreter, desc.program, this.port++, desc.args ?? []);
             });
 
+            let previous: any = undefined;
             for (const instruction of desc.instructions ?? []) {
                 it(instruction.name, async () => {
-                    const actual = await sendInstruction(instance.interface, instruction.type, instruction.delay ?? 0);
+                    const actual: any = await sendInstruction(instance.interface, instruction.type, instruction.delay ?? 0);
 
                     for (const expectation of instruction.expected) {
                         for (const [field, entry] of Object.entries(expectation)) {
+                            if (entry.kind === 'primitive') {
+                                expect(actual[field]).to.deep.equal(expectation[field].value);
+                            }
+
                             if (entry.kind === 'description') {
                                 switch (entry.value) {
                                     case Description.defined:
@@ -104,8 +109,25 @@ export class Describer {
                                         break;
                                 }
                             }
+
+                            if (entry.kind === 'comparison') {
+                                if (previous) {
+                                    switch (entry.value) {
+                                        case Comparison.lessThan:
+                                            expect(actual[field]).to.be.lessThan(previous[field]);
+                                            break;
+                                        case Comparison.equal:
+                                            expect(actual[field]).to.be.equal(previous[field]);
+                                            break;
+                                        case Comparison.greaterThan:
+                                            expect(actual[field]).to.be.greaterThan(previous[field]);
+                                            break;
+                                    }
+                                }
+                            }
+
                             if (entry.kind === 'behaviour') {
-                                const after = await sendInstruction(instance.interface, undefined);
+                                const after: any = await sendInstruction(instance.interface, undefined);
                                 switch (entry.value) {
                                     case Behaviour.unchanged:
                                         expect(after[field]).to.be.equal(actual[field]);
@@ -123,6 +145,7 @@ export class Describer {
                             }
                         }
                     }
+                    previous = actual;
                 });
             }
 
@@ -131,38 +154,6 @@ export class Describer {
             });
         });
 
-    }
-
-    private checkExpected<T>(actual?: Expected<T>, expected?: Expected<T>) {
-        if (expected === undefined) {
-            return;
-        }
-
-        switch (expected.kind) {
-            case 'primitive':
-                expect(actual?.value).to.be.equal(expected.value);
-                break;
-            case 'description':
-                switch (expected.value as Description) {
-                    case Description.defined:
-                        expect(actual).to.exist;
-                        break;
-                    case Description.notDefined:
-                        expect(actual).to.be.undefined;
-                        break;
-                }
-                break;
-            case 'comparison':
-                // TODO
-                break;
-            case 'behaviour':
-                switch (expected.value as Behaviour) {
-                    case Behaviour.unchanged:
-                        expect(actual).to.exist;
-                        break;
-                }
-                break;
-        }
     }
 }
 
