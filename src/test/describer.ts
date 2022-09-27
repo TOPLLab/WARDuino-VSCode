@@ -5,7 +5,6 @@ import {Readable} from 'stream';
 import {ReadlineParser} from 'serialport';
 import {expect} from 'chai';
 import 'mocha';
-import {after, before} from "mocha";
 
 export enum Description {
     /** required properties */
@@ -44,13 +43,11 @@ export interface Instruction {
     delay?: number;
 
     /** Expected state after instruction */
-    expected: State;
+    expected: Expectation[];
 }
 
-export interface State {
-    pc: Expected<string>;
-
-    callstackHeight?: Expected<number>;
+export interface Expectation {
+    [key: string]: Expected<any>;
 
     // ...
 }
@@ -93,18 +90,44 @@ export class Describer {
 
             for (const instruction of desc.instructions ?? []) {
                 it(instruction.name, async () => {
-                    const actual: State = await sendInstruction(instance.interface, instruction.type, instruction.delay ?? 0);
+                    const actual = await sendInstruction(instance.interface, instruction.type, instruction.delay ?? 0);
 
-                    if (instruction.expected.pc.kind === 'behaviour') {
-                        const after: State = await sendInstruction(instance.interface, undefined);
-
-                        expect(after.pc.value).to.be.equal(actual.pc.value);
+                    for (const expectation of instruction.expected) {
+                        for (const [field, entry] of Object.entries(expectation)) {
+                            if (entry.kind === 'description') {
+                                switch (entry.value) {
+                                    case Description.defined:
+                                        expect(actual[field]).to.exist;
+                                        break;
+                                    case Description.notDefined:
+                                        expect(actual[field]).to.be.undefined;
+                                        break;
+                                }
+                            }
+                            if (entry.kind === 'behaviour') {
+                                const after = await sendInstruction(instance.interface, undefined);
+                                switch (entry.value) {
+                                    case Behaviour.unchanged:
+                                        expect(after[field]).to.be.equal(actual[field]);
+                                        break;
+                                    case Behaviour.changed:
+                                        expect(after[field]).to.not.equal(actual[field]);
+                                        break;
+                                    case Behaviour.increasing:
+                                        expect(after[field]).to.be.greaterThan(actual[field]);
+                                        break;
+                                    case Behaviour.decreasing:
+                                        expect(after[field]).to.be.lessThan(actual[field]);
+                                        break;
+                                }
+                            }
+                        }
                     }
                 });
             }
 
             after('after', () => {
-
+                // TODO stop debugger
             });
         });
 
@@ -183,7 +206,7 @@ export function connectToDebugger(interpreter: string, program: string, port: nu
     });
 }
 
-export function sendInstruction(socket: net.Socket, instruction?: InterruptTypes, timeout: number = 0): Promise<State> {
+export function sendInstruction(socket: net.Socket, instruction?: InterruptTypes, timeout: number = 0): Promise<any> {
     const stack: MessageStack = new MessageStack('\n');
 
     return new Promise(function (resolve, reject) {
