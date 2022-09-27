@@ -11,7 +11,7 @@ const runPath = process.cwd();
 const wabtSDK = `${runPath}/WABT/build`;
 const wasmDirectoryPath = `${runPath}/src/test/suite/examples`;
 
-suite('WASM Compiler Bridge Test Suite', () => {
+describe('WASM Compiler Bridge Test Suite', () => {
     let tmpdir: string = "";
 
     before(async function () {
@@ -25,7 +25,7 @@ suite('WASM Compiler Bridge Test Suite', () => {
         });
     });
 
-    test('TestCompileOK', async () => {
+    it('TestCompileOK', async () => {
         let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir, wabtSDK);
         const result = (await compilerBridge.compile()).sourceMap;
         expect(result.lineInfoPairs).to.have.lengthOf.above(0);
@@ -33,7 +33,7 @@ suite('WASM Compiler Bridge Test Suite', () => {
         expect(result.lineInfoPairs[0].lineInfo.line).to.equal(13);
     });
 
-    test('TestCompileBridgeSyntaxError', async () => {
+    it('TestCompileBridgeSyntaxError', async () => {
         let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_syntax_error.wast`, tmpdir, wabtSDK);
         let result = await compilerBridge.compile().catch((reason) => {
                 expect(reason.lineInfo.line).to.equal(1);

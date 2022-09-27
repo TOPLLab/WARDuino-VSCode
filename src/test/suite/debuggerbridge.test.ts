@@ -75,27 +75,27 @@ async function init(target: RunTimeTarget) {
     await compilerBridge.compile();
 }
 
-suite("EmulatedDebugBridge Test Suite", () => {
-
-    before(async function () {
-        await init(RunTimeTarget.emulator);
-    });
-
-    test("Test Emulator Connect", () => {
-        return bridge.connect().then(result => {
-            assert.equal(result, "127.0.0.1:8192");
-        });
-    });
-
-    test("Test Emulator Disconnect", async function () {
-        bridge.disconnect();
-        fs.rm(tmpdir, {recursive: true}, err => {
-            if (err) {
-                throw new Error('Could not delete temporary directory.');
-            }
-        });
-    });
-});
+// describe("EmulatedDebugBridge Test Suite", () => {
+//
+//     before(async function () {
+//         await init(RunTimeTarget.emulator);
+//     });
+//
+//     it("Test Emulator Connect", () => {
+//         return bridge.connect().then(result => {
+//             assert.equal(result, "127.0.0.1:8192");
+//         });
+//     });
+//
+//     it("Test Emulator Disconnect", async function () {
+//         bridge.disconnect();
+//         fs.rm(tmpdir, {recursive: true}, err => {
+//             if (err) {
+//                 throw new Error('Could not delete temporary directory.');
+//             }
+//         });
+//     });
+// });
 
 function isValidJSON(text: string): boolean {
     try {
@@ -110,7 +110,7 @@ function receivingDumpData(json: string, text: string): boolean {
     return json.length > 0 || text.includes("{\"pc\":");
 }
 
-suite("Debug API Test Suite (emulated)", () => {
+describe("Debug API Test Suite (emulated)", () => {
     before(async function () {
         await init(RunTimeTarget.emulator);
         await bridge.connect();
@@ -120,7 +120,7 @@ suite("Debug API Test Suite (emulated)", () => {
         bridge.client?.removeAllListeners("data");
     });
 
-    test("Test `pause` command", function (done) {
+    it("Test `pause` command", function (done) {
         bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
             console.log(text);
@@ -131,7 +131,7 @@ suite("Debug API Test Suite (emulated)", () => {
         bridge.pause();
     });
 
-    test("Test `step` command", function (done) {
+    it("Test `step` command", function (done) {
         bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
             console.log(text);
@@ -142,7 +142,7 @@ suite("Debug API Test Suite (emulated)", () => {
         bridge.step();
     });
 
-    test("Test `dump` command", function (done) {
+    it("Test `dump` command", function (done) {
         this.timeout(3000);
         let json = "";
 
@@ -166,7 +166,7 @@ suite("Debug API Test Suite (emulated)", () => {
         bridge.refresh();
     });
 
-    test("Test `run` command", function (done) {
+    it("Test `run` command", function (done) {
         bridge.client?.on("data", (data: Buffer) => {
             const text = data.toString();
             console.log(text);
