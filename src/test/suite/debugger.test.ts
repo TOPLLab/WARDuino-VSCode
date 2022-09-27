@@ -9,6 +9,8 @@ import {
     Behaviour,
     connectToDebugger,
     Describer,
+    Description,
+    Expected,
     isReadable,
     startDebugger,
     TestDescription,
@@ -106,9 +108,10 @@ const pauseTest: TestDescription = {
     instructions: [{
         name: 'execution is stopped',
         type: InterruptTypes.interruptPAUSE,
-        expected: {
-            pc: {kind: 'behaviour', value: Behaviour.unchanged}
-        }
+        expected: [
+            {'pc' : {kind: 'description', value: Description.defined} as Expected<string>},
+            {'pc' : {kind: 'behaviour', value: Behaviour.unchanged} as Expected<string>}
+        ]
     }]
 };
 
