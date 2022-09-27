@@ -59,7 +59,7 @@ function connectToDebugger(program: string, args: string[] = []): Promise<WARDui
     });
 }
 
-function sendInstruction(socket: net.Socket, instruction: InterruptTypes | undefined, timeout: number = 0): Promise<any> {
+function sendInstruction(socket: net.Socket, instruction: InterruptTypes | undefined, dumpAfter: boolean = true, timeout: number = 0): Promise<any> {
     const stack: MessageStack = new MessageStack('\n');
 
     return new Promise(function (resolve, reject) {
@@ -81,11 +81,13 @@ function sendInstruction(socket: net.Socket, instruction: InterruptTypes | undef
         if (instruction !== undefined) {
             socket.write(`${instruction} \n`);
         }
-        // wait briefly for the operation to take effect
-        // send dump command
-        setTimeout(function () {
-            socket.write(`${InterruptTypes.interruptDUMP} \n`);
-        }, timeout);
+
+        // send dump command (optionally wait briefly for the operation to take effect)
+        if (dumpAfter) {
+            setTimeout(function () {
+                socket.write(`${InterruptTypes.interruptDUMP} \n`);
+            }, timeout);
+        }
     });
 }
 
@@ -105,7 +107,7 @@ suite('WARDuino CLI Test Suite', () => {
         });
     });
 
-    test('Test: exitcode (-1)', function (done) {
+    test('Test: exitcode (1)', function (done) {
         spawn(interpreter, ['--socket', (port++).toString(), '--file', `${examples}nonexistent.wasm`]).on('exit', function (code) {
             expect(code).to.equal(1);
             done();
@@ -168,7 +170,29 @@ suite('Remote Debugger API Test Suite', () => {
     test('Test DUMP: valid json', function (done) {
         connectToDebugger(`${examples}blink.wasm`).then((instance: WARDuinoInstance) => {
             // check if debugger returns valid json
-            sendInstruction(instance.interface, undefined).then(() => {
+            sendInstruction(instance.interface, InterruptTypes.interruptDUMP, false).then(() => {
+                done();
+            }).catch(() => {
+                assert.fail();
+            });
+        });
+    });
+
+    test('Test FULL DUMP: valid json', function (done) {
+        connectToDebugger(`${examples}blink.wasm`).then((instance: WARDuinoInstance) => {
+            // check if debugger returns valid json
+            sendInstruction(instance.interface, InterruptTypes.interruptDUMPFull, false).then(() => {
+                done();
+            }).catch(() => {
+                assert.fail();
+            });
+        });
+    });
+
+    test('Test DUMP LOCALS: valid json', function (done) {
+        connectToDebugger(`${examples}blink.wasm`).then((instance: WARDuinoInstance) => {
+            // check if debugger returns valid json
+            sendInstruction(instance.interface, InterruptTypes.interruptDUMPLocals, false).then(() => {
                 done();
             }).catch(() => {
                 assert.fail();
@@ -179,7 +203,7 @@ suite('Remote Debugger API Test Suite', () => {
     test('Test DUMP: check fields', async function () {
         const instance: WARDuinoInstance = await connectToDebugger(`${examples}blink.wasm`);
         // get dump
-        const dump = await sendInstruction(instance.interface, undefined);
+        const dump = await sendInstruction(instance.interface, InterruptTypes.interruptDUMP, false);
 
         // extract information
         const functions = dump.functions.map((entry: any) => {
@@ -201,12 +225,21 @@ suite('Remote Debugger API Test Suite', () => {
         expect(dump.breakpoints.length).to.equal(0);
     });
 
+    test('Test DUMP LOCALS: check fields', async function () {
+        const instance: WARDuinoInstance = await connectToDebugger(`${examples}blink.wasm`);
+        // get dump
+        const dump = await sendInstruction(instance.interface, InterruptTypes.interruptDUMPLocals, false);
+
+        // perform checks
+        expect(dump.locals.locals).to.equal(dump.locals.count);
+    });
+
     test('Test PAUSE: execution is stopped', async function () {
         const instance: WARDuinoInstance = await connectToDebugger(`${examples}blink.wasm`);
 
         // run test
         const dump = await sendInstruction(instance.interface, InterruptTypes.interruptPAUSE);
-        const check = await sendInstruction(instance.interface, undefined);
+        const check = await sendInstruction(instance.interface, InterruptTypes.interruptDUMP, false);
 
         // perform checks
         expect(dump.pc).to.equal(check.pc);
@@ -218,7 +251,7 @@ suite('Remote Debugger API Test Suite', () => {
 
         // run test
         const before = await sendInstruction(instance.interface, InterruptTypes.interruptPAUSE);
-        const after = await sendInstruction(instance.interface, InterruptTypes.interruptSTEP, 100);
+        const after = await sendInstruction(instance.interface, InterruptTypes.interruptSTEP, true, 100); // need to wait for STEP to happen
 
         // perform checks
         expect(parseInt(before.pc)).to.be.greaterThan(parseInt(after.pc));
