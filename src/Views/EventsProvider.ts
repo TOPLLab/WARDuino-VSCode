@@ -11,9 +11,9 @@ export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
         if (element === undefined) {
             return this.events;
         } else if (element.collapsibleState !== TreeItemCollapsibleState.None) {
-            let children = [new EventItem(`topic: ${element.topic}`, "")];
+            let children = [new EventItem(`topic: ${element.topic}`, '')];
             if (element.payload.length > 0) {
-                children.push(new EventItem(`payload: ${element.payload}`, ""));
+                children.push(new EventItem(`payload: ${element.payload}`, ''));
             }
             return children;
         }

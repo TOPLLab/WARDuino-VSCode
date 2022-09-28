@@ -7,7 +7,7 @@ describe('Extension Test Suite', () => {
     vscode.window.showInformationMessage('Start all tests.');
 
     it('Test WASM Compiler Bridge', () => {
-        let compilerBridge = new WASMCompilerBridge("", "", "");
+        let compilerBridge = new WASMCompilerBridge('', '', '');
         compilerBridge.compile();
     });
 });

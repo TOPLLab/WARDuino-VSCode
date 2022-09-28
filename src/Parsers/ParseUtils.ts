@@ -1,5 +1,5 @@
-import {FunctionInfo} from "../State/FunctionInfo";
-import {VariableInfo} from "../State/VariableInfo";
+import {FunctionInfo} from '../State/FunctionInfo';
+import {VariableInfo} from '../State/VariableInfo';
 
 export function jsonParse(obj: string) {
     return new Function(`return ${obj}`)();
@@ -19,7 +19,7 @@ export function getFileExtension(file: string): string {
     if (splitted.length === 2) {
         return splitted.pop()!;
     }
-    throw Error("Could not determine file type");
+    throw Error('Could not determine file type');
 }
 
 function extractDetailedSection(section: string, input: String): String[] {
@@ -38,7 +38,7 @@ function extractDetailedSection(section: string, input: String): String[] {
 }
 
 function extractMajorSection(section: string, input: String): String[] {
-    let lines = input.split("\n");
+    let lines = input.split('\n');
     let i = 0;
     while (i < lines.length && !lines[i].startsWith(section)) {
         i++;
@@ -46,7 +46,7 @@ function extractMajorSection(section: string, input: String): String[] {
 
     i += 2;
     let start = i;
-    while (i < lines.length && lines[i] !== "") {
+    while (i < lines.length && lines[i] !== '') {
         i++;
     }
 
@@ -55,7 +55,7 @@ function extractMajorSection(section: string, input: String): String[] {
 }
 
 function fillInLocalInfos(functionInfos: FunctionInfo[], lines: String[]): FunctionInfo[] {
-    lines = lines.filter((line) => line.includes("local"));
+    lines = lines.filter((line) => line.includes('local'));
     for (let i = 0; i < lines.length; i++) {
         let fidx = lines[i].match(/\[([0-9]+)]/);
         if (fidx !== null) {
@@ -66,9 +66,9 @@ function fillInLocalInfos(functionInfos: FunctionInfo[], lines: String[]): Funct
                 functionInfo?.locals.push({
                     index: i,
                     name: ((name === null) ? `${i}` : `$${name[1]}`),
-                    type: "undefined",
+                    type: 'undefined',
                     mutable: true,
-                    value: ""
+                    value: ''
                 });  // TODO get type from disassembly
             }
         }
@@ -85,13 +85,13 @@ function extractGlobalInfo(line: String): VariableInfo {
     let match = line.match(/\[([0-9]+)]/);
     global.index = (match === null) ? NaN : +match[1];
     match = line.match(/ ([if][0-9][0-9]) /);
-    global.type = (match === null) ? "undefined" : match[1];
+    global.type = (match === null) ? 'undefined' : match[1];
     match = line.match(/<([a-zA-Z0-9 ._]+)>/);
     global.name = ((match === null) ? `${global.index}` : `$${match[1]}`) + ` (${global.type})`;
     match = line.match(/mutable=([0-9])/);
     global.mutable = match !== null && +match[1] === 1;
     match = line.match(/init.*=(.*)/);
-    global.value = (match === null) ? "" : match[1];
+    global.value = (match === null) ? '' : match[1];
     return global;
 }
 
@@ -105,18 +105,18 @@ function extractImportInfo(line: String): FunctionInfo {
 }
 
 export function getFunctionInfos(input: String): FunctionInfo[] {
-    let functionLines: String[] = extractMajorSection("Sourcemap JSON:", input);
+    let functionLines: String[] = extractMajorSection('Sourcemap JSON:', input);
 
     if (functionLines.length === 0) {
         throw Error("Could not parse 'sourcemap' section of objdump");
     }
 
-    let sourcemap = JSON.parse(functionLines.join("").replace(/\t/g,""));
+    let sourcemap = JSON.parse(functionLines.join('').replace(/\t/g,''));
     let functions: FunctionInfo[] = [];
     sourcemap.Functions.forEach((func: any, index: number) => {
         let locals: VariableInfo[] = [];
         func.locals.forEach((local: string, index: number) => {
-            locals.push({index: index, name: local, type: "undefined", mutable: true, value: ""});
+            locals.push({index: index, name: local, type: 'undefined', mutable: true, value: ''});
         });
         functions.push({index: index, name: func.name, locals: locals});
     });
@@ -124,7 +124,7 @@ export function getFunctionInfos(input: String): FunctionInfo[] {
 }
 
 export function getGlobalInfos(input: String): VariableInfo[] {
-    let lines: String[] = extractDetailedSection("Global[", input);
+    let lines: String[] = extractDetailedSection('Global[', input);
     let globals: VariableInfo[] = [];
     lines.forEach((line) => {
         globals.push(extractGlobalInfo(line));
@@ -133,7 +133,7 @@ export function getGlobalInfos(input: String): VariableInfo[] {
 }
 
 export function getImportInfos(input: String): FunctionInfo[] {
-    let lines: String[] = extractDetailedSection("Import[", input);
+    let lines: String[] = extractDetailedSection('Import[', input);
     let globals: FunctionInfo[] = [];
     lines.forEach((line) => {
         globals.push(extractImportInfo(line));
