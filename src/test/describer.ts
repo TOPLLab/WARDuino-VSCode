@@ -12,15 +12,8 @@ export enum Description {
     notDefined,
 }
 
-export enum Comparison {
-    /** compare with a previous state: */
-    lessThan,
-    equal,
-    greaterThan,
-}
-
 export enum Behaviour {
-    /** check over time (test will request 2 state dumps): */
+    /** compare with a previous state (always fails if no previous state): */
     unchanged,
     changed,
     increasing,
@@ -31,8 +24,12 @@ export type Expected<T> =
 /** discrimination union */
     | { kind: 'primitive'; value: T }
     | { kind: 'description'; value: Description }
-    | { kind: 'comparison'; value: Comparison }
+    | { kind: 'comparison'; value: (value: T) => boolean }
     | { kind: 'behaviour'; value: Behaviour };
+
+export interface Breakpoint {
+
+}
 
 export interface TestDescription {
     /** Name of the test */
@@ -40,6 +37,9 @@ export interface TestDescription {
 
     /** Type of the instruction */
     instruction: InterruptTypes;
+
+    /** Whether the instruction is expected to return data */
+    expectResponse?: boolean;
 
     /** Optional delay before checking result of instruction */
     delay?: number;
@@ -67,6 +67,9 @@ export interface TestSuite {
     /** File to load into the interpreter */
     program: string;
 
+    /** Initial breakpoints */
+    initialBreakpoints?: Breakpoint[];
+
     /** Arguments for the interpreter */
     args?: string[];
 
@@ -89,20 +92,20 @@ export class Describer {
         this.port = initialPort;
     }
 
-    public describeTest(desc: TestSuite) {
-        describe(desc.title, () => {
+    public describeTest(suite: TestSuite) {
+        describe(suite.title, () => {
             let instance: WARDuinoInstance;
 
-            before('before', async () => {
-                instance = await connectToDebugger(this.interpreter, desc.program, this.port++, desc.args ?? []);
+            before('Connect to debugger', async () => {
+                instance = await connectToDebugger(this.interpreter, suite.program, this.port++, suite.args ?? []);
             });
 
             let previous: any = undefined;
-            for (const instruction of desc.tests ?? []) {
-                it(instruction.title, async () => {
-                    const actual: any = await sendInstruction(instance.interface, instruction.instruction, instruction.delay ?? 0);
+            for (const description of suite.tests ?? []) {
+                it(description.title, async () => {
+                    const actual: any = await sendInstruction(instance.interface, description.instruction, description.expectResponse ?? true);
 
-                    for (const expectation of instruction.expected) {
+                    for (const expectation of description.expected) {
                         for (const [field, entry] of Object.entries(expectation)) {
                             if (entry.kind === 'primitive') {
                                 expect(actual[field]).to.deep.equal(expectation[field].value);
@@ -110,46 +113,35 @@ export class Describer {
 
                             if (entry.kind === 'description') {
                                 switch (entry.value) {
-                                case Description.defined:
-                                    expect(actual[field]).to.exist;
-                                    break;
-                                case Description.notDefined:
-                                    expect(actual[field]).to.be.undefined;
-                                    break;
+                                    case Description.defined:
+                                        expect(actual[field]).to.exist;
+                                        break;
+                                    case Description.notDefined:
+                                        expect(actual[field]).to.be.undefined;
+                                        break;
                                 }
                             }
 
                             if (entry.kind === 'comparison') {
-                                if (previous) {
-                                    switch (entry.value) {
-                                    case Comparison.lessThan:
-                                        expect(actual[field]).to.be.lessThan(previous[field]);
-                                        break;
-                                    case Comparison.equal:
-                                        expect(actual[field]).to.be.equal(previous[field]);
-                                        break;
-                                    case Comparison.greaterThan:
-                                        expect(actual[field]).to.be.greaterThan(previous[field]);
-                                        break;
-                                    }
-                                }
+                                expect(entry.value(actual[field])).to.be.true;
                             }
 
                             if (entry.kind === 'behaviour') {
-                                const after: any = await sendInstruction(instance.interface, undefined);
-                                switch (entry.value) {
-                                case Behaviour.unchanged:
-                                    expect(after[field]).to.be.equal(actual[field]);
-                                    break;
-                                case Behaviour.changed:
-                                    expect(after[field]).to.not.equal(actual[field]);
-                                    break;
-                                case Behaviour.increasing:
-                                    expect(after[field]).to.be.greaterThan(actual[field]);
-                                    break;
-                                case Behaviour.decreasing:
-                                    expect(after[field]).to.be.lessThan(actual[field]);
-                                    break;
+                                if (previous) {
+                                    switch (entry.value) {
+                                        case Behaviour.unchanged:
+                                            expect(actual[field]).to.be.equal(previous[field]);
+                                            break;
+                                        case Behaviour.changed:
+                                            expect(actual[field]).to.not.equal(previous[field]);
+                                            break;
+                                        case Behaviour.increasing:
+                                            expect(actual[field]).to.be.greaterThan(previous[field]);
+                                            break;
+                                        case Behaviour.decreasing:
+                                            expect(actual[field]).to.be.lessThan(previous[field]);
+                                            break;
+                                    }
                                 }
                             }
                         }
@@ -157,12 +149,7 @@ export class Describer {
                     previous = actual;
                 });
             }
-
-            after('after', () => {
-                // TODO stop debugger
-            });
         });
-
     }
 }
 
@@ -206,7 +193,7 @@ export function connectToDebugger(interpreter: string, program: string, port: nu
     });
 }
 
-export function sendInstruction(socket: net.Socket, instruction?: InterruptTypes, timeout: number = 0): Promise<any> {
+export function sendInstruction(socket: net.Socket, instruction?: InterruptTypes, expectResponse: boolean = true): Promise<any> {
     const stack: MessageStack = new MessageStack('\n');
 
     return new Promise(function (resolve, reject) {
@@ -229,10 +216,9 @@ export function sendInstruction(socket: net.Socket, instruction?: InterruptTypes
             socket.write(`${instruction} \n`);
         }
 
-        // send dump command (optionally wait briefly for the operation to take effect)
-        setTimeout(function () {
-            socket.write(`${InterruptTypes.interruptDUMPFull} \n`);
-        }, timeout);
+        if (!expectResponse) {
+            resolve(null);
+        }
     });
 }
 

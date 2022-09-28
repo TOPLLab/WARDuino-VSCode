@@ -16,7 +16,7 @@
         "no-throw-literal": "warn",
         "semi": "off",
         "quotes": [2, "single", "avoid-escape"],
-        "indent": ["error", 4]
+        "indent": ["warn", 4]
     },
     "ignorePatterns": [
         "out",
