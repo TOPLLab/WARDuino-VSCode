@@ -141,7 +141,9 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "test": "node ./out/test/runTest.js",
+    "test": "npm run test-vm && npm run test-plugin",
+    "test-vm": "node ./node_modules/mocha/bin/mocha --exit --require ts-node/register --ui bdd ./src/test/suite/debugger.test.ts",
+    "test-plugin": "node ./out/test/runTest.js",
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
