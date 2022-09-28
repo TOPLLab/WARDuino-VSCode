@@ -13,7 +13,7 @@ import {
     Expected,
     isReadable,
     startDebugger,
-    TestDescription,
+    TestSuite,
     WARDuinoInstance
 } from '../describer';
 import {assert, expect} from 'chai';
@@ -102,17 +102,45 @@ describe('WARDuino CLI Test Suite', () => {
  */
 const describer: Describer = new Describer(interpreter, port);
 
-const pauseTest: TestDescription = {
-    name: 'Test PAUSE',
+const jsonTest: TestSuite = {
+    title: 'Test valid JSON',
     program: `${examples}blink.wasm`,
-    instructions: [{
-        name: 'execution is stopped',
-        type: InterruptTypes.interruptPAUSE,
+    tests: [{
+        title: 'DUMP',
+        instruction: InterruptTypes.interruptDUMP,
         expected: [
-            {'pc' : {kind: 'description', value: Description.defined} as Expected<string>},
-            {'pc' : {kind: 'behaviour', value: Behaviour.unchanged} as Expected<string>}
+            {'pc': {kind: 'description', value: Description.defined} as Expected<string>}
+        ]
+    }, {
+        title: 'DUMPFull',
+        instruction: InterruptTypes.interruptDUMPFull,
+        expected: [
+            {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
+            {'locals': {kind: 'description', value: Description.defined} as Expected<string>}
+        ]
+    }, {
+        title: 'DUMPLocals',
+        instruction: InterruptTypes.interruptDUMPLocals,
+        expected: [
+            {'locals': {kind: 'description', value: Description.defined} as Expected<string>}
+        ]
+    }]
+};
+
+describer.describeTest(jsonTest);
+
+const pauseTest: TestSuite = {
+    title: 'Test PAUSE',
+    program: `${examples}blink.wasm`,
+    tests: [{
+        title: 'Execution is stopped',
+        instruction: InterruptTypes.interruptPAUSE,
+        expected: [
+            {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
+            {'pc': {kind: 'behaviour', value: Behaviour.unchanged} as Expected<string>}
         ]
     }]
 };
 
 describer.describeTest(pauseTest);
+

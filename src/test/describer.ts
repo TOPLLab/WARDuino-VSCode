@@ -28,22 +28,30 @@ export enum Behaviour {
 }
 
 export type Expected<T> =
+/** discrimination union */
     | { kind: 'primitive'; value: T }
     | { kind: 'description'; value: Description }
     | { kind: 'comparison'; value: Comparison }
     | { kind: 'behaviour'; value: Behaviour };
 
-export interface Instruction {
-    name: string;
+export interface TestDescription {
+    /** Name of the test */
+    title: string;
 
     /** Type of the instruction */
-    type: InterruptTypes;
+    instruction: InterruptTypes;
 
     /** Optional delay before checking result of instruction */
     delay?: number;
 
-    /** Expected state after instruction */
+    /** Parser to use on the result. */
+    parser?: (input: string) => Object;
+
+    /** Checks to run against the result. */
     expected: Expectation[];
+
+    /** Command to use to retrieve the result of the vm */
+    inspector?: InterruptTypes;
 }
 
 export interface Expectation {
@@ -52,8 +60,9 @@ export interface Expectation {
     // ...
 }
 
-export interface TestDescription {
-    name: string;
+/** A series of tests to perform on a single instance of the vm */
+export interface TestSuite {
+    title: string;
 
     /** File to load into the interpreter */
     program: string;
@@ -61,7 +70,7 @@ export interface TestDescription {
     /** Arguments for the interpreter */
     args?: string[];
 
-    instructions?: Instruction[];
+    tests?: TestDescription[];
 
     skip?: boolean;
 }
@@ -80,8 +89,8 @@ export class Describer {
         this.port = initialPort;
     }
 
-    public describeTest(desc: TestDescription) {
-        describe(desc.name, () => {
+    public describeTest(desc: TestSuite) {
+        describe(desc.title, () => {
             let instance: WARDuinoInstance;
 
             before('before', async () => {
@@ -89,9 +98,9 @@ export class Describer {
             });
 
             let previous: any = undefined;
-            for (const instruction of desc.instructions ?? []) {
-                it(instruction.name, async () => {
-                    const actual: any = await sendInstruction(instance.interface, instruction.type, instruction.delay ?? 0);
+            for (const instruction of desc.tests ?? []) {
+                it(instruction.title, async () => {
+                    const actual: any = await sendInstruction(instance.interface, instruction.instruction, instruction.delay ?? 0);
 
                     for (const expectation of instruction.expected) {
                         for (const [field, entry] of Object.entries(expectation)) {
