@@ -3,8 +3,8 @@
  *
  * These tests are independent of the plugin and uses the emulator version of the VM (wdcli).
  */
-import "mocha";
-import {InterruptTypes} from "../../DebugBridges/InterruptTypes";
+import 'mocha';
+import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {
     Behaviour,
     connectToDebugger,
@@ -15,11 +15,11 @@ import {
     startDebugger,
     TestDescription,
     WARDuinoInstance
-} from "../describer";
-import {assert, expect} from "chai";
-import {ChildProcess, spawn} from "child_process";
-import {ReadlineParser} from "serialport";
-import * as net from "net";
+} from '../describer';
+import {assert, expect} from 'chai';
+import {ChildProcess, spawn} from 'child_process';
+import {ReadlineParser} from 'serialport';
+import * as net from 'net';
 
 const interpreter: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const examples: string = 'src/test/suite/examples/';
@@ -67,7 +67,7 @@ describe('WARDuino CLI Test Suite', () => {
             reader.on('data', (data) => {
                 if (data.includes('Listening')) {
                     succeeded = true;
-                    process.kill("SIGKILL");
+                    process.kill('SIGKILL');
                 }
             });
         }

@@ -1,19 +1,19 @@
-import {DebugBridge} from "../DebugBridges/DebugBridge";
-import {VariableInfo} from "../State/VariableInfo";
-import {Frame} from "./Frame";
-import {EventItem} from "../Views/EventsProvider";
-import {RuntimeState} from "../State/RuntimeState";
+import {DebugBridge} from '../DebugBridges/DebugBridge';
+import {VariableInfo} from '../State/VariableInfo';
+import {Frame} from './Frame';
+import {EventItem} from '../Views/EventsProvider';
+import {RuntimeState} from '../State/RuntimeState';
 
 export class DebugInfoParser {
 
     private addressBeginning: number = 0;
 
     public parse(bridge: DebugBridge, line: any): void {
-        if (line.includes("STEP")) {
+        if (line.includes('STEP')) {
             bridge.refresh();
         }
 
-        if (line.includes("AT")) {
+        if (line.includes('AT')) {
             let breakpointInfo = line.match(/AT (0x.*)!/);
             if (breakpointInfo.length > 1) {
                 let pc = parseInt(breakpointInfo[1]);
@@ -22,13 +22,13 @@ export class DebugInfoParser {
             }
         }
 
-        if (line.includes("new pushed event")) {
+        if (line.includes('new pushed event')) {
             bridge.notifyNewEvent();
         }
 
-        if (line.startsWith("{\"events")) {
+        if (line.startsWith('{"events')) {
             bridge.refreshEvents(JSON.parse(line).events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
-        } else if (line.startsWith("{\"pc")) {
+        } else if (line.startsWith('{"pc')) {
             const parsed = JSON.parse(line);
             const runtimeState: RuntimeState = new RuntimeState(line);
             runtimeState.startAddress = parseInt(parsed.start);

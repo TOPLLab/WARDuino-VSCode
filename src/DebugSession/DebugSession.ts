@@ -13,37 +13,37 @@ import {
     TerminatedEvent,
     Thread
 } from 'vscode-debugadapter';
-import {CompileTimeError} from "../CompilerBridges/CompileTimeError";
-import {ErrorReporter} from "./ErrorReporter";
+import {CompileTimeError} from '../CompilerBridges/CompileTimeError';
+import {ErrorReporter} from './ErrorReporter';
 import {DebugBridge} from '../DebugBridges/DebugBridge';
 import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
-import {RunTimeTarget} from "../DebugBridges/RunTimeTarget";
-import {CompileBridgeFactory} from "../CompilerBridges/CompileBridgeFactory";
-import {CompileBridge} from "../CompilerBridges/CompileBridge";
-import {SourceMap} from "../State/SourceMap";
-import {VariableInfo} from "../State/VariableInfo";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import {WOODState} from "../State/WOODState";
-import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
-import {EventsProvider} from "../Views/EventsProvider";
-import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
-import { CompileResult } from '../CompilerBridges/CompileBridge';
+import {RunTimeTarget} from '../DebugBridges/RunTimeTarget';
+import {CompileBridgeFactory} from '../CompilerBridges/CompileBridgeFactory';
+import {SourceMap} from '../State/SourceMap';
+import {VariableInfo} from '../State/VariableInfo';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import {WOODState} from '../State/WOODState';
+import {WOODDebugBridge} from '../DebugBridges/WOODDebugBridge';
+import {EventsProvider} from '../Views/EventsProvider';
+import {ProxyCallItem, ProxyCallsProvider} from '../Views/ProxyCallsProvider';
+import {CompileBridge, CompileResult} from '../CompilerBridges/CompileBridge';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
-    ["emulated", RunTimeTarget.emulator],
-    ["embedded", RunTimeTarget.embedded]
+    ['emulated', RunTimeTarget.emulator],
+    ['embedded', RunTimeTarget.embedded]
 ]);
 
 // Interface between the debugger and the VS runtime 
 export class WARDuinoDebugSession extends LoggingDebugSession {
     private sourceMap?: SourceMap = undefined;
-    private program: string = "";
+    private program: string = '';
     private tmpdir: string;
     private THREAD_ID: number = 42;
     private testCurrentLine = 0;
     private debugBridge?: DebugBridge;
+    private proxyBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
     private reporter: ErrorReporter;
     private proxyCallsProvider?: ProxyCallsProvider;
@@ -52,10 +52,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private compiler?: CompileBridge;
 
     public constructor(notifier: vscode.StatusBarItem, reporter: ErrorReporter) {
-        super("debug_log.txt");
+        super('debug_log.txt');
         this.notifier = notifier;
         this.reporter = reporter;
-        this.tmpdir = "/tmp/";
+        this.tmpdir = '/tmp/';
     }
 
     protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
@@ -76,7 +76,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         // make VS Code support completion in REPL
         response.body.supportsCompletionsRequest = false;
-        response.body.completionTriggerCharacters = [".", "["];
+        response.body.completionTriggerCharacters = ['.', '['];
 
         // make VS Code send cancel request
         response.body.supportsCancelRequest = false;
@@ -118,7 +118,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.program = args.program;
 
         const eventsProvider = new EventsProvider();
-        vscode.window.registerTreeDataProvider("events", eventsProvider);
+        vscode.window.registerTreeDataProvider('events', eventsProvider);
 
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
@@ -131,14 +131,14 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             });
         });
 
-        this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
+        this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get('warduino.WABToolChainPath') ?? '');
 
         let compileResult: CompileResult | void = await this.compiler.compile().catch((reason) => this.handleCompileError(reason));
         if (compileResult) {
             this.sourceMap = compileResult.sourceMap;
         }
         let that = this;
-        const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
+        const debugmode: string = vscode.workspace.getConfiguration().get('warduino.DebugMode') ?? 'emulated';
         this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.sourceMap, eventsProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
@@ -156,10 +156,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         notifyError(): void {
                         },
                         connected(): void {
-                            (that.debugBridge as WOODDebugBridge).pushSession(woodState).
-                                then(v => {
-                                    (that.debugBridge as WOODDebugBridge).specifyProxyCalls();
-                                }).catch(console.error);
+                            (that.debugBridge as WOODDebugBridge).pushSession(woodState).then(v => {
+                                (that.debugBridge as WOODDebugBridge).specifyProxyCalls();
+                            }).catch(console.error);
                         },
                         startMultiverseDebugging(woodState: WOODState) {
                         },
@@ -213,7 +212,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.debugBridge = next;
         if (this.proxyCallsProvider === undefined) {
             this.proxyCallsProvider = new ProxyCallsProvider(next);
-            vscode.window.registerTreeDataProvider("proxies", this.proxyCallsProvider);
+            vscode.window.registerTreeDataProvider('proxies', this.proxyCallsProvider);
         } else {
             this.proxyCallsProvider?.setDebugBridge(next);
         }
@@ -245,22 +244,24 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     public updateModule() {
-        this.uploadHelper().then(r => { console.log(r); }).catch(e => {
+        this.uploadHelper().then(r => {
+            console.log(r);
+        }).catch(e => {
             console.error(`upload went wrong ${e}`);
         });
     }
 
     private async uploadHelper(): Promise<string> {
         let res: void | CompileResult = await this.compiler?.compile().catch((reason) => this.handleCompileError(reason));
-        if(!!res){
+        if (!!res) {
             this.sourceMap = res.sourceMap;
             this.debugBridge?.updateSourceMapper(res.sourceMap);
-            if(!!res.wasm){
+            if (!!res.wasm) {
                 this.debugBridge?.updateModule(res.wasm);
-                return "sent upload module";
+                return 'sent upload module';
             }
         }
-        return "failed to upload module";
+        return 'failed to upload module';
     }
 
     public startMultiverseDebugging() {
@@ -303,7 +304,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected setInstructionBreakpointsRequest(response: DebugProtocol.SetInstructionBreakpointsResponse, args: DebugProtocol.SetInstructionBreakpointsArguments) {
-        console.log("setInstructionBreakpointsRequest");
+        console.log('setInstructionBreakpointsRequest');
         response.body = {
             breakpoints: []
         };
@@ -312,7 +313,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
         response.body = {
-            threads: [new Thread(this.THREAD_ID, "WARDuino Debug Thread")]
+            threads: [new Thread(this.THREAD_ID, 'WARDuino Debug Thread')]
         };
         this.sendResponse(response);
     }
@@ -324,7 +325,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private getLineNumberForAddress(address: number): number {
         let line = 0;
         this.sourceMap?.lineInfoPairs.forEach((info) => {
-            const candidate = parseInt("0x" + info.lineAddress);
+            const candidate = parseInt('0x' + info.lineAddress);
             if (Math.abs(address - candidate) === 0) {
                 line = info.lineInfo.line - 1;
             }
@@ -335,27 +336,27 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
         response.body = {
             scopes: [
-                new Scope("Locals", this.variableHandles.create('locals'), false),
-                new Scope("Globals", this.variableHandles.create('globals'), true)
+                new Scope('Locals', this.variableHandles.create('locals'), false),
+                new Scope('Globals', this.variableHandles.create('globals'), true)
             ]
         };
         this.sendResponse(response);
     }
 
     protected variablesRequest(response: DebugProtocol.VariablesResponse,
-                               args: DebugProtocol.VariablesArguments,
-                               request?: DebugProtocol.Request) {
+        args: DebugProtocol.VariablesArguments,
+        request?: DebugProtocol.Request) {
         if (this.sourceMap === undefined) {
             return;
         }
 
         const v = this.variableHandles.get(args.variablesReference);
-        if (v === "locals") {
+        if (v === 'locals') {
             let locals: VariableInfo[] = this.debugBridge === undefined ? [] : this.debugBridge.getLocals(this.debugBridge.getCurrentFunctionIndex());
             response.body = {
                 variables: Array.from(locals, (local) => {
                     return {
-                        name: (local.name === ""
+                        name: (local.name === ''
                             ? local.index.toString()
                             : local.name),
                         value: local.value.toString(), variablesReference: 0
@@ -374,12 +375,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse,
-                                args: DebugProtocol.StackTraceArguments): void {
+        args: DebugProtocol.StackTraceArguments): void {
         const pc = this.debugBridge!.getProgramCounter();
         this.setLineNumberFromPC(pc);
 
         const bottom: DebugProtocol.StackFrame = new StackFrame(0,
-            "module",
+            'module',
             this.createSource(this.program),
             1);
 
@@ -389,7 +390,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             // @ts-ignore
             const functionInfo = this.sourceMap.functionInfos[frame.index];
             let start = (index === 0) ? this.testCurrentLine : this.getLineNumberForAddress(callstack[index - 1].returnAddress);
-            let name = (functionInfo === undefined) ? "<anonymous>" : functionInfo.name;
+            let name = (functionInfo === undefined) ? '<anonymous>' : functionInfo.name;
 
             return new StackFrame(index, name,
                 this.createSource(this.program), // TODO
@@ -413,19 +414,19 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-        console.log("nextRequest");
+        console.log('nextRequest');
         this.sendResponse(response);
         this.debugBridge?.step();
     }
 
     protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments, request?: DebugProtocol.Request): void {
-        console.log("backRequest");
+        console.log('backRequest');
         this.sendResponse(response);
         this.debugBridge?.stepBack();
     }
 
     override shutdown(): void {
-        console.log("Shutting the debugger down");
+        console.log('Shutting the debugger down');
         this.debugBridge?.disconnect();
         if (this.tmpdir) {
             fs.rm(this.tmpdir, {recursive: true}, err => {

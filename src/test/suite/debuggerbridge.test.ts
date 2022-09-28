@@ -1,15 +1,15 @@
-import "mocha";
-import {WOODState} from "../../State/WOODState";
-import {assert} from "chai";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import {after, before, beforeEach} from "mocha";
-import {EmulatedDebugBridge} from "../../DebugBridges/EmulatedDebugBridge";
-import {WASMCompilerBridge} from "../../CompilerBridges/WASMCompilerBridge";
-import {RunTimeTarget} from "../../DebugBridges/RunTimeTarget";
-import {WOODDebugBridge} from "../../DebugBridges/WOODDebugBridge";
-import {DebugBridgeListener} from "../../DebugBridges/DebugBridgeListener";
+import 'mocha';
+import {WOODState} from '../../State/WOODState';
+import {assert} from 'chai';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import {after, before, beforeEach} from 'mocha';
+import {EmulatedDebugBridge} from '../../DebugBridges/EmulatedDebugBridge';
+import {WASMCompilerBridge} from '../../CompilerBridges/WASMCompilerBridge';
+import {RunTimeTarget} from '../../DebugBridges/RunTimeTarget';
+import {WOODDebugBridge} from '../../DebugBridges/WOODDebugBridge';
+import {DebugBridgeListener} from '../../DebugBridges/DebugBridgeListener';
 import ErrnoException = NodeJS.ErrnoException;
 
 const runPath = process.cwd();
@@ -36,38 +36,38 @@ const listener: DebugBridgeListener = {
     }
 };
 
-let tmpdir: string = "";
+let tmpdir: string = '';
 let bridge: EmulatedDebugBridge;
 
 async function init(target: RunTimeTarget) {
     await new Promise(resolve => {
         fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err: ErrnoException | null, dir: string) => {
-                if (err === null) {
-                    tmpdir = dir;
-                    switch (target) {
-                        case RunTimeTarget.wood:
-                            bridge = new WOODDebugBridge(
-                                undefined,
-                                undefined,
-                                tmpdir,
-                                listener,
-                                warduinoSDK
-                            );
-                            break;
-                        case RunTimeTarget.emulator:
-                        default:
-                            bridge = new EmulatedDebugBridge(
-                                undefined,
-                                undefined,
-                                tmpdir,
-                                listener,
-                                warduinoSDK
-                            );
-                            break;
-                    }
-                    resolve(null);
+            if (err === null) {
+                tmpdir = dir;
+                switch (target) {
+                case RunTimeTarget.wood:
+                    bridge = new WOODDebugBridge(
+                        undefined,
+                        undefined,
+                        tmpdir,
+                        listener,
+                        warduinoSDK
+                    );
+                    break;
+                case RunTimeTarget.emulator:
+                default:
+                    bridge = new EmulatedDebugBridge(
+                        undefined,
+                        undefined,
+                        tmpdir,
+                        listener,
+                        warduinoSDK
+                    );
+                    break;
                 }
+                resolve(null);
             }
+        }
         );
     });
 
@@ -107,55 +107,55 @@ function isValidJSON(text: string): boolean {
 }
 
 function receivingDumpData(json: string, text: string): boolean {
-    return json.length > 0 || text.includes("{\"pc\":");
+    return json.length > 0 || text.includes('{"pc":');
 }
 
-describe("Debug API Test Suite (emulated)", () => {
+describe('Debug API Test Suite (emulated)', () => {
     before(async function () {
         await init(RunTimeTarget.emulator);
         await bridge.connect();
     });
 
     beforeEach(() => {
-        bridge.client?.removeAllListeners("data");
+        bridge.client?.removeAllListeners('data');
     });
 
-    it("Test `pause` command", function (done) {
-        bridge.client?.on("data", (data: Buffer) => {
+    it('Test `pause` command', function (done) {
+        bridge.client?.on('data', (data: Buffer) => {
             const text = data.toString();
             console.log(text);
-            if (text.includes("PAUSE!")) {
+            if (text.includes('PAUSE!')) {
                 done();
             }
         });
         bridge.pause();
     });
 
-    it("Test `step` command", function (done) {
-        bridge.client?.on("data", (data: Buffer) => {
+    it('Test `step` command', function (done) {
+        bridge.client?.on('data', (data: Buffer) => {
             const text = data.toString();
             console.log(text);
-            if (text.includes("STEP!")) {
+            if (text.includes('STEP!')) {
                 done();
             }
         });
         bridge.step();
     });
 
-    it("Test `dump` command", function (done) {
+    it('Test `dump` command', function (done) {
         this.timeout(3000);
-        let json = "";
+        let json = '';
 
-        bridge.client?.on("data", (data: Buffer) => {
+        bridge.client?.on('data', (data: Buffer) => {
             const text = data.toString();
             console.log(text);
             if (receivingDumpData(json, text)) {
-                let lines = text.split("\n");
+                let lines = text.split('\n');
                 for (let i = 0; i < lines.length; i++) {
                     if (receivingDumpData(json, lines[i])) {
                         json += lines[i].trimEnd();
                         if (isValidJSON(json)) {
-                            json = "";
+                            json = '';
                             done();
                             break;
                         }
@@ -166,11 +166,11 @@ describe("Debug API Test Suite (emulated)", () => {
         bridge.refresh();
     });
 
-    it("Test `run` command", function (done) {
-        bridge.client?.on("data", (data: Buffer) => {
+    it('Test `run` command', function (done) {
+        bridge.client?.on('data', (data: Buffer) => {
             const text = data.toString();
             console.log(text);
-            if (text.includes("GO!")) {
+            if (text.includes('GO!')) {
                 done();
             }
         });

@@ -36,11 +36,11 @@ function installStatusMenuBar(context: vscode.ExtensionContext): vscode.StatusBa
 }
 
 function initialiseStatusBarItem(warduinoStatusBarItem: vscode.StatusBarItem) {
-    warduinoStatusBarItem.tooltip = "Information about the status of the WARDuino debugger";
-    warduinoStatusBarItem.text = "Plugin loaded";
+    warduinoStatusBarItem.tooltip = 'Information about the status of the WARDuino debugger';
+    warduinoStatusBarItem.text = 'Plugin loaded';
     warduinoStatusBarItem.show();
 }
 
 export function deactivate() {
-    console.log("Deactivated ... ");
+    console.log('Deactivated ... ');
 }

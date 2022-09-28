@@ -1,6 +1,6 @@
-import {EventItem} from "../Views/EventsProvider";
-import {Frame} from "../Parsers/Frame";
-import {VariableInfo} from "./VariableInfo";
+import {EventItem} from '../Views/EventsProvider';
+import {Frame} from '../Parsers/Frame';
+import {VariableInfo} from './VariableInfo';
 
 function hash(s: string) {
     let h: number = 0;
@@ -19,7 +19,7 @@ export class RuntimeState {
     public events: EventItem[] = [];
 
     constructor(source?: string) {
-        this.id = hash(source ?? "");
+        this.id = hash(source ?? '');
     }
 
     public getId(): number {

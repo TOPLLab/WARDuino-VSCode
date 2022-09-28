@@ -1,13 +1,13 @@
-import {exec, ExecException} from "child_process";
-import * as parseUtils from "../Parsers/ParseUtils";
-import {CompileTimeError} from "./CompileTimeError";
-import {LineInfo} from "../State/LineInfo";
-import {LineInfoPairs} from "../State/LineInfoPairs";
-import {CompileBridge} from "./CompileBridge";
-import {SourceMap} from "../State/SourceMap";
-import {FunctionInfo} from "../State/FunctionInfo";
-import {VariableInfo} from "../State/VariableInfo";
-import { readFileSync } from "fs";
+import {exec, ExecException} from 'child_process';
+import * as parseUtils from '../Parsers/ParseUtils';
+import {CompileTimeError} from './CompileTimeError';
+import {LineInfo} from '../State/LineInfo';
+import {LineInfoPairs} from '../State/LineInfoPairs';
+import {CompileBridge} from './CompileBridge';
+import {SourceMap} from '../State/SourceMap';
+import {FunctionInfo} from '../State/FunctionInfo';
+import {VariableInfo} from '../State/VariableInfo';
+import { readFileSync } from 'fs';
 
 function checkCompileTimeError(errorMessage: string) {
     let regexpr = /:(?<line>(\d+)):(?<column>(\d+)): error: (?<message>(.*))/;
