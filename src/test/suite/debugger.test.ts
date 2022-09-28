@@ -133,8 +133,19 @@ const pauseTest: TestSuite = {
     title: 'Test PAUSE',
     program: `${examples}blink.wasm`,
     tests: [{
-        title: 'Execution is stopped',
+        title: 'Send Pause command',
         instruction: InterruptTypes.interruptPAUSE,
+        expectResponse: false,
+        expected: []
+    }, {
+        title: 'Get state of VM',
+        instruction: InterruptTypes.interruptDUMP,
+        expected: [
+            {'pc': {kind: 'description', value: Description.defined} as Expected<string>}
+        ]
+    }, {
+        title: 'Execution is stopped',
+        instruction: InterruptTypes.interruptDUMP,
         expected: [
             {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
             {'pc': {kind: 'behaviour', value: Behaviour.unchanged} as Expected<string>}
