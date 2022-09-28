@@ -1,6 +1,6 @@
-import {CompileBridge} from "./CompileBridge";
-import {exec, ExecException} from "child_process";
-import {SourceMap} from "../State/SourceMap";
+import {CompileBridge} from './CompileBridge';
+import {exec, ExecException} from 'child_process';
+import {SourceMap} from '../State/SourceMap';
 
 export class AssemblyScriptCompilerBridge implements CompileBridge {
     sourceFilePath: String;
@@ -22,7 +22,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
             }
 
             let cp = exec(command, handleCompilerStreams);
-            sourceMap = AssemblyScriptCompilerBridge.makeSourceMap("/tmp/warduino/upload.wasm.map"); // TODO
+            sourceMap = AssemblyScriptCompilerBridge.makeSourceMap('/tmp/warduino/upload.wasm.map'); // TODO
 
             cp.on('close', (code) => {
                 if (sourceMap) {
@@ -33,7 +33,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
     }
 
     private compileCommand(): string {
-        return "asc --sourceMap --converge --target debug --use abort= --binaryFile=\"/tmp/warduino/upload.wasm\"" + this.sourceFilePath;  // TODO
+        return 'asc --sourceMap --converge --target debug --use abort= --binaryFile="/tmp/warduino/upload.wasm"' + this.sourceFilePath;  // TODO
     }
 
     private static makeSourceMap(sourceMapFile: String): SourceMap {

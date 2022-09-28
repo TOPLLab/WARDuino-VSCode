@@ -1,10 +1,10 @@
 import 'mocha';
 import {WASMCompilerBridge} from '../../CompilerBridges/WASMCompilerBridge';
 import {expect} from 'chai';
-import {before} from "mocha";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import {before} from 'mocha';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import ErrnoException = NodeJS.ErrnoException;
 
 const runPath = process.cwd();
@@ -12,7 +12,7 @@ const wabtSDK = `${runPath}/WABT/build`;
 const wasmDirectoryPath = `${runPath}/src/test/suite/examples`;
 
 describe('WASM Compiler Bridge Test Suite', () => {
-    let tmpdir: string = "";
+    let tmpdir: string = '';
 
     before(async function () {
         await new Promise(resolve => {
@@ -36,10 +36,10 @@ describe('WASM Compiler Bridge Test Suite', () => {
     it('TestCompileBridgeSyntaxError', async () => {
         let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_syntax_error.wast`, tmpdir, wabtSDK);
         let result = await compilerBridge.compile().catch((reason) => {
-                expect(reason.lineInfo.line).to.equal(1);
-                expect(reason.lineInfo.column).to.equal(2);
-                expect(reason.message).to.contain('error: unexpected token "modul"');
-            }
+            expect(reason.lineInfo.line).to.equal(1);
+            expect(reason.lineInfo.column).to.equal(2);
+            expect(reason.message).to.contain('error: unexpected token "modul"');
+        }
         );
         expect(result).to.be.undefined;
     });

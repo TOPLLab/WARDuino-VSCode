@@ -101,27 +101,27 @@ export class Describer {
 
                             if (entry.kind === 'description') {
                                 switch (entry.value) {
-                                    case Description.defined:
-                                        expect(actual[field]).to.exist;
-                                        break;
-                                    case Description.notDefined:
-                                        expect(actual[field]).to.be.undefined;
-                                        break;
+                                case Description.defined:
+                                    expect(actual[field]).to.exist;
+                                    break;
+                                case Description.notDefined:
+                                    expect(actual[field]).to.be.undefined;
+                                    break;
                                 }
                             }
 
                             if (entry.kind === 'comparison') {
                                 if (previous) {
                                     switch (entry.value) {
-                                        case Comparison.lessThan:
-                                            expect(actual[field]).to.be.lessThan(previous[field]);
-                                            break;
-                                        case Comparison.equal:
-                                            expect(actual[field]).to.be.equal(previous[field]);
-                                            break;
-                                        case Comparison.greaterThan:
-                                            expect(actual[field]).to.be.greaterThan(previous[field]);
-                                            break;
+                                    case Comparison.lessThan:
+                                        expect(actual[field]).to.be.lessThan(previous[field]);
+                                        break;
+                                    case Comparison.equal:
+                                        expect(actual[field]).to.be.equal(previous[field]);
+                                        break;
+                                    case Comparison.greaterThan:
+                                        expect(actual[field]).to.be.greaterThan(previous[field]);
+                                        break;
                                     }
                                 }
                             }
@@ -129,18 +129,18 @@ export class Describer {
                             if (entry.kind === 'behaviour') {
                                 const after: any = await sendInstruction(instance.interface, undefined);
                                 switch (entry.value) {
-                                    case Behaviour.unchanged:
-                                        expect(after[field]).to.be.equal(actual[field]);
-                                        break;
-                                    case Behaviour.changed:
-                                        expect(after[field]).to.not.equal(actual[field]);
-                                        break;
-                                    case Behaviour.increasing:
-                                        expect(after[field]).to.be.greaterThan(actual[field]);
-                                        break;
-                                    case Behaviour.decreasing:
-                                        expect(after[field]).to.be.lessThan(actual[field]);
-                                        break;
+                                case Behaviour.unchanged:
+                                    expect(after[field]).to.be.equal(actual[field]);
+                                    break;
+                                case Behaviour.changed:
+                                    expect(after[field]).to.not.equal(actual[field]);
+                                    break;
+                                case Behaviour.increasing:
+                                    expect(after[field]).to.be.greaterThan(actual[field]);
+                                    break;
+                                case Behaviour.decreasing:
+                                    expect(after[field]).to.be.lessThan(actual[field]);
+                                    break;
                                 }
                             }
                         }

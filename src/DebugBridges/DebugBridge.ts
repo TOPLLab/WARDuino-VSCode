@@ -1,10 +1,10 @@
-import {VariableInfo} from "../State/VariableInfo";
-import {Frame} from "../Parsers/Frame";
-import {WOODState} from "../State/WOODState";
-import {EventItem} from "../Views/EventsProvider";
-import {ProxyCallItem} from "../Views/ProxyCallsProvider";
-import {RuntimeState} from "../State/RuntimeState";
-import {Breakpoint} from "../State/Breakpoint";
+import {VariableInfo} from '../State/VariableInfo';
+import {Frame} from '../Parsers/Frame';
+import {WOODState} from '../State/WOODState';
+import {EventItem} from '../Views/EventsProvider';
+import {ProxyCallItem} from '../Views/ProxyCallsProvider';
+import {RuntimeState} from '../State/RuntimeState';
+import {Breakpoint} from '../State/Breakpoint';
 
 export interface DebugBridge {
     setStartAddress(startAddress: number): void;

@@ -1,28 +1,28 @@
-import {DebugBridge} from "./DebugBridge";
-import {Frame} from "../Parsers/Frame";
-import {VariableInfo} from "../State/VariableInfo";
-import {SourceMap} from "../State/SourceMap";
-import {DebugBridgeListener} from "./DebugBridgeListener";
-import {WOODState} from "../State/WOODState";
-import {InterruptTypes} from "./InterruptTypes";
-import {Writable} from "stream";
-import {EventItem, EventsProvider} from "../Views/EventsProvider";
-import {FunctionInfo} from "../State/FunctionInfo";
-import {ProxyCallItem} from "../Views/ProxyCallsProvider";
-import {RuntimeState} from "../State/RuntimeState";
-import {Breakpoint, UniqueSet} from "../State/Breakpoint";
+import {DebugBridge} from './DebugBridge';
+import {Frame} from '../Parsers/Frame';
+import {VariableInfo} from '../State/VariableInfo';
+import {SourceMap} from '../State/SourceMap';
+import {DebugBridgeListener} from './DebugBridgeListener';
+import {WOODState} from '../State/WOODState';
+import {InterruptTypes} from './InterruptTypes';
+import {Writable} from 'stream';
+import {EventItem, EventsProvider} from '../Views/EventsProvider';
+import {FunctionInfo} from '../State/FunctionInfo';
+import {ProxyCallItem} from '../Views/ProxyCallsProvider';
+import {RuntimeState} from '../State/RuntimeState';
+import {Breakpoint, UniqueSet} from '../State/Breakpoint';
 
 export class Messages {
-    public static readonly compiling: string = "Compiling the code";
-    public static readonly compiled: string = "Compiled Code";
-    public static readonly reset: string = "Press reset button";
-    public static readonly transfering: string = "Transfering state";
-    public static readonly uploading: string = "Uploading to board";
-    public static readonly connecting: string = "Connecting to board";
-    public static readonly connected: string = "Connected to board";
-    public static readonly disconnected: string = "Disconnected board";
-    public static readonly initialisationFailure: string = "Failed to initialise";
-    public static readonly connectionFailure: string = "Failed to connect device";
+    public static readonly compiling: string = 'Compiling the code';
+    public static readonly compiled: string = 'Compiled Code';
+    public static readonly reset: string = 'Press reset button';
+    public static readonly transfering: string = 'Transfering state';
+    public static readonly uploading: string = 'Uploading to board';
+    public static readonly connecting: string = 'Connecting to board';
+    public static readonly connected: string = 'Connected to board';
+    public static readonly disconnected: string = 'Disconnected board';
+    public static readonly initialisationFailure: string = 'Failed to initialise';
+    public static readonly connectionFailure: string = 'Failed to connect device';
 }
 
 function convertToLEB128(a: number): string { // TODO can only handle 32 bit
@@ -35,10 +35,10 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
             (a === 0 && (byte_ & 0x40) === 0) ||
             (a === -1 && (byte_ & 0x40) !== 0)
         ) {
-            result.push(byte_.toString(16).padStart(2, "0"));
-            return result.join("").toUpperCase();
+            result.push(byte_.toString(16).padStart(2, '0'));
+            return result.join('').toUpperCase();
         }
-        result.push((byte_ | 0x80).toString(16).padStart(2, "0"));
+        result.push((byte_ | 0x80).toString(16).padStart(2, '0'));
     }
 }
 
@@ -101,9 +101,9 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         } else {
             // Normal step forward
             this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
-                console.log("Plugin: Step");
+                console.log('Plugin: Step');
                 if (err) {
-                    return console.log("Error on write: ", err.message);
+                    return console.log('Error on write: ', err.message);
                 }
             });
         }
@@ -137,7 +137,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     public setBreakPoints(lines: number[]): Breakpoint[] {
         if (this.sourceMap === undefined) {
-            console.log("setBreakPointsRequest: no source map");
+            console.log('setBreakPointsRequest: no source map');
             return [];
         }
 
@@ -165,7 +165,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     private lineToAddress(line: number): number {
         const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === line);
-        return parseInt("0x" + lineInfoPair?.lineAddress ?? "");
+        return parseInt('0x' + lineInfoPair?.lineAddress ?? '');
     }
 
     abstract setStartAddress(startAddress: number): void;
@@ -176,10 +176,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             try {
                 let command = this.getVariableCommand(name, value);
                 this.client?.write(command, err => {
-                    resolve("Interrupt send.");
+                    resolve('Interrupt send.');
                 });
             } catch {
-                reject("Local not found.");
+                reject('Local not found.');
             }
         });
     }
@@ -211,7 +211,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         if (local) {
             return `21${convertToLEB128(local.index)}${convertToLEB128(value)} \n`;
         } else {
-            throw new Error("Failed to set variables.");
+            throw new Error('Failed to set variables.');
         }
     }
 
@@ -237,7 +237,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         } else {
             this.selectedProxies.delete(proxy);
         }
-        console.warn("Only WOOD Emulator Debug Bridge needs proxies");
+        console.warn('Only WOOD Emulator Debug Bridge needs proxies');
     }
 
     private inHistory() {
@@ -289,7 +289,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
         if (fidx >= this.sourceMap.functionInfos.length) {
             console.log(`warning setting locals for new function with index: ${fidx}`);
-            this.sourceMap.functionInfos[fidx] = {index: fidx, name: "<anonymous>", locals: []};
+            this.sourceMap.functionInfos[fidx] = {index: fidx, name: '<anonymous>', locals: []};
         }
         this.sourceMap.functionInfos[fidx].locals = locals;
     }

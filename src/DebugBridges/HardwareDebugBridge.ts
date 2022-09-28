@@ -1,12 +1,12 @@
-import {AbstractDebugBridge, Messages} from "./AbstractDebugBridge";
-import {DebugBridgeListener} from "./DebugBridgeListener";
+import {AbstractDebugBridge, Messages} from './AbstractDebugBridge';
+import {DebugBridgeListener} from './DebugBridgeListener';
 import {ReadlineParser, SerialPort} from 'serialport';
-import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {InterruptTypes} from "./InterruptTypes";
-import {exec, spawn} from "child_process";
-import {SourceMap} from "../State/SourceMap";
-import {WOODState} from "../State/WOODState";
-import {EventsProvider} from "../Views/EventsProvider";
+import {DebugInfoParser} from '../Parsers/DebugInfoParser';
+import {InterruptTypes} from './InterruptTypes';
+import {exec, spawn} from 'child_process';
+import {SourceMap} from '../State/SourceMap';
+import {WOODState} from '../State/WOODState';
+import {EventsProvider} from '../Views/EventsProvider';
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
@@ -19,12 +19,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     private woodDumpDetected: boolean = false;
 
     constructor(sourceMap: SourceMap | void,
-                eventsProvider: EventsProvider | void,
-                tmpdir: string,
-                listener: DebugBridgeListener,
-                portAddress: string,
-                fqbn: string,
-                warduinoSDK: string) {
+        eventsProvider: EventsProvider | void,
+        tmpdir: string,
+        listener: DebugBridgeListener,
+        portAddress: string,
+        fqbn: string,
+        warduinoSDK: string) {
         super(sourceMap, eventsProvider, listener);
 
         this.sourceMap = sourceMap;
@@ -70,7 +70,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     protected installInputStreamListener() {
         const parser = new ReadlineParser();
         this.client?.pipe(parser);
-        parser.on("data", (line: string) => {
+        parser.on('data', (line: string) => {
             this.handleLine(line);
         });
     }
@@ -89,18 +89,18 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             this.woodState.callbacks = line;
             this.pushSession();
         }
-        this.woodDumpDetected = line.includes("DUMP!");
+        this.woodDumpDetected = line.includes('DUMP!');
         console.log(`hardware: ${line}`);
         this.parser.parse(this, line);
 
-        this.woodDumpDetected = line.includes("DUMP!");
+        this.woodDumpDetected = line.includes('DUMP!');
         console.log(`hardware: ${line}`);
 
         this.parser.parse(this, line);
     }
 
     public disconnect(): void {
-        console.error("CLOSED!"), this.client;
+        console.error('CLOSED!'), this.client;
         this.client?.close((e) => {
             console.log(e);
         });
@@ -108,21 +108,21 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        let lastStdOut = "";
+        let lastStdOut = '';
         this.listener.notifyProgress(Messages.reset);
 
         const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, {cwd: path}, (err, stdout, stderr) => {
-                console.error(err);
-                lastStdOut = stdout + stderr;
-                this.listener.notifyProgress(Messages.initialisationFailure);
-            }
+            console.error(err);
+            lastStdOut = stdout + stderr;
+            this.listener.notifyProgress(Messages.initialisationFailure);
+        }
         );
 
         this.listener.notifyProgress(Messages.uploading);
 
-        upload.on("close", (code) => {
+        upload.on('close', (code) => {
             if (code === 0) {
-                resolver(true)
+                resolver(true);
             } else {
                 reject(`Could not flash ended with ${code} \n${lastStdOut}`);
             }
@@ -130,21 +130,21 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        const compile = spawn("make", ["compile", `FQBN=${this.fqbn}`], {
+        const compile = spawn('make', ['compile', `FQBN=${this.fqbn}`], {
             cwd: path
         });
 
-        compile.stdout.on("data", data => {
+        compile.stdout.on('data', data => {
             console.log(data.toString());
         });
 
-        compile.stderr.on("data", (data: string) => {
+        compile.stderr.on('data', (data: string) => {
             console.error(`stderr: ${data}`);
             this.listener.notifyProgress(Messages.initialisationFailure);
             reject(data);
         });
 
-        compile.on("close", (code) => {
+        compile.on('close', (code) => {
             console.log(`Arduino compilation exited with code ${code}`);
             if (code === 0) {
                 this.listener.notifyProgress(Messages.compiled);
@@ -158,12 +158,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            const sdkpath: string = this.sdk + "/platforms/Arduino/";
+            const sdkpath: string = this.sdk + '/platforms/Arduino/';
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
-            cp.on("error", err => {
-                reject("Could not store upload file to sdk path.");
+            cp.on('error', err => {
+                reject('Could not store upload file to sdk path.');
             });
-            cp.on("close", (code) => {
+            cp.on('close', (code) => {
                 this.compileArduino(sdkpath, resolve, reject);
             });
         });
@@ -179,9 +179,9 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     pullSession(): void {
         this.listener.notifyProgress(Messages.transfering);
         this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
-            console.log("Plugin: WOOD Dump");
+            console.log('Plugin: WOOD Dump');
             if (err) {
-                return console.log("Error on write: ", err.message);
+                return console.log('Error on write: ', err.message);
             }
         });
     }
@@ -190,7 +190,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         if (this.woodState === undefined) {
             return;
         }
-        console.log("Plugin: transfer state received.");
+        console.log('Plugin: transfer state received.');
         this.sendInterrupt(InterruptTypes.interruptProxify);
         this.listener.startMultiverseDebugging(this.woodState);
     }
@@ -200,10 +200,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     refresh(): void {
-        console.log("Plugin: Refreshing");
+        console.log('Plugin: Refreshing');
         this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {
             if (err) {
-                return console.log("Error on write: ", err.message);
+                return console.log('Error on write: ', err.message);
             }
         });
     }

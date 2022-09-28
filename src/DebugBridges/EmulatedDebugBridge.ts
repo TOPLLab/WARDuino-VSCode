@@ -2,11 +2,11 @@ import {ChildProcess, spawn} from 'child_process';
 import * as net from 'net';
 import {DebugBridgeListener} from './DebugBridgeListener';
 import {InterruptTypes} from './InterruptTypes';
-import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {SourceMap} from "../State/SourceMap";
-import {AbstractDebugBridge} from "./AbstractDebugBridge";
-import {WOODState} from "../State/WOODState";
-import {EventsProvider} from "../Views/EventsProvider";
+import {DebugInfoParser} from '../Parsers/DebugInfoParser';
+import {SourceMap} from '../State/SourceMap';
+import {AbstractDebugBridge} from './AbstractDebugBridge';
+import {WOODState} from '../State/WOODState';
+import {EventsProvider} from '../Views/EventsProvider';
 import {Readable} from 'stream';
 import {ReadlineParser} from 'serialport';
 
@@ -18,10 +18,10 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     protected readonly sdk: string;
     private cp?: ChildProcess;
     private parser: DebugInfoParser;
-    private buffer: string = "";
+    private buffer: string = '';
 
     constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
-                warduinoSDK: string) {
+        warduinoSDK: string) {
         super(sourceMap, eventsProvider, listener);
 
         this.sdk = warduinoSDK;
@@ -31,7 +31,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     upload(): void {
-        throw new Error("Method not implemented.");
+        throw new Error('Method not implemented.');
     }
 
     setStartAddress(startAddress: number) {
@@ -56,40 +56,40 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
             if (this.client === undefined) {
                 this.client = new net.Socket();
                 this.client.connect(address, () => {
-                    this.listener.notifyProgress("Connected to socket");
+                    this.listener.notifyProgress('Connected to socket');
                     resolve(`${address.host}:${address.port}`);
                 });
 
-                this.client.on("error", err => {
-                        this.listener.notifyError("Lost connection to the board");
-                        console.error(err);
-                        reject(err);
-                    }
+                this.client.on('error', err => {
+                    this.listener.notifyError('Lost connection to the board');
+                    console.error(err);
+                    reject(err);
+                }
                 );
 
-                this.client.on("data", data => {
-                        data.toString().split("\n").forEach((line) => {
-                            console.log(`emulator: ${line}`);
+                this.client.on('data', data => {
+                    data.toString().split('\n').forEach((line) => {
+                        console.log(`emulator: ${line}`);
 
-                            if (line.startsWith("Interrupt:")) {
-                                this.buffer = line;
-                            } else if (this.buffer.length > 0) {
-                                this.buffer += line;
-                            } else if (line.startsWith("{")) {
-                                this.buffer = line;
-                            } else {
-                                that.parser.parse(that, line);
-                                return;
-                            }
+                        if (line.startsWith('Interrupt:')) {
+                            this.buffer = line;
+                        } else if (this.buffer.length > 0) {
+                            this.buffer += line;
+                        } else if (line.startsWith('{')) {
+                            this.buffer = line;
+                        } else {
+                            that.parser.parse(that, line);
+                            return;
+                        }
 
-                            try {
-                                that.parser.parse(that, this.buffer);
-                                this.buffer = "";
-                            } catch (e) {
-                                return;
-                            }
-                        });
-                    }
+                        try {
+                            that.parser.parse(that, this.buffer);
+                            this.buffer = '';
+                        } catch (e) {
+                            return;
+                        }
+                    });
+                }
                 );
             } else {
                 resolve(`${address.host}:${address.port}`);
@@ -106,7 +106,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     public pushSession(woodState: WOODState) {
-        throw new Error("Method not implemented.");
+        throw new Error('Method not implemented.');
     }
 
     private executeCommand(command: InterruptTypes) {
@@ -129,7 +129,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
                 outParser.on('data', (data) => {  // Print debug and trace information
                     console.log(`stdout: ${data}`);
-                    if (data.includes("Listening")) {
+                    if (data.includes('Listening')) {
                         this.initClient().then(resolve).catch(reject);
                     }
                 });
@@ -149,13 +149,13 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
                 });
 
             } else {
-                reject("No stdout of stderr on emulator");
+                reject('No stdout of stderr on emulator');
             }
         });
     }
 
     public disconnect(): void {
-        console.error("Disconnected emulator");
+        console.error('Disconnected emulator');
         this.cp?.kill();
         this.client?.destroy();
     }
@@ -163,7 +163,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
         return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`, '--socket', `${EMULATOR_PORT}`]);
-        //return spawn(`echo`, ['"Listening"']);
     }
 
 }
