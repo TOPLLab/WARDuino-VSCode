@@ -1,11 +1,11 @@
-import {ChildProcess, spawn} from 'child_process';
-import * as net from 'net';
+import {ChildProcess} from 'child_process';
 import {InterruptTypes} from '../DebugBridges/InterruptTypes';
-import {Readable} from 'stream';
-import {ReadlineParser} from 'serialport';
+import {Duplex} from 'stream';
 import {assert, expect} from 'chai';
 import 'mocha';
 import {after} from 'mocha';
+
+const TIMEOUT = 2000;
 
 export enum Description {
     /** required properties */
@@ -57,8 +57,19 @@ export interface Step {
 
 export interface Expectation {
     [key: string]: Expected<any>;
+}
 
-    // ...
+export interface Instance {
+    process: ChildProcess;
+    interface: Duplex;
+}
+
+export abstract class ProcessBridge {
+    protected abstract readonly interpreter: string;
+
+    abstract connect(program: string, args: string[]): Promise<Instance>;
+
+    abstract sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void>;
 }
 
 /** A series of tests to perform on a single instance of the vm */
@@ -67,6 +78,9 @@ export interface TestDescription {
 
     /** File to load into the interpreter */
     program: string;
+
+    /** A communication bridge to talk to the vm */
+    bridge: ProcessBridge;
 
     /** Initial breakpoints */
     initialBreakpoints?: Breakpoint[];
@@ -79,29 +93,20 @@ export interface TestDescription {
     skip?: boolean;
 }
 
-export interface WARDuinoInstance {
-    process: ChildProcess;
-    interface: net.Socket;
-}
-
 export class Describer {
-    private readonly interpreter: string;
-    private port: number;
-
-    constructor(interpreter: string, initialPort: number = 8192) {
-        this.interpreter = interpreter;
-        this.port = initialPort;
-    }
 
     public describeTest(description: TestDescription) {
-        describe(description.title, () => {
-            const describer = this;
-            let instance: WARDuinoInstance | void;
+        const describer = this;
+
+        describe(description.title, function () {
+            this.timeout(TIMEOUT);
+
+            let instance: Instance | void;
 
             /** Each test requires some housekeeping before and after */
 
             before('Connect to debugger', async function () {
-                instance = await connectToDebugger(describer.interpreter, description.program, describer.port++, description.args ?? []).catch((message: string) => {
+                instance = await description.bridge.connect(description.program, description.args ?? []).catch((message: string) => {
                     console.error(message);
                 });
             });
@@ -122,16 +127,17 @@ export class Describer {
             for (const step of description.tests ?? []) {
 
                 /** Perform the step and check if expectations were met */
+
                 it(step.title, async () => {
                     if (instance === undefined) {
                         assert.fail('Cannot run test: no debugger connection.');
                         return;
                     }
 
-                    const actual: any = await sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse);
+                    const actual: any = await description.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse);
 
                     for (const expectation of step.expected ?? []) {
-                        this.expect(expectation, actual, previous);
+                        describer.expect(expectation, actual, previous);
                     }
 
                     if (actual) {
@@ -144,18 +150,24 @@ export class Describer {
 
     private expect(expectation: Expectation, actual: any, previous: any): void {
         for (const [field, entry] of Object.entries(expectation)) {
+            const value = actual[field];
+            if (value === undefined) {
+                assert.fail(`Failure: [actual] state does not contain '${field}'.`);
+                return;
+            }
+
             if (entry.kind === 'primitive') {
-                this.expectPrimitive(actual[field], entry.value);
+                this.expectPrimitive(value, entry.value);
             } else if (entry.kind === 'description') {
-                this.expectDescription(actual[field], entry.value);
+                this.expectDescription(value, entry.value);
             } else if (entry.kind === 'comparison') {
-                this.expectComparison(actual[field], entry.value);
+                this.expectComparison(value, entry.value);
             } else if (entry.kind === 'behaviour') {
-                if (!previous) {
+                if (previous === undefined) {
                     assert.fail('Invalid test: no [previous] to compare behaviour to.');
                     return;
                 }
-                this.expectBehaviour(actual[field], previous[field], entry.value);
+                this.expectBehaviour(value, previous[field], entry.value);
             }
         }
     }
@@ -194,119 +206,5 @@ export class Describer {
                 expect(actual).to.be.lessThan(previous);
                 break;
         }
-    }
-}
-
-export function isReadable(x: Readable | null): x is Readable {
-    return x !== null;
-}
-
-export function startDebugger(interpreter: string, program: string, port: number = 8192, args: string[] = []): ChildProcess {
-    const _args: string[] = ['--socket', (port).toString(), '--file', program].concat(args);
-    return spawn(interpreter, _args);
-}
-
-export function connectToDebugger(interpreter: string, program: string, port: number = 8192, args: string[] = []): Promise<WARDuinoInstance> {
-    const address = {port: port, host: '127.0.0.1'};
-    const process = startDebugger(interpreter, program, port, args);
-
-    return new Promise(function (resolve, reject) {
-        if (process === undefined) {
-            reject('Failed to start process.');
-        }
-
-        while (process.stdout === undefined) {
-        }
-
-        if (isReadable(process.stdout)) {
-            const reader = new ReadlineParser();
-            process.stdout.pipe(reader);
-
-            reader.on('data', (data) => {
-                if (data.includes('Listening')) {
-                    const client = new net.Socket();
-                    client.connect(address, () => {
-                        resolve({process: process, interface: client});
-                    });
-                }
-            });
-        } else {
-            reject();
-        }
-    });
-}
-
-export function sendInstruction(socket: net.Socket,
-                                instruction?: InterruptTypes,
-                                expectResponse: boolean = true,
-                                parser: (text: string) => Object = JSON.parse): Promise<any> {
-    const stack: MessageStack = new MessageStack('\n');
-
-    return new Promise(function (resolve) {
-        socket.on('data', (data: Buffer) => {
-            stack.push(data.toString());
-            stack.tryParser(parser, resolve);
-        });
-
-        if (instruction) {
-            socket.write(`${instruction} \n`);
-        }
-
-        if (!expectResponse) {
-            resolve(null);
-        }
-    });
-}
-
-class MessageStack {
-    private readonly delimiter: string;
-    private stack: string[];
-
-    constructor(delimiter: string) {
-        this.delimiter = delimiter;
-        this.stack = [];
-    }
-
-    public push(data: string): void {
-        const messages: string[] = this.split(data);
-        if (this.lastMessageIncomplete()) {
-            this.stack[this.stack.length - 1] += messages.shift();
-        }
-        this.stack = this.stack.concat(messages);
-    }
-
-    public pop(): string | undefined {
-        if (this.hasCompleteMessage()) {
-            return this.stack.shift();
-        }
-    }
-
-    public tryParser(parser: (text: string) => Object, resolver: (value: Object) => void): void {
-        let message = this.pop();
-        while (message !== undefined) {
-            try {
-                const parsed = parser(message);
-                resolver(parsed);
-            } catch (e) {
-                // do nothing
-            } finally {
-                message = this.pop();
-            }
-        }
-    }
-
-    private split(text: string): string[] {
-        return text.split(new RegExp(`(.*?${this.delimiter})`, 'g')).filter(s => {
-            return s.length > 0;
-        });
-    }
-
-    private lastMessageIncomplete(): boolean {
-        const last: string | undefined = this.stack[this.stack.length - 1];
-        return last !== undefined && !last.includes(this.delimiter);
-    }
-
-    private hasCompleteMessage(): boolean {
-        return !this.lastMessageIncomplete() || this.stack.length > 1;
     }
 }
