@@ -13,7 +13,7 @@ import {
     Expected,
     isReadable,
     startDebugger,
-    TestSuite,
+    TestDescription,
     WARDuinoInstance
 } from '../describer';
 import {assert, expect} from 'chai';
@@ -77,24 +77,24 @@ describe('WARDuino CLI Test Suite', () => {
         await connectToDebugger(interpreter, `${examples}blink.wasm`, port++);
     });
 
-    // it('Test: --proxy flag', function (done) {
-    //     const address = {port: port, host: '127.0.0.1'};
-    //     const proxy: net.Server = new net.Server();
-    //     proxy.listen(port++);
-    //     proxy.on('connection', function (socket: net.Socket) {
-    //         done();
-    //     });
-    //
-    //     connectToDebugger(interpreter, `${examples}blink.wasm`, port++, ['--proxy', address.port.toString()]).then((instance: WARDuinoInstance) => {
-    //         instance.process.on('exit', function (code) {
-    //             assert.fail(`Interpreter should not exit. (code: ${code})`);
-    //             done();
-    //         });
-    //     }).catch(function (message) {
-    //         assert.fail(message);
-    //         done();
-    //     });
-    // });
+    it('Test: --proxy flag', function (done) {
+        const address = {port: port, host: '127.0.0.1'};
+        const proxy: net.Server = new net.Server();
+        proxy.listen(port++);
+        proxy.on('connection', function (socket: net.Socket) {
+            done();
+        });
+
+        connectToDebugger(interpreter, `${examples}blink.wasm`, port++, ['--proxy', address.port.toString()]).then((instance: WARDuinoInstance) => {
+            instance.process.on('exit', function (code) {
+                assert.fail(`Interpreter should not exit. (code: ${code})`);
+                done();
+            });
+        }).catch(function (message) {
+            assert.fail(message);
+            done();
+        });
+    });
 });
 
 /**
@@ -102,7 +102,7 @@ describe('WARDuino CLI Test Suite', () => {
  */
 const describer: Describer = new Describer(interpreter, port);
 
-const jsonTest: TestSuite = {
+const jsonTest: TestDescription = {
     title: 'Test valid JSON',
     program: `${examples}blink.wasm`,
     tests: [{
@@ -121,37 +121,63 @@ const jsonTest: TestSuite = {
     }, {
         title: 'DUMPLocals',
         instruction: InterruptTypes.interruptDUMPLocals,
-        expected: [
-            {'locals': {kind: 'description', value: Description.defined} as Expected<string>}
-        ]
+        expected: [{
+            'locals': {kind: 'description', value: Description.defined} as Expected<string>
+        }]
     }]
 };
 
 describer.describeTest(jsonTest);
 
-const pauseTest: TestSuite = {
+const pauseTest: TestDescription = {
     title: 'Test PAUSE',
     program: `${examples}blink.wasm`,
     tests: [{
         title: 'Send Pause command',
         instruction: InterruptTypes.interruptPAUSE,
-        expectResponse: false,
-        expected: []
+        expectResponse: false
     }, {
         title: 'Get state of VM',
         instruction: InterruptTypes.interruptDUMP,
-        expected: [
-            {'pc': {kind: 'description', value: Description.defined} as Expected<string>}
-        ]
+        expected: [{
+            'pc': {kind: 'description', value: Description.defined} as Expected<string>
+        }]
     }, {
         title: 'Execution is stopped',
         instruction: InterruptTypes.interruptDUMP,
-        expected: [
-            {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
-            {'pc': {kind: 'behaviour', value: Behaviour.unchanged} as Expected<string>}
-        ]
+        expected: [{
+            'pc': {kind: 'description', value: Description.defined} as Expected<string>
+        }, {
+            'pc': {kind: 'behaviour', value: Behaviour.unchanged} as Expected<string>
+        }]
     }]
 };
 
 describer.describeTest(pauseTest);
+
+const stepTest: TestDescription = {
+    title: 'Test STEP',
+    program: `${examples}blink.wasm`,
+    tests: [{
+        title: 'Send Pause command',
+        instruction: InterruptTypes.interruptPAUSE,
+        expectResponse: false
+    }, {
+        title: 'Get state of VM',
+        instruction: InterruptTypes.interruptDUMP,
+        expected: [{
+            'pc': {kind: 'description', value: Description.defined} as Expected<string>
+        }]
+    }, {
+        title: 'Execution took one step',
+        instruction: InterruptTypes.interruptSTEP,
+        expected: [{
+            'pc': {kind: 'description', value: Description.defined} as Expected<string>
+        }, {
+            'pc': {kind: 'behaviour', value: Behaviour.increased} as Expected<string>
+        }]
+    }]
+};
+
+describer.describeTest(stepTest);
 

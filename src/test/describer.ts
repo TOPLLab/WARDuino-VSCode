@@ -9,15 +9,15 @@ import 'mocha';
 export enum Description {
     /** required properties */
     defined,
-    notDefined,
+    notDefined
 }
 
 export enum Behaviour {
     /** compare with a previous state (always fails if no previous state): */
     unchanged,
     changed,
-    increasing,
-    decreasing
+    increased,
+    decreased
 }
 
 export type Expected<T> =
@@ -31,7 +31,7 @@ export interface Breakpoint {
 
 }
 
-export interface TestDescription {
+export interface Step {
     /** Name of the test */
     title: string;
 
@@ -48,7 +48,7 @@ export interface TestDescription {
     parser?: (input: string) => Object;
 
     /** Checks to run against the result. */
-    expected: Expectation[];
+    expected?: Expectation[];
 
     /** Command to use to retrieve the result of the vm */
     inspector?: InterruptTypes;
@@ -61,7 +61,7 @@ export interface Expectation {
 }
 
 /** A series of tests to perform on a single instance of the vm */
-export interface TestSuite {
+export interface TestDescription {
     title: string;
 
     /** File to load into the interpreter */
@@ -73,7 +73,7 @@ export interface TestSuite {
     /** Arguments for the interpreter */
     args?: string[];
 
-    tests?: TestDescription[];
+    tests?: Step[];
 
     skip?: boolean;
 }
@@ -92,20 +92,20 @@ export class Describer {
         this.port = initialPort;
     }
 
-    public describeTest(suite: TestSuite) {
-        describe(suite.title, () => {
+    public describeTest(description: TestDescription) {
+        describe(description.title, () => {
             let instance: WARDuinoInstance;
 
             before('Connect to debugger', async () => {
-                instance = await connectToDebugger(this.interpreter, suite.program, this.port++, suite.args ?? []);
+                instance = await connectToDebugger(this.interpreter, description.program, this.port++, description.args ?? []);
             });
 
             let previous: any = undefined;
-            for (const description of suite.tests ?? []) {
-                it(description.title, async () => {
-                    const actual: any = await sendInstruction(instance.interface, description.instruction, description.expectResponse ?? true);
+            for (const step of description.tests ?? []) {
+                it(step.title, async () => {
+                    const actual: any = await sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true);
 
-                    for (const expectation of description.expected) {
+                    for (const expectation of step.expected ?? []) {
                         for (const [field, entry] of Object.entries(expectation)) {
                             if (entry.kind === 'primitive') {
                                 expect(actual[field]).to.deep.equal(expectation[field].value);
@@ -135,10 +135,10 @@ export class Describer {
                                         case Behaviour.changed:
                                             expect(actual[field]).to.not.equal(previous[field]);
                                             break;
-                                        case Behaviour.increasing:
+                                        case Behaviour.increased:
                                             expect(actual[field]).to.be.greaterThan(previous[field]);
                                             break;
-                                        case Behaviour.decreasing:
+                                        case Behaviour.decreased:
                                             expect(actual[field]).to.be.lessThan(previous[field]);
                                             break;
                                     }
@@ -196,20 +196,10 @@ export function connectToDebugger(interpreter: string, program: string, port: nu
 export function sendInstruction(socket: net.Socket, instruction?: InterruptTypes, expectResponse: boolean = true): Promise<any> {
     const stack: MessageStack = new MessageStack('\n');
 
-    return new Promise(function (resolve, reject) {
+    return new Promise(function (resolve) {
         socket.on('data', (data: Buffer) => {
             stack.push(data.toString());
-            let message = stack.pop();
-            while (message !== undefined) {
-                try {
-                    const parsed = JSON.parse(message);
-                    resolve(parsed);
-                } catch (e) {
-                    // do nothing
-                } finally {
-                    message = stack.pop();
-                }
-            }
+            stack.tryParser(JSON.parse, resolve);
         });
 
         if (instruction) {
@@ -242,6 +232,20 @@ class MessageStack {
     public pop(): string | undefined {
         if (this.hasCompleteMessage()) {
             return this.stack.shift();
+        }
+    }
+
+    public tryParser(parser: (text: string) => any, resolver: (value: any) => void): void {
+        let message = this.pop();
+        while (message !== undefined) {
+            try {
+                const parsed = parser(message);
+                resolver(parsed);
+            } catch (e) {
+                // do nothing
+            } finally {
+                message = this.pop();
+            }
         }
     }
 
