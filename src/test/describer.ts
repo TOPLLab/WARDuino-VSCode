@@ -3,8 +3,9 @@ import * as net from 'net';
 import {InterruptTypes} from '../DebugBridges/InterruptTypes';
 import {Readable} from 'stream';
 import {ReadlineParser} from 'serialport';
-import {expect} from 'chai';
+import {assert, expect} from 'chai';
 import 'mocha';
+import {after} from 'mocha';
 
 export enum Description {
     /** required properties */
@@ -84,8 +85,8 @@ export interface WARDuinoInstance {
 }
 
 export class Describer {
-    private port: number;
     private readonly interpreter: string;
+    private port: number;
 
     constructor(interpreter: string, initialPort: number = 8192) {
         this.interpreter = interpreter;
@@ -94,55 +95,50 @@ export class Describer {
 
     public describeTest(description: TestDescription) {
         describe(description.title, () => {
-            let instance: WARDuinoInstance;
+            const describer = this;
+            let instance: WARDuinoInstance | void;
 
-            before('Connect to debugger', async () => {
-                instance = await connectToDebugger(this.interpreter, description.program, this.port++, description.args ?? []);
+            before('Connect to debugger', async function () {
+                instance = await connectToDebugger(describer.interpreter, description.program, describer.port++, description.args ?? []).catch((message: string) => {
+                    console.error(message);
+                });
+            });
+
+            afterEach('Clear listeners on interface', () => {
+                instance?.interface.removeAllListeners('data');
+            });
+
+            after('Shutdown debugger', () => {
+                instance?.interface.destroy();
+                instance?.process.kill('SIGKILL');
             });
 
             let previous: any = undefined;
             for (const step of description.tests ?? []) {
                 it(step.title, async () => {
+                    if (instance === undefined) {
+                        assert.fail('Cannot run test: no debugger connection.');
+                        return;
+                    }
+
                     const actual: any = await sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true);
 
                     for (const expectation of step.expected ?? []) {
                         for (const [field, entry] of Object.entries(expectation)) {
                             if (entry.kind === 'primitive') {
-                                expect(actual[field]).to.deep.equal(expectation[field].value);
+                                this.expectPrimitive(actual[field], entry.value);
                             }
 
                             if (entry.kind === 'description') {
-                                switch (entry.value) {
-                                    case Description.defined:
-                                        expect(actual[field]).to.exist;
-                                        break;
-                                    case Description.notDefined:
-                                        expect(actual[field]).to.be.undefined;
-                                        break;
-                                }
+                                this.expectDescription(actual[field], entry.value);
                             }
 
                             if (entry.kind === 'comparison') {
-                                expect(entry.value(actual[field])).to.be.true;
+                                this.expectComparison(actual[field], entry.value);
                             }
 
                             if (entry.kind === 'behaviour') {
-                                if (previous) {
-                                    switch (entry.value) {
-                                        case Behaviour.unchanged:
-                                            expect(actual[field]).to.be.equal(previous[field]);
-                                            break;
-                                        case Behaviour.changed:
-                                            expect(actual[field]).to.not.equal(previous[field]);
-                                            break;
-                                        case Behaviour.increased:
-                                            expect(actual[field]).to.be.greaterThan(previous[field]);
-                                            break;
-                                        case Behaviour.decreased:
-                                            expect(actual[field]).to.be.lessThan(previous[field]);
-                                            break;
-                                    }
-                                }
+                                this.expectBehaviour(actual[field], previous[field], entry.value);
                             }
                         }
                     }
@@ -150,6 +146,44 @@ export class Describer {
                 });
             }
         });
+    }
+
+    private expectPrimitive<T>(actual: T, expected: T): void {
+        expect(actual).to.deep.equal(expected);
+    }
+
+    private expectDescription<T>(actual: T, value: Description): void {
+        switch (value) {
+            case Description.defined:
+                expect(actual).to.exist;
+                break;
+            case Description.notDefined:
+                expect(actual).to.be.undefined;
+                break;
+        }
+    }
+
+    private expectComparison<T>(actual: T, comparator: (value: T) => boolean): void {
+        expect(comparator(actual)).to.be.true;
+    }
+
+    private expectBehaviour(actual: any, previous: any, behaviour: Behaviour): void {
+        if (previous) {
+            switch (behaviour) {
+                case Behaviour.unchanged:
+                    expect(actual).to.be.equal(previous);
+                    break;
+                case Behaviour.changed:
+                    expect(actual).to.not.equal(previous);
+                    break;
+                case Behaviour.increased:
+                    expect(actual).to.be.greaterThan(previous);
+                    break;
+                case Behaviour.decreased:
+                    expect(actual).to.be.lessThan(previous);
+                    break;
+            }
+        }
     }
 }
 
@@ -235,7 +269,7 @@ class MessageStack {
         }
     }
 
-    public tryParser(parser: (text: string) => any, resolver: (value: any) => void): void {
+    public tryParser(parser: (text: string) => Object, resolver: (value: Object) => void): void {
         let message = this.pop();
         while (message !== undefined) {
             try {
