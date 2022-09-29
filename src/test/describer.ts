@@ -98,6 +98,8 @@ export class Describer {
             const describer = this;
             let instance: WARDuinoInstance | void;
 
+            /** Each test requires some housekeeping before and after */
+
             before('Connect to debugger', async function () {
                 instance = await connectToDebugger(describer.interpreter, description.program, describer.port++, description.args ?? []).catch((message: string) => {
                     console.error(message);
@@ -105,6 +107,7 @@ export class Describer {
             });
 
             afterEach('Clear listeners on interface', () => {
+                // after each step: remove the installed listeners
                 instance?.interface.removeAllListeners('data');
             });
 
@@ -113,39 +116,48 @@ export class Describer {
                 instance?.process.kill('SIGKILL');
             });
 
+            /** Each test is made of one or more steps */
+
             let previous: any = undefined;
             for (const step of description.tests ?? []) {
+
+                /** Perform the step and check if expectations were met */
                 it(step.title, async () => {
                     if (instance === undefined) {
                         assert.fail('Cannot run test: no debugger connection.');
                         return;
                     }
 
-                    const actual: any = await sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true);
+                    const actual: any = await sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse);
 
                     for (const expectation of step.expected ?? []) {
-                        for (const [field, entry] of Object.entries(expectation)) {
-                            if (entry.kind === 'primitive') {
-                                this.expectPrimitive(actual[field], entry.value);
-                            }
-
-                            if (entry.kind === 'description') {
-                                this.expectDescription(actual[field], entry.value);
-                            }
-
-                            if (entry.kind === 'comparison') {
-                                this.expectComparison(actual[field], entry.value);
-                            }
-
-                            if (entry.kind === 'behaviour') {
-                                this.expectBehaviour(actual[field], previous[field], entry.value);
-                            }
-                        }
+                        this.expect(expectation, actual, previous);
                     }
-                    previous = actual;
+
+                    if (actual) {
+                        previous = actual;
+                    }
                 });
             }
         });
+    }
+
+    private expect(expectation: Expectation, actual: any, previous: any): void {
+        for (const [field, entry] of Object.entries(expectation)) {
+            if (entry.kind === 'primitive') {
+                this.expectPrimitive(actual[field], entry.value);
+            } else if (entry.kind === 'description') {
+                this.expectDescription(actual[field], entry.value);
+            } else if (entry.kind === 'comparison') {
+                this.expectComparison(actual[field], entry.value);
+            } else if (entry.kind === 'behaviour') {
+                if (!previous) {
+                    assert.fail('Invalid test: no [previous] to compare behaviour to.');
+                    return;
+                }
+                this.expectBehaviour(actual[field], previous[field], entry.value);
+            }
+        }
     }
 
     private expectPrimitive<T>(actual: T, expected: T): void {
@@ -168,21 +180,19 @@ export class Describer {
     }
 
     private expectBehaviour(actual: any, previous: any, behaviour: Behaviour): void {
-        if (previous) {
-            switch (behaviour) {
-                case Behaviour.unchanged:
-                    expect(actual).to.be.equal(previous);
-                    break;
-                case Behaviour.changed:
-                    expect(actual).to.not.equal(previous);
-                    break;
-                case Behaviour.increased:
-                    expect(actual).to.be.greaterThan(previous);
-                    break;
-                case Behaviour.decreased:
-                    expect(actual).to.be.lessThan(previous);
-                    break;
-            }
+        switch (behaviour) {
+            case Behaviour.unchanged:
+                expect(actual).to.be.equal(previous);
+                break;
+            case Behaviour.changed:
+                expect(actual).to.not.equal(previous);
+                break;
+            case Behaviour.increased:
+                expect(actual).to.be.greaterThan(previous);
+                break;
+            case Behaviour.decreased:
+                expect(actual).to.be.lessThan(previous);
+                break;
         }
     }
 }
@@ -194,7 +204,6 @@ export function isReadable(x: Readable | null): x is Readable {
 export function startDebugger(interpreter: string, program: string, port: number = 8192, args: string[] = []): ChildProcess {
     const _args: string[] = ['--socket', (port).toString(), '--file', program].concat(args);
     return spawn(interpreter, _args);
-
 }
 
 export function connectToDebugger(interpreter: string, program: string, port: number = 8192, args: string[] = []): Promise<WARDuinoInstance> {
@@ -227,13 +236,16 @@ export function connectToDebugger(interpreter: string, program: string, port: nu
     });
 }
 
-export function sendInstruction(socket: net.Socket, instruction?: InterruptTypes, expectResponse: boolean = true): Promise<any> {
+export function sendInstruction(socket: net.Socket,
+                                instruction?: InterruptTypes,
+                                expectResponse: boolean = true,
+                                parser: (text: string) => Object = JSON.parse): Promise<any> {
     const stack: MessageStack = new MessageStack('\n');
 
     return new Promise(function (resolve) {
         socket.on('data', (data: Buffer) => {
             stack.push(data.toString());
-            stack.tryParser(JSON.parse, resolve);
+            stack.tryParser(parser, resolve);
         });
 
         if (instruction) {

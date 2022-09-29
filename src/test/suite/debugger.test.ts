@@ -108,12 +108,14 @@ const jsonTest: TestDescription = {
     tests: [{
         title: 'DUMP',
         instruction: InterruptTypes.interruptDUMP,
+        parser: stateParser,
         expected: [
             {'pc': {kind: 'description', value: Description.defined} as Expected<string>}
         ]
     }, {
         title: 'DUMPFull',
         instruction: InterruptTypes.interruptDUMPFull,
+        parser: stateParser,
         expected: [
             {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
             {'locals': {kind: 'description', value: Description.defined} as Expected<string>}
@@ -121,6 +123,7 @@ const jsonTest: TestDescription = {
     }, {
         title: 'DUMPLocals',
         instruction: InterruptTypes.interruptDUMPLocals,
+        parser: stateParser,
         expected: [{
             'locals': {kind: 'description', value: Description.defined} as Expected<string>
         }]
@@ -133,18 +136,21 @@ const pauseTest: TestDescription = {
     title: 'Test PAUSE',
     program: `${examples}blink.wasm`,
     tests: [{
-        title: 'Send Pause command',
+        title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
+        parser: stateParser,
         expectResponse: false
     }, {
         title: 'Get state of VM',
         instruction: InterruptTypes.interruptDUMP,
+        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }]
     }, {
         title: 'Execution is stopped',
         instruction: InterruptTypes.interruptDUMP,
+        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -159,25 +165,38 @@ const stepTest: TestDescription = {
     title: 'Test STEP',
     program: `${examples}blink.wasm`,
     tests: [{
-        title: 'Send Pause command',
+        title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
+        parser: stateParser,
         expectResponse: false
     }, {
         title: 'Get state of VM',
         instruction: InterruptTypes.interruptDUMP,
+        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }]
     }, {
-        title: 'Execution took one step',
+        title: 'Send STEP command',
         instruction: InterruptTypes.interruptSTEP,
+        parser: stateParser,
+        expectResponse: false
+    }, {
+        title: 'Execution took one step',
+        instruction: InterruptTypes.interruptDUMP,
+        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
-            'pc': {kind: 'behaviour', value: Behaviour.increased} as Expected<string>
+            'pc': {kind: 'behaviour', value: Behaviour.decreased} as Expected<string>
         }]
     }]
 };
 
 describer.describeTest(stepTest);
 
+function stateParser(text: string): Object {
+    const message = JSON.parse(text);
+    message['pc'] = parseInt(message['pc']);
+    return message;
+}
