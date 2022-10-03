@@ -3,9 +3,23 @@
  *
  * These tests are independent of the plugin and uses the emulator version of the VM (wdcli).
  */
+
+/* eslint-disable @typescript-eslint/naming-convention */
+
 import 'mocha';
 import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
-import {Behaviour, Describer, Description, Expected, Instance, ProcessBridge, TestDescription} from '../describer';
+import {
+    Behaviour,
+    Describer,
+    Description,
+    Expectation,
+    Expected,
+    getValue,
+    Instance,
+    ProcessBridge,
+    Step,
+    TestDescription
+} from '../describer';
 import {assert, expect} from 'chai';
 import {ChildProcess, spawn} from 'child_process';
 import {ReadlineParser} from 'serialport';
@@ -16,27 +30,24 @@ const interpreter: string = `${require('os').homedir()}/Arduino/libraries/WARDui
 const examples: string = 'src/test/suite/examples/';
 let port: number = 8200;
 
-function isReadable(x: Readable | null): x is Readable {
-    return x !== null;
-}
-
 /**
  * Test Suite of the WARDuino CLI
  */
+
 describe('WARDuino CLI Test Suite', () => {
 
     /**
      * Tests to see if VM and debugger start properly
      */
 
-    it('Test: exitcode (0)', function (done) {
+    it('Test: exit code (0)', function (done) {
         spawn(interpreter, ['--no-debug', '--file', `${examples}hello.wasm`]).on('exit', function (code) {
             expect(code).to.equal(0);
             done();
         });
     });
 
-    it('Test: exitcode (1)', function (done) {
+    it('Test: exit code (1)', function (done) {
         spawn(interpreter, ['--socket', (port++).toString(), '--file', `${examples}nonexistent.wasm`]).on('exit', function (code) {
             expect(code).to.equal(1);
             done();
@@ -76,7 +87,7 @@ describe('WARDuino CLI Test Suite', () => {
         const address = {port: port, host: '127.0.0.1'};
         const proxy: net.Server = new net.Server();
         proxy.listen(port++);
-        proxy.on('connection', function (socket: net.Socket) {
+        proxy.on('connection', () => {
             done();
         });
 
@@ -91,6 +102,14 @@ describe('WARDuino CLI Test Suite', () => {
         });
     });
 });
+
+/**
+ * Functions and classes to bridge communication with WARDuino vm and debugger.
+ */
+
+function isReadable(x: Readable | null): x is Readable {
+    return x !== null;
+}
 
 function startWARDuino(interpreter: string, program: string, port: number, args: string[] = []): ChildProcess {
     const _args: string[] = ['--socket', (port).toString(), '--file', program].concat(args);
@@ -160,6 +179,10 @@ class WARDuinoBridge extends ProcessBridge {
         });
     }
 
+    disconnect(instance: Instance | void) {
+        instance?.interface.destroy();
+        instance?.process.kill('SIGKILL');
+    }
 }
 
 class MessageStack {
@@ -219,34 +242,62 @@ class MessageStack {
  * Tests of the Remote Debugger API
  */
 
+function stateParser(text: string): Object {
+    const message = JSON.parse(text);
+    message['pc'] = parseInt(message['pc']);
+    return message;
+}
+
 const describer: Describer = new Describer();
+
+const expectDUMP: Expectation[] = [
+    {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
+    {
+        'breakpoints': {
+            kind: 'comparison', value: (state: Object, value: Array<any>) => {
+                return value.length === 0;
+            }
+        } as Expected<Array<any>>
+    },
+    {'callstack[0].sp': {kind: 'primitive', value: -1} as Expected<number>},
+    {'callstack[0].fp': {kind: 'primitive', value: -1} as Expected<number>}];
+
+const expectDUMPLocals: Expectation[] = [
+    {'locals': {kind: 'description', value: Description.defined} as Expected<string>},
+    {
+        'locals.count': {
+            kind: 'comparison', value: (state: Object, value: number) => {
+                return value === getValue(state, 'locals.locals').length;
+            }
+        } as Expected<number>
+    }];
+
+const DUMP: Step = {
+    title: 'Send DUMP command',
+    instruction: InterruptTypes.interruptDUMP,
+    parser: stateParser,
+    expected: expectDUMP
+};
 
 const jsonTest: TestDescription = {
     title: 'Test valid JSON',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
     tests: [{
-        title: 'DUMP',
+        title: 'Send DUMP command',
         instruction: InterruptTypes.interruptDUMP,
         parser: stateParser,
-        expected: [
-            {'pc': {kind: 'description', value: Description.defined} as Expected<string>}
-        ]
+        expected: expectDUMP
     }, {
-        title: 'DUMPFull',
+        title: 'Send DUMPFull command',
         instruction: InterruptTypes.interruptDUMPFull,
         parser: stateParser,
-        expected: [
-            {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
-            {'locals': {kind: 'description', value: Description.defined} as Expected<string>}
-        ]
+        expected: expectDUMP.concat(expectDUMPLocals)
     }, {
-        title: 'DUMPLocals',
+        title: 'Send DUMPLocals command',
         instruction: InterruptTypes.interruptDUMPLocals,
         parser: stateParser,
-        expected: [{
-            'locals': {kind: 'description', value: Description.defined} as Expected<string>
-        }]
+        expected: expectDUMPLocals
     }]
 };
 
@@ -262,14 +313,14 @@ const pauseTest: TestDescription = {
         parser: stateParser,
         expectResponse: false
     }, {
-        title: 'Get state of VM',
+        title: 'Send DUMP command',
         instruction: InterruptTypes.interruptDUMP,
         parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }]
     }, {
-        title: 'Execution is stopped',
+        title: 'CHECK: execution is stopped',
         instruction: InterruptTypes.interruptDUMP,
         parser: stateParser,
         expected: [{
@@ -291,20 +342,13 @@ const stepTest: TestDescription = {
         instruction: InterruptTypes.interruptPAUSE,
         parser: stateParser,
         expectResponse: false
-    }, {
-        title: 'Get state of VM',
-        instruction: InterruptTypes.interruptDUMP,
-        parser: stateParser,
-        expected: [{
-            'pc': {kind: 'description', value: Description.defined} as Expected<string>
-        }]
-    }, {
+    }, DUMP, {
         title: 'Send STEP command',
         instruction: InterruptTypes.interruptSTEP,
         parser: stateParser,
         expectResponse: false
     }, {
-        title: 'Execution took one step',
+        title: 'CHECK: execution took one step',
         instruction: InterruptTypes.interruptDUMP,
         parser: stateParser,
         expected: [{
@@ -317,8 +361,41 @@ const stepTest: TestDescription = {
 
 describer.describeTest(stepTest);
 
-function stateParser(text: string): Object {
-    const message = JSON.parse(text);
-    message['pc'] = parseInt(message['pc']);
-    return message;
-}
+const runTest: TestDescription = {
+    title: 'Test RUN',
+    program: `${examples}blink.wasm`,
+    bridge: new WARDuinoBridge(interpreter, port++),
+    tests: [{
+        title: 'Send PAUSE command',
+        instruction: InterruptTypes.interruptPAUSE,
+        parser: stateParser,
+        expectResponse: false
+    }, DUMP, {
+        title: 'CHECK: execution is stopped',
+        instruction: InterruptTypes.interruptDUMP,
+        parser: stateParser,
+        expected: [{
+            'pc': {kind: 'description', value: Description.defined} as Expected<string>
+        }, {
+            'pc': {kind: 'behaviour', value: Behaviour.unchanged} as Expected<string>
+        }]
+    }, {
+        title: 'Send RUN command',
+        instruction: InterruptTypes.interruptRUN,
+        parser: stateParser,
+        delay: 100,
+        expectResponse: false
+    }, {
+        title: 'CHECK: execution continues',
+        instruction: InterruptTypes.interruptDUMP,
+        parser: stateParser,
+        expected: [{
+            'pc': {kind: 'description', value: Description.defined} as Expected<string>
+        }, {
+            'pc': {kind: 'behaviour', value: Behaviour.changed} as Expected<string>
+        }]
+    }]
+};
+
+describer.describeTest(runTest);
+

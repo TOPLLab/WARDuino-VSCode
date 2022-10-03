@@ -25,7 +25,7 @@ export type Expected<T> =
 /** discrimination union */
     | { kind: 'primitive'; value: T }
     | { kind: 'description'; value: Description }
-    | { kind: 'comparison'; value: (value: T) => boolean }
+    | { kind: 'comparison'; value: (state: Object, value: T) => boolean }
     | { kind: 'behaviour'; value: Behaviour };
 
 export interface Breakpoint {
@@ -42,7 +42,7 @@ export interface Step {
     /** Whether the instruction is expected to return data */
     expectResponse?: boolean;
 
-    /** Optional delay before checking result of instruction */
+    /** Optional delay after sending instruction */
     delay?: number;
 
     /** Parser to use on the result. */
@@ -59,6 +59,26 @@ export interface Expectation {
     [key: string]: Expected<any>;
 }
 
+/**
+ * @param object object to retrieve value from
+ * @param field dot string describing the field of the value (or path)
+ */
+export function getValue(object: any, field: string): any {
+    // convert indexes to properties + remove leading dots
+    field = field.replace(/\[(\w+)]/g, '.$1');
+    field = field.replace(/^\.?/, '');
+
+    for (const accessor of field.split('.')) {
+        if (accessor in object) {
+            object = object[accessor];
+        } else {
+            // specified field does not exist
+            return undefined;
+        }
+    }
+    return object;
+}
+
 export interface Instance {
     process: ChildProcess;
     interface: Duplex;
@@ -70,6 +90,8 @@ export abstract class ProcessBridge {
     abstract connect(program: string, args: string[]): Promise<Instance>;
 
     abstract sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void>;
+
+    abstract disconnect(instance: Instance | void): void;
 }
 
 /** A series of tests to perform on a single instance of the vm */
@@ -117,8 +139,7 @@ export class Describer {
             });
 
             after('Shutdown debugger', () => {
-                instance?.interface.destroy();
-                instance?.process.kill('SIGKILL');
+                description.bridge.disconnect(instance);
             });
 
             /** Each test is made of one or more steps */
@@ -136,11 +157,13 @@ export class Describer {
 
                     const actual: any = await description.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse);
 
+                    await new Promise(f => setTimeout(f, step.delay ?? 0));
+
                     for (const expectation of step.expected ?? []) {
                         describer.expect(expectation, actual, previous);
                     }
 
-                    if (actual) {
+                    if (actual !== undefined) {
                         previous = actual;
                     }
                 });
@@ -150,7 +173,7 @@ export class Describer {
 
     private expect(expectation: Expectation, actual: any, previous: any): void {
         for (const [field, entry] of Object.entries(expectation)) {
-            const value = actual[field];
+            const value = getValue(actual, field);
             if (value === undefined) {
                 assert.fail(`Failure: [actual] state does not contain '${field}'.`);
                 return;
@@ -161,13 +184,13 @@ export class Describer {
             } else if (entry.kind === 'description') {
                 this.expectDescription(value, entry.value);
             } else if (entry.kind === 'comparison') {
-                this.expectComparison(value, entry.value);
+                this.expectComparison(actual, value, entry.value);
             } else if (entry.kind === 'behaviour') {
                 if (previous === undefined) {
                     assert.fail('Invalid test: no [previous] to compare behaviour to.');
                     return;
                 }
-                this.expectBehaviour(value, previous[field], entry.value);
+                this.expectBehaviour(value, getValue(previous, field), entry.value);
             }
         }
     }
@@ -187,8 +210,8 @@ export class Describer {
         }
     }
 
-    private expectComparison<T>(actual: T, comparator: (value: T) => boolean): void {
-        expect(comparator(actual)).to.be.true;
+    private expectComparison<T>(state: Object, actual: T, comparator: (state: Object, value: T) => boolean): void {
+        expect(comparator(state, actual), `compare ${actual} with ${comparator}`).to.be.true;
     }
 
     private expectBehaviour(actual: any, previous: any, behaviour: Behaviour): void {
