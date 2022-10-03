@@ -45,25 +45,25 @@ async function init(target: RunTimeTarget) {
             if (err === null) {
                 tmpdir = dir;
                 switch (target) {
-                case RunTimeTarget.wood:
-                    bridge = new WOODDebugBridge(
-                        undefined,
-                        undefined,
-                        tmpdir,
-                        listener,
-                        warduinoSDK
-                    );
-                    break;
-                case RunTimeTarget.emulator:
-                default:
-                    bridge = new EmulatedDebugBridge(
-                        undefined,
-                        undefined,
-                        tmpdir,
-                        listener,
-                        warduinoSDK
-                    );
-                    break;
+                    case RunTimeTarget.wood:
+                        bridge = new WOODDebugBridge(
+                            undefined,
+                            undefined,
+                            tmpdir,
+                            listener,
+                            warduinoSDK
+                        );
+                        break;
+                    case RunTimeTarget.emulator:
+                    default:
+                        bridge = new EmulatedDebugBridge(
+                            undefined,
+                            undefined,
+                            tmpdir,
+                            listener,
+                            warduinoSDK
+                        );
+                        break;
                 }
                 resolve(null);
             }
