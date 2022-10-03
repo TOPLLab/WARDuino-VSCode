@@ -29,7 +29,8 @@ export type Expected<T> =
     | { kind: 'behaviour'; value: Behaviour };
 
 export interface Breakpoint {
-
+    line: number;
+    column?: number;
 }
 
 export interface Step {

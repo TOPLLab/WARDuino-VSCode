@@ -23,32 +23,32 @@ export class DebugBridgeFactory {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
-        case 'wast' :
-            const warduinoSDK: string = getConfig('warduino.WARDuinoToolChainPath');
-            const portAddress: string = getConfig('warduino.Port');
-            const fqbn: string = getConfig('warduino.Device');
-            switch (target) {
-            // Emulated runtimes
-            case RunTimeTarget.emulator:
-                bridge = new EmulatedDebugBridge(sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
-                break;
-            case RunTimeTarget.wood:
-                bridge = new WOODDebugBridge(sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
-                break;
-                // Hardware runtimes
-            case RunTimeTarget.embedded:
-                bridge = new HardwareDebugBridge(sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
-                break;
-            }
+            case 'wast' :
+                const warduinoSDK: string = getConfig('warduino.WARDuinoToolChainPath');
+                const portAddress: string = getConfig('warduino.Port');
+                const fqbn: string = getConfig('warduino.Device');
+                switch (target) {
+                    // Emulated runtimes
+                    case RunTimeTarget.emulator:
+                        bridge = new EmulatedDebugBridge(sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
+                        break;
+                    case RunTimeTarget.wood:
+                        bridge = new WOODDebugBridge(sourceMap, eventsProvider, tmpdir, listener, warduinoSDK);
+                        break;
+                        // Hardware runtimes
+                    case RunTimeTarget.embedded:
+                        bridge = new HardwareDebugBridge(sourceMap, eventsProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        break;
+                }
 
-            bridge.connect().then(() => {
-                console.log('Plugin: Connected.');
-                listener.connected();
-            }).catch(reason => {
-                console.error(reason);
-                listener.notifyError(Messages.connectionFailure);
-            });
-            return bridge;
+                bridge.connect().then(() => {
+                    console.log('Plugin: Connected.');
+                    listener.connected();
+                }).catch(reason => {
+                    console.error(reason);
+                    listener.notifyError(Messages.connectionFailure);
+                });
+                return bridge;
         }
         throw new Error('Unsupported file type');
     }
