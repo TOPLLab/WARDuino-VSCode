@@ -5,8 +5,11 @@ import {EventItem} from '../Views/EventsProvider';
 import {ProxyCallItem} from '../Views/ProxyCallsProvider';
 import {RuntimeState} from '../State/RuntimeState';
 import {Breakpoint} from '../State/Breakpoint';
+import {Duplex} from 'stream';
 
 export interface DebugBridge {
+    client: Duplex | undefined;
+
     setStartAddress(startAddress: number): void;
 
     connect(): Promise<string>;

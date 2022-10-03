@@ -10,7 +10,7 @@ import {EventsProvider} from '../Views/EventsProvider';
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
-    protected client: SerialPort | undefined;
+    public client: SerialPort | undefined;
     protected readonly portAddress: string;
     protected readonly fqbn: string;
     protected readonly sdk: string;

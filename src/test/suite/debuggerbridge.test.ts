@@ -1,6 +1,5 @@
 import 'mocha';
 import {WOODState} from '../../State/WOODState';
-import {assert} from 'chai';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -10,7 +9,11 @@ import {WASMCompilerBridge} from '../../CompilerBridges/WASMCompilerBridge';
 import {RunTimeTarget} from '../../DebugBridges/RunTimeTarget';
 import {WOODDebugBridge} from '../../DebugBridges/WOODDebugBridge';
 import {DebugBridgeListener} from '../../DebugBridges/DebugBridgeListener';
+import {HardwareDebugBridge} from '../../DebugBridges/HardwareDebugBridge';
+import {DebugBridge} from '../../DebugBridges/DebugBridge';
 import ErrnoException = NodeJS.ErrnoException;
+
+const TIMEOUT = 100000;
 
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
@@ -37,7 +40,7 @@ const listener: DebugBridgeListener = {
 };
 
 let tmpdir: string = '';
-let bridge: EmulatedDebugBridge;
+let bridge: DebugBridge;
 
 async function init(target: RunTimeTarget) {
     await new Promise(resolve => {
@@ -54,6 +57,16 @@ async function init(target: RunTimeTarget) {
                             warduinoSDK
                         );
                         break;
+                    case RunTimeTarget.embedded:
+                        bridge = new HardwareDebugBridge(
+                            undefined,
+                            undefined,
+                            tmpdir,
+                            listener,
+                            '/dev/ttyUSB0',
+                            'esp32:esp32:esp32wrover',
+                            warduinoSDK);
+                        break;
                     case RunTimeTarget.emulator:
                     default:
                         bridge = new EmulatedDebugBridge(
@@ -67,8 +80,7 @@ async function init(target: RunTimeTarget) {
                 }
                 resolve(null);
             }
-        }
-        );
+        });
     });
 
     let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir, wabtSDK);
@@ -110,9 +122,10 @@ function receivingDumpData(json: string, text: string): boolean {
     return json.length > 0 || text.includes('{"pc":');
 }
 
-describe('Debug API Test Suite (emulated)', () => {
+describe('Debug API Test Suite (plugin)', () => {
     before(async function () {
-        await init(RunTimeTarget.emulator);
+        this.timeout(TIMEOUT);
+        await init(RunTimeTarget.embedded);
         await bridge.connect();
     });
 
