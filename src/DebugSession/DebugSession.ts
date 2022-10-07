@@ -26,9 +26,8 @@ import * as os from "os";
 import * as path from "path";
 import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
-import {ProxyDebugBridge} from "../DebugBridges/ProxyDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
-import {ProxyCallsProvider, ProxyCallItem} from "../Views/ProxyCallsProvider";
+import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -43,7 +42,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private THREAD_ID: number = 42;
     private testCurrentLine = 0;
     private debugBridge?: DebugBridge;
-    private proxyBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
     private reporter: ErrorReporter;
     private proxyCallsProvider?: ProxyCallsProvider;
@@ -156,6 +154,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         },
                         connected(): void {
                             that.debugBridge?.pushSession(woodState);
+                            (that.debugBridge as WOODDebugBridge).specifyProxyCalls();
                         },
                         startMultiverseDebugging(woodState: WOODState) {
                         },
@@ -177,22 +176,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                             that.notifyStepCompleted();
                         }
                     }));
-
-                    that.proxyBridge = DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.proxy, that.tmpdir, {
-                        connected(): void {
-                            const socket = (that.proxyBridge as ProxyDebugBridge).getSocket();
-                            (that.debugBridge as WOODDebugBridge).specifySocket(socket.host, socket.port);
-                        }, disconnected(): void {
-                        }, notifyError(message: string): void {
-                            that.stop();
-                        }, notifyPaused(): void {
-                        }, notifyBreakpointHit() {
-                        }, notifyProgress(message: string): void {
-                        }, notifyStateUpdate(): void {
-                        }, startMultiverseDebugging(woodState: WOODState): void {
-                        }
-                    });
-
                 },
                 notifyPaused(): void {
                     that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
