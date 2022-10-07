@@ -9,11 +9,11 @@
   (import "env" "chip_ledc_attach_pin" (func $env.ledcAttachPin (type $i32->i32->void)))
   (import "env" "subscribe_interrupt" (func $env.subscribeInterrupt (type $i32->i32->i32->void)))
 
-  (global $led i32 (i32.const 10)) ;; analog led pin
+  (global $led i32 (i32.const 26)) ;; analog led pin
   (global $brigthness (mut i32) (i32.const 0))
   (global $maxBrigthness i32 (i32.const 255))
   (global $delta (mut i32) (i32.const 0))
-  (global $upButton i32 (i32.const 37)) ;; button to change brightness
+  (global $upButton i32 (i32.const 25)) ;; button to change brightness
   (global $channel i32 (i32.const 0)) ;; channel for analog write
   
   ;; needed for subscribe_interrupt

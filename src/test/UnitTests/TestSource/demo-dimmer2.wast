@@ -5,6 +5,7 @@
   (type $t3 (func (param i32 i32 i32 i32 i32)))
   (type $t4 (func))
   (type $t5 (func (param i32)))
+  (type $t6 (func (result i32)))
 
   (import "env" "chip_delay" (func $env.chip_delay (type $t5)))
   (import "env" "chip_pin_mode" (func $env.chip_pin_mode (type $t0)))
@@ -21,15 +22,19 @@
   (global $down i32 (i32.const 33))
 
   ;; Mutable globals
-  (global $delta (mut i32) (i32.const -127))
+  (global $delta (mut i32) (i32.const 0))
 
-  (func $decrease (type $t4)
-    i32.const -127
-    global.set $delta)
+  (func $decrease (type $t4) ;; Red button pin 25
+      i32.const -127
+      global.get $delta
+      i32.add
+      global.set $delta)
 
-  (func $increase (type $t4)
-    i32.const 127
-    global.set $delta)
+  (func $increase (type $t4) ;; green button pin 33
+      i32.const 127
+      global.get $delta
+      i32.add
+      global.set $delta)
 
   (func $setup (type $t4)
     ;; configure pin
@@ -53,22 +58,29 @@
   (func $main (type $t4)
     ;; brightness variable
     (local $brightness i32)
-    i32.const 127
+    i32.const 0
     local.set $brightness
     ;; setup hardware
     call $setup
     ;; main loop
     loop $L0
+
+      ;; change brightness
       local.get $brightness
       global.get $delta
       i32.add
       local.set $brightness
-      (if (i32.gt_s (local.get $brightness) (i32.const 254))
+      (if
+        (i32.gt_s
+          (local.get $brightness)
+          (i32.const 254))
         (then
           i32.const 254
           local.set $brightness))
 
-      (if (i32.lt_s (local.get $brightness) (i32.const 0))
+      (if (i32.lt_s
+            (local.get $brightness)
+            (i32.const 0))
         (then
           i32.const 0
           local.set $brightness))
@@ -77,6 +89,10 @@
       local.get $brightness
       i32.const 254
       call $env.chip_ledc_analog_write
+
+      ;; resetting delta
+      i32.const 0
+      global.set $delta
 
       i32.const 100
       call $env.chip_delay
