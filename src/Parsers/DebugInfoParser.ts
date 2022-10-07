@@ -35,10 +35,11 @@ export class DebugInfoParser {
             runtimeState.setRawProgramCounter(parseInt(parsed.pc));
             runtimeState.callstack = this.parseCallstack(parsed.callstack);
             runtimeState.locals = this.parseLocals(runtimeState.currentFunction(), bridge, parsed.locals.locals);
+            runtimeState.globals = this.parseGlobals(parsed.globals)
             runtimeState.events = parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
 
             bridge.updateRuntimeState(runtimeState);
-            console.log(bridge.getProgramCounter().toString(16));
+            console.log(`PC: ${bridge.getProgramCounter().toString(16)}`);
         }
     }
 
@@ -53,6 +54,15 @@ export class DebugInfoParser {
         });
         console.log(locals);
         return locals;
+    }
+
+    private parseGlobals(objs: any[]): VariableInfo[] {
+        let index = -1;
+        const glbs = objs.map(obj => {
+            index++
+            return { index: obj.idx ?? index, mutable: obj.mutable, type: obj.type, name: obj.name ?? "", value: obj.value }
+        })
+        return glbs
     }
 
     private parseCallstack(objs: any[]): Frame[] {

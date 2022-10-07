@@ -99,7 +99,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
                 console.log("Plugin: Step");
                 if (err) {
-                    return console.log("Error on write: ", err.message);
+                    return console.error("Error on write: ", err.message);
                 }
             });
         }
@@ -218,6 +218,20 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             return [];
         }
         return this.sourceMap.functionInfos[fidx].locals;
+    }
+
+    getGlobals(): VariableInfo[] {
+        if (this.sourceMap === undefined) {
+            console.log("getGlobals(): No sourceMap");
+            return [];
+        }
+        const glbs = this.sourceMap.globalInfos.map(glb => {
+            const found = this.sourceMap?.globalInfos.find(other => { return other.index === glb.index });
+            const newval = !!found ? found.value : glb.value;
+            glb.value = newval;
+            return glb;
+        });
+        return glbs;
     }
 
     setLocals(fidx: number, locals: VariableInfo[]) {

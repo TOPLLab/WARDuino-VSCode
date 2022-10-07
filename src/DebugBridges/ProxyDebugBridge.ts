@@ -35,6 +35,7 @@ export class ProxyDebugBridge extends HardwareDebugBridge {
         const message = `${InterruptTypes.interruptDronify}${
             Buffer.from(config.get("warduino.SSID") as string).toString("hex")}00${
             Buffer.from(config.get("warduino.Password") as string).toString("hex")}00 \n`;
+        console.log("Plugin: sending SSID and PSWD");
         this.client?.write(message);
         return new Promise<string>(resolve => {
             let alldata = '';

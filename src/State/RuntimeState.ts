@@ -16,6 +16,7 @@ export class RuntimeState {
     public startAddress: number = 0;
     public callstack: Frame[] = [];
     public locals: VariableInfo[] = [];
+    public globals: VariableInfo[] = [];
     public events: EventItem[] = [];
 
     constructor(source?: string) {
@@ -52,6 +53,7 @@ export class RuntimeState {
         copy.startAddress = this.startAddress;
         copy.callstack = this.callstack.map(obj => Object.assign({}, obj));
         copy.locals = this.locals.map(obj => Object.assign({}, obj));
+        copy.globals = this.globals.map(obj => Object.assign({}, obj));
         copy.events = this.events.map(obj => new EventItem(obj.topic, obj.payload, obj.collapsibleState));
         return copy;
     }

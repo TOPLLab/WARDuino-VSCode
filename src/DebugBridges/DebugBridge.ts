@@ -21,6 +21,8 @@ export interface DebugBridge {
 
     setLocals(fidx: number, locals: VariableInfo[]): void;
 
+    getGlobals(): VariableInfo[];
+
     getCallstack(): Frame[];
 
     setCallstack(callstack: Frame[]): void;

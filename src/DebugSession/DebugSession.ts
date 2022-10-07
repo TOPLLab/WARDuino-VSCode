@@ -368,10 +368,16 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             };
             this.sendResponse(response);
         } else {
+            const glbs: VariableInfo[] = !!this.debugBridge ? this.debugBridge.getGlobals() : this.sourceMap.globalInfos;
             response.body = {
-                variables: Array.from(this.sourceMap.globalInfos, (info) => {
+                variables: Array.from(glbs, (info) => {
                     return {name: info.name, value: info.value, variablesReference: 0};
                 })
+
+                // variables: Array.from(this.sourceMap.globalInfos, (info) => {
+                //     return {name: info.name, value: info.value, variablesReference: 0};
+                // })
+
             };
             this.sendResponse(response);
         }
