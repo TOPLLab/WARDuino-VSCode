@@ -1,4 +1,4 @@
-import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
+import {EmulatedDebugBridge, EMULATOR_PORT} from "./EmulatedDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
@@ -39,10 +39,6 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         for (const primitive of primitives) {
             command += encode(primitive, 4);
         }
-        // TODO fix this command for serial connection
-        // command += encode(+this.port, 4);
-        // command += encode(this.host.length, 1);
-        // command += Buffer.from(this.host).toString("hex");
         command += ' \n';
         return command.toUpperCase();
     }
@@ -86,7 +82,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
         const port: string = vscode.workspace.getConfiguration().get("warduino.Port") ?? "/dev/ttyUSB0";
-        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`, '--proxy', port]);
-        //return spawn(`echo`, ['"Listening"']);
+        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${EMULATOR_PORT}`]);
+        // return spawn(`echo`, ['"Listening"']);
     }
 }
