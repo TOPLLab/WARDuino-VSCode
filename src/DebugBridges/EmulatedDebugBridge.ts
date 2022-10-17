@@ -10,11 +10,13 @@ import {EventsProvider} from "../Views/EventsProvider";
 import {Readable} from 'stream';
 import {ReadlineParser} from 'serialport';
 
+export const EMULATOR_PORT: number = 8300;
+
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client: net.Socket | undefined;
     protected readonly tmpdir: string;
     private wasmPath: string;
-    private readonly sdk: string;
+    protected readonly sdk: string;
     private cp?: ChildProcess;
     private parser: DebugInfoParser;
     private buffer: string = "";
@@ -52,7 +54,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             let that = this;
-            let address = {port: 8192, host: "127.0.0.1"};  // TODO config
+            let address = {port: EMULATOR_PORT, host: "127.0.0.1"};  // TODO config
             if (this.client === undefined) {
                 this.client = new net.Socket();
                 this.client.connect(address, () => {
@@ -160,9 +162,10 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.client?.destroy();
     }
 
-    private spawnEmulatorProcess(): ChildProcess {
+    protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
-        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`]);
+        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`, '--socket', `${EMULATOR_PORT}`]);
+        //return spawn(`echo`, ['"Listening"']);
     }
 
 }

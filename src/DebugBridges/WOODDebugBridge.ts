@@ -1,12 +1,11 @@
-import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
+import {EmulatedDebugBridge, EMULATOR_PORT} from "./EmulatedDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
+import {ChildProcess, spawn} from "child_process";
+import * as vscode from 'vscode';
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
-
-    private host: string = "";
-    private port: string = "";
 
     public async pushSession(woodState: WOODState) {
         console.log("Plugin: WOOD RecvState");
@@ -29,19 +28,6 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         this.client?.write(command);
     }
 
-    // Send socket of the proxy to the emulator
-    public async specifySocket(host: string, port: string) {
-        if (host.length === 0 || port.length === 0) {
-            return;
-        }
-
-        this.host = host;
-        this.port = port;
-
-        console.log(`Connected to proxy (${host}:${port}).`);
-        await this.specifyProxyCalls();
-    }
-
     private monitorProxiesCommand(primitives: number[]): string {
         function encode(i: number, byteLength: number, byteorder = 'big'): string {
             const result: Buffer = Buffer.alloc(byteLength);
@@ -53,9 +39,6 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         for (const primitive of primitives) {
             command += encode(primitive, 4);
         }
-        command += encode(+this.port, 4);
-        command += encode(this.host.length, 1);
-        command += Buffer.from(this.host).toString("hex");
         command += ' \n';
         return command.toUpperCase();
     }
@@ -95,4 +78,11 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         }
         await this.specifyProxyCalls();
     };
+
+    protected spawnEmulatorProcess(): ChildProcess {
+        // TODO package extension with upload.wasm and compile WARDuino during installation.
+        const port: string = vscode.workspace.getConfiguration().get("warduino.Port") ?? "/dev/ttyUSB0";
+        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${EMULATOR_PORT}`]);
+        // return spawn(`echo`, ['"Listening"']);
+    }
 }
