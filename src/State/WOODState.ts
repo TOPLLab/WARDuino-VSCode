@@ -20,7 +20,15 @@ export class WOODState {
                 cwd: path
             });
 
+            const b64buffers: Buffer[] = [];
+
             process.stdout?.on("data", (data: Buffer) => {
+                b64buffers.push(data);
+            });
+
+            process.on("close", (code) => {
+                console.log(`Spawned 'cli.py' done exit code: ${code}`);
+                const data = Buffer.concat(b64buffers)
                 resolve(Buffer.from(data.toString(), "base64").toString("ascii").split("\n"));
             });
 
