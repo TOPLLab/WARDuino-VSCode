@@ -52,7 +52,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             let that = this;
-            let address = {port: EMULATOR_PORT, host: "127.0.0.1"};  // TODO config
+            let address = {port: EMULATOR_PORT, host: '127.0.0.1'};  // TODO config
             if (this.client === undefined) {
                 this.client = new net.Socket();
                 this.client.connect(address, () => {
