@@ -5,7 +5,7 @@ import {SourceMap} from '../State/SourceMap';
 import {DebugBridgeListener} from './DebugBridgeListener';
 import {WOODState} from '../State/WOODState';
 import {InterruptTypes} from './InterruptTypes';
-import {Writable} from 'stream';
+import {Duplex} from 'stream';
 import {EventItem, EventsProvider} from '../Views/EventsProvider';
 import {FunctionInfo} from '../State/FunctionInfo';
 import {ProxyCallItem} from '../Views/ProxyCallsProvider';
@@ -53,7 +53,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Interfaces
     protected listener: DebugBridgeListener;
-    protected abstract client: Writable | undefined;
+    abstract client: Duplex | undefined;
     private eventsProvider: EventsProvider | void;
 
     // History (time-travel)
