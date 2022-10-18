@@ -19,14 +19,19 @@ export class WOODState {
             let process = spawn("python3", ["cli.py", `${tmpdir}/unparsed.json`, offset], {
                 cwd: path
             });
+            const pyLoggerName = "OutOfThings";
 
             process.stdout?.on("data", (data: Buffer) => {
                 resolve(Buffer.from(data.toString(), "base64").toString("ascii").split("\n"));
             });
 
             process.stderr?.on("data", (data) => {
-                console.log(`stderr: ${data}`);
-                reject(data);
+                if (data.includes(pyLoggerName)) {
+                    console.log(`${data}`);
+                } else {
+                    console.log(`stderr: ${data}`);
+                    reject(data);
+                }
             });
         });
     }
