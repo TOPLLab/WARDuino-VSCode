@@ -1,5 +1,5 @@
 import {ChildProcess} from 'child_process';
-import {InterruptTypes} from '../DebugBridges/InterruptTypes';
+import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {Duplex} from 'stream';
 import {assert, expect} from 'chai';
 import 'mocha';
@@ -39,6 +39,9 @@ export interface Step {
 
     /** Type of the instruction */
     instruction: InterruptTypes;
+
+    /* Optional payload of the instruction */
+    payload?: string;
 
     /** Whether the instruction is expected to return data */
     expectResponse?: boolean;
@@ -86,8 +89,6 @@ export interface Instance {
 }
 
 export abstract class ProcessBridge {
-    protected abstract readonly interpreter: string;
-
     abstract connect(program: string, args: string[]): Promise<Instance>;
 
     abstract sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void>;
@@ -111,7 +112,7 @@ export interface TestDescription {
     /** Arguments for the interpreter */
     args?: string[];
 
-    tests?: Step[];
+    steps?: Step[];
 
     skip?: boolean;
 }
@@ -146,7 +147,7 @@ export class Describer {
             /** Each test is made of one or more steps */
 
             let previous: any = undefined;
-            for (const step of description.tests ?? []) {
+            for (const step of description.steps ?? []) {
 
                 /** Perform the step and check if expectations were met */
 

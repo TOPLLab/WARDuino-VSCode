@@ -19,7 +19,7 @@ import {
     ProcessBridge,
     Step,
     TestDescription
-} from '../describer';
+} from '../framework/describer';
 import {assert, expect} from 'chai';
 import {ChildProcess, spawn} from 'child_process';
 import {ReadlineParser} from 'serialport';
@@ -58,8 +58,8 @@ describe('WARDuino CLI Test Suite', () => {
         let succeeded = false;
 
         const process: ChildProcess = startWARDuino(interpreter, `${examples}blink.wasm`, port++);
-        process.on('exit', function () {
-            assert.isTrue(succeeded, 'Interpreter should not exit.');
+        process.on('exit', function (code) {
+            assert.isTrue(succeeded, `Interpreter should not exit (${code}).`);
             done();
         });
 
@@ -111,7 +111,7 @@ function isReadable(x: Readable | null): x is Readable {
     return x !== null;
 }
 
-function startWARDuino(interpreter: string, program: string, port: number, args: string[] = []): ChildProcess {
+function  startWARDuino(interpreter: string, program: string, port: number, args: string[] = []): ChildProcess {
     const _args: string[] = ['--socket', (port).toString(), '--file', program].concat(args);
     return spawn(interpreter, _args);
 }
@@ -147,7 +147,7 @@ function connectWARDuino(interpreter: string, program: string, port: number, arg
 }
 
 class WARDuinoBridge extends ProcessBridge {
-    protected readonly interpreter: string;
+    private readonly interpreter: string;
     private readonly port: number;
 
     constructor(interpreter: string, port: number = 8200) {
@@ -182,6 +182,42 @@ class WARDuinoBridge extends ProcessBridge {
     disconnect(instance: Instance | void) {
         instance?.interface.destroy();
         instance?.process.kill('SIGKILL');
+    }
+}
+
+class EDWARDBridge extends ProcessBridge {
+    private readonly interpreter: string;
+    private readonly port: number;
+    private readonly serial: string;
+
+    private supervisor?: Instance;
+    private proxy?: Instance;
+
+    constructor(interpreter: string, port: number = 8200, serial: string = '/dev/ttyUSB0') {
+        super();
+        this.interpreter = interpreter;
+        this.port = port;
+        this.serial = serial;
+    }
+
+    connect(program: string, args: string[] = []): Promise<Instance> {
+        // TODO start proxy and supervisor. connect to both.
+        // TODO which connection to return?
+        return new Promise<Instance>(() => {
+
+        });
+    }
+
+    sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void> {
+        // TODO use fake instructions? -> need an instruction to tell the BRIDGE to trigger an event on the proxy.
+        // TODO How to trigger events on the proxy?! (do we only do this with realworld events?)
+        return new Promise<Object | void>((resolve) => {
+            resolve();
+        });
+    }
+
+    disconnect(instance: Instance | void) {
+        // TODO implement
     }
 }
 
@@ -283,7 +319,7 @@ const jsonTest: TestDescription = {
     title: 'Test valid JSON',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
-    tests: [{
+    steps: [{
         title: 'Send DUMP command',
         instruction: InterruptTypes.interruptDUMP,
         parser: stateParser,
@@ -307,7 +343,7 @@ const pauseTest: TestDescription = {
     title: 'Test PAUSE',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
-    tests: [{
+    steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
         parser: stateParser,
@@ -337,7 +373,7 @@ const stepTest: TestDescription = {
     title: 'Test STEP',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
-    tests: [{
+    steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
         parser: stateParser,
@@ -365,7 +401,7 @@ const runTest: TestDescription = {
     title: 'Test RUN',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
-    tests: [{
+    steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
         parser: stateParser,
@@ -398,4 +434,57 @@ const runTest: TestDescription = {
 };
 
 describer.describeTest(runTest);
+
+// EDWARD tests with mock proxy
+
+function encodeEvent(topic: string, payload: string): string {
+    return `{topic: '${topic}', payload: '${payload}'}`;
+}
+
+function ackParser(text: string): Object {
+    return {'ack': text};
+}
+
+const eventNotificationTest: TestDescription = {
+    title: 'Test "pushed event" Notification',
+    program: `${examples}blink.wasm`,
+    bridge: new WARDuinoBridge(interpreter, port++),
+    steps: [{
+        title: 'Push mock event',
+        instruction: InterruptTypes.interruptPUSHEvent,
+        payload: encodeEvent('interrupt', ''),
+        parser: ackParser,
+        expected: [{
+            'ack': {kind: 'comparison', value: (state: string, value: string) => value.includes('Interrupt: 73')} as Expected<string>
+        }]
+    }]
+};
+
+describer.describeTest(eventNotificationTest);
+
+const receiveEventTest: TestDescription = {
+    title: 'Test Event Transfer (proxy -> supervisor)',
+    program: `${examples}button.wasm`,
+    bridge: new WARDuinoBridge(interpreter, port++),
+    steps: [{
+        title: 'Send PAUSE command',
+        instruction: InterruptTypes.interruptPAUSE,
+        parser: stateParser,
+        expectResponse: false
+    }, {
+        title: 'Push mock event',
+        instruction: InterruptTypes.interruptPUSHEvent,
+        payload: encodeEvent('interrupt', ''),
+        expectResponse: false
+    }, {
+        title: 'CHECK: event queue',
+        instruction: InterruptTypes.interruptDUMPEvents,
+        parser: stateParser,
+        expected: [{
+            'events': {kind: 'comparison', value: (state: string, value: Array<any>) => value.length === 1} as Expected<Array<any>>
+        }]
+    }]
+};
+
+describer.describeTest(receiveEventTest);
 
