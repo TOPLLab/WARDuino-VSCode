@@ -1,4 +1,4 @@
-import {MochaOptions, reporters, Runner, Test} from 'mocha';
+import {MochaOptions, reporters, Runner, Suite, Test} from 'mocha';
 import color = reporters.Base.color;
 import colors = reporters.Base.colors;
 import symbols = reporters.Base.symbols;
@@ -27,7 +27,11 @@ class Reporter {
             console.log(color('suite', '%s%s'), this.indent(), suite.title);
         });
 
-        runner.on(Runner.constants.EVENT_SUITE_END, (suite) => {
+        runner.on(Runner.constants.EVENT_SUITE_END, (suite: Suite) => {
+            if (this.failures.length > 0) {
+                this.failed++;
+            }
+
             this.reportFailure(this.failures);
             this.failures = Array<any>();
 
@@ -49,7 +53,7 @@ class Reporter {
         });
 
         runner.on(Runner.constants.EVENT_TEST_FAIL, (test: Test, error: any) => {
-            console.log(this.indent() + color('fail', '  %d) %s'), ++this.failed, test.title);
+            console.log(this.indent(this.indentationLevel + 1) + color('fail', '> %s'), test.title);
             console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(error)}`));
             this.failures.push(error);
         });
@@ -65,7 +69,7 @@ class Reporter {
                 color('green', ' %d passing') +
                 color('light', ' (%s)');
 
-            console.log(fmt, stats?.passes || 0, seconds(stats?.duration ?? 0));
+            console.log(fmt, (stats?.suites ?? this.failed) - this.failed, seconds(stats?.duration ?? 0));
 
             // pending
             if (stats?.pending) {
@@ -76,9 +80,9 @@ class Reporter {
 
             // failures
             if (stats?.failures) {
-                fmt = color('fail', `${this.indent(1)} %d failing`);
+                fmt = color('error', `${this.indent(1)} %d failing`);
 
-                console.log(fmt, stats?.failures);
+                console.log(fmt, this.failed);
 
                 this.failures.forEach((failure) => {
                     this.reportFailure(failure);
