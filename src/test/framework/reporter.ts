@@ -3,26 +3,49 @@ import color = reporters.Base.color;
 import colors = reporters.Base.colors;
 import symbols = reporters.Base.symbols;
 
+/* Change color output */
+
 colors.suite = 95; // purple
 colors.fail = 90; // grey
 colors.error = 31; // red
+
+/* Helper functions for formatting */
 
 function seconds(ms: number): string {
     return `${(ms / 1000).toFixed(0)}s`;
 }
 
+function formatThrownError(message: string): string {
+    const substring = message.match(/the string "(.*)" was/);
+    return substring !== null ? substring[1] : message;
+}
+
+function formatTimout(message: string): string {
+    const limit = message.match(/Timeout of ([0-9]*)ms exceeded./);
+    if (limit) {
+        return `test exceeded time limit (${limit[1]}ms)`;
+    }
+    return message;
+}
+
+/** Custom Reporter for Describer framework */
+
 class Reporter {
     private readonly indentationSize: number = 2;
     private indentationLevel: number = 0;
 
-    private failed: number = 0;
-    private failures = Array<any>();
+    private failed: number = 0;  // number of failed suites
+    private failures = Array<any>();  // array to keep failed tests of suite (temporarily)
 
     constructor(runner: Runner, options?: MochaOptions) {
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
+            // TODO report general information:
+            // + information about the describer
+            // + information about the VM (commit)
+            // + information about the system the test/vm are being run on
         });
 
-        runner.on(Runner.constants.EVENT_SUITE_BEGIN, (suite) => {
+        runner.on(Runner.constants.EVENT_SUITE_BEGIN, (suite: Suite) => {
             ++this.indentationLevel;
             console.log(color('suite', '%s%s'), this.indent(), suite.title);
         });
@@ -53,7 +76,7 @@ class Reporter {
         });
 
         runner.on(Runner.constants.EVENT_TEST_FAIL, (test: Test, error: any) => {
-            console.log(this.indent(this.indentationLevel + 1) + color('fail', '> %s'), test.title);
+            console.log(this.indent(this.indentationLevel + 1) + color('fail', symbols.err + ' %s'), test.title);
             console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(error)}`));
             this.failures.push(error);
         });
@@ -99,13 +122,17 @@ class Reporter {
     }
 
     private reportFailure(failure: any): string | undefined {
+        const message = failure.message?.toString();
+
         let prologue = 'Failure: ';
         if (failure.showDiff) {
             return prologue + `runtime returned '${failure.actual}' (expected: ${failure.expected})`;
-        } else if (failure.message?.toString().includes('Timeout')) {
-            return prologue + 'timeout';
+        } else if (message?.includes('throw an Error :)')) {
+            return prologue + formatThrownError(message);
+        } else if (message?.includes('Timeout')) {
+            return prologue + formatTimout(message);
         } else {
-            return prologue + failure.message;
+            return prologue + message;
         }
     }
 }
