@@ -8,7 +8,7 @@ import {after} from 'mocha';
 const TIMEOUT = 2000;
 
 function timeout(label: string, time: number, promise: Promise<any>): Promise<any> {
-    return Promise.race([promise, new Promise((resolve, reject) => setTimeout(() => reject(`timeout: ${label}`), time))]);
+    return Promise.race([promise, new Promise((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
 }
 
 export enum Description {
@@ -161,7 +161,7 @@ export class Describer {
                         return;
                     }
 
-                    const actual: any = await timeout(`send ${step.instruction}`, TIMEOUT,
+                    const actual: any = await timeout(`sending instruction ${step.instruction}`, TIMEOUT,
                         description.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse));
 
                     await new Promise(f => setTimeout(f, step.delay ?? 0));
