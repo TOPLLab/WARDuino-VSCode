@@ -345,6 +345,7 @@ const pauseTest: TestDescription = {
     title: 'Test PAUSE',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
+    dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
@@ -375,6 +376,7 @@ const stepTest: TestDescription = {
     title: 'Test STEP',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
+    dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
@@ -403,6 +405,7 @@ const runTest: TestDescription = {
     title: 'Test RUN',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
+    dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
@@ -451,6 +454,7 @@ const eventNotificationTest: TestDescription = {
     title: 'Test "pushed event" Notification',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
+    dependencies: [dumpTest],
     steps: [{
         title: 'Push mock event',
         instruction: InterruptTypes.interruptPUSHEvent,
@@ -472,6 +476,7 @@ const dumpEventsTest: TestDescription = {
     title: 'Test DUMPEvents',
     program: `${examples}button.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
+    dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: event queue',
         instruction: InterruptTypes.interruptDUMPEvents,
@@ -492,6 +497,7 @@ const receiveEventTest: TestDescription = {
     title: 'Test Event Transfer (supervisor side)',
     program: `${examples}button.wasm`,
     bridge: new EDWARDBridge(interpreter, port++),
+    dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
