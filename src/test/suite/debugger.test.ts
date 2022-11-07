@@ -28,7 +28,7 @@ import {Duplex, Readable} from 'stream';
 
 const interpreter: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const examples: string = 'src/test/suite/examples/';
-let port: number = 8200;
+let port: number = 7900;
 
 /**
  * Test Suite of the WARDuino CLI
@@ -116,7 +116,7 @@ function isReadable(x: Readable | null): x is Readable {
     return x !== null;
 }
 
-function  startWARDuino(interpreter: string, program: string, port: number, args: string[] = []): ChildProcess {
+function startWARDuino(interpreter: string, program: string, port: number, args: string[] = []): ChildProcess {
     const _args: string[] = ['--socket', (port).toString(), '--file', program].concat(args);
     return spawn(interpreter, _args);
 }
@@ -281,7 +281,7 @@ const expectDUMP: Expectation[] = [
         'breakpoints': {
             kind: 'comparison', value: (state: Object, value: Array<any>) => {
                 return value.length === 0;
-            }
+            }, message: 'list of breakpoints should be empty'
         } as Expected<Array<any>>
     },
     {'callstack[0].sp': {kind: 'primitive', value: -1} as Expected<number>},
@@ -293,7 +293,7 @@ const expectDUMPLocals: Expectation[] = [
         'locals.count': {
             kind: 'comparison', value: (state: Object, value: number) => {
                 return value === getValue(state, 'locals.locals').length;
-            }
+            }, message: 'locals.count should equal length of locals array'
         } as Expected<number>
     }];
 
@@ -457,7 +457,11 @@ const eventNotificationTest: TestDescription = {
         payload: encodeEvent('interrupt', ''),
         parser: ackParser,
         expected: [{
-            'ack': {kind: 'comparison', value: (state: string, value: string) => value.includes('Interrupt: 73')} as Expected<string>
+            'ack': {
+                kind: 'comparison',
+                value: (state: string, value: string) => value.includes('Interrupt: 73'),
+                message: 'no acknowledge received from runtime'
+            } as Expected<string>
         }]
     }]
 };
@@ -473,7 +477,11 @@ const dumpEventsTest: TestDescription = {
         instruction: InterruptTypes.interruptDUMPEvents,
         parser: stateParser,
         expected: [{
-            'events': {kind: 'comparison', value: (state: string, value: Array<any>) => value.length === 0} as Expected<Array<any>>
+            'events': {
+                kind: 'comparison',
+                value: (state: string, value: Array<any>) => value.length === 0,
+                message: 'events queue is should be empty'
+            } as Expected<Array<any>>
         }]
     }]
 };
@@ -487,7 +495,6 @@ const receiveEventTest: TestDescription = {
     steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
-        parser: stateParser,
         expectResponse: false
     }, {
         title: 'Push mock event',
@@ -499,7 +506,11 @@ const receiveEventTest: TestDescription = {
         instruction: InterruptTypes.interruptDUMPEvents,
         parser: stateParser,
         expected: [{
-            'events': {kind: 'comparison', value: (state: string, value: Array<any>) => value.length === 1} as Expected<Array<any>>
+            'events': {
+                kind: 'comparison',
+                value: (state: string, value: Array<any>) => value.length === 1,
+                message: 'events queue should include 1 event'
+            } as Expected<Array<any>>
         }]
     }]
 };

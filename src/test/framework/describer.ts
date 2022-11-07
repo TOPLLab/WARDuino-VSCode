@@ -29,7 +29,7 @@ export type Expected<T> =
 /** discrimination union */
     | { kind: 'primitive'; value: T }
     | { kind: 'description'; value: Description }
-    | { kind: 'comparison'; value: (state: Object, value: T) => boolean }
+    | { kind: 'comparison'; value: (state: Object, value: T) => boolean ; message?: string}
     | { kind: 'behaviour'; value: Behaviour };
 
 export interface Breakpoint {
@@ -192,7 +192,7 @@ export class Describer {
             } else if (entry.kind === 'description') {
                 this.expectDescription(value, entry.value);
             } else if (entry.kind === 'comparison') {
-                this.expectComparison(actual, value, entry.value);
+                this.expectComparison(actual, value, entry.value, entry.message);
             } else if (entry.kind === 'behaviour') {
                 if (previous === undefined) {
                     assert.fail('Invalid test: no [previous] to compare behaviour to.');
@@ -218,8 +218,8 @@ export class Describer {
         }
     }
 
-    private expectComparison<T>(state: Object, actual: T, comparator: (state: Object, value: T) => boolean): void {
-        expect(comparator(state, actual), `compare ${actual} with ${comparator}`).to.be.true;
+    private expectComparison<T>(state: Object, actual: T, comparator: (state: Object, value: T) => boolean, message?: string): void {
+        expect(comparator(state, actual), `compare ${actual} with ${comparator}`).to.equal(true, message ?? 'custom comparator failed');
     }
 
     private expectBehaviour(actual: any, previous: any, behaviour: Behaviour): void {
