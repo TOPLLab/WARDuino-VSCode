@@ -7,8 +7,8 @@ import {after} from 'mocha';
 
 const TIMEOUT = 2000;
 
-function timeout(label: string, time: number, promise: Promise<any>): Promise<any> {
-    return Promise.race([promise, new Promise((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
+function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
+    return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
 }
 
 export enum Description {
@@ -93,6 +93,8 @@ export interface Instance {
 }
 
 export abstract class ProcessBridge {
+    abstract name: string;
+
     abstract connect(program: string, args: string[]): Promise<Instance>;
 
     abstract sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void>;
@@ -134,9 +136,8 @@ export class Describer {
             /** Each test requires some housekeeping before and after */
 
             before('Connect to debugger', async function () {
-                instance = await description.bridge.connect(description.program, description.args ?? []).catch((message: string) => {
-                    console.error(message);
-                });
+                instance = await timeout<Instance>(`connecting with ${description.bridge.name}`, TIMEOUT,
+                    description.bridge.connect(description.program, description.args ?? []));
             });
 
             afterEach('Clear listeners on interface', () => {
@@ -161,7 +162,7 @@ export class Describer {
                         return;
                     }
 
-                    const actual: any = await timeout(`sending instruction ${step.instruction}`, TIMEOUT,
+                    const actual: Object | void = await timeout<Object | void>(`sending instruction ${step.instruction}`, TIMEOUT,
                         description.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse));
 
                     await new Promise(f => setTimeout(f, step.delay ?? 0));
