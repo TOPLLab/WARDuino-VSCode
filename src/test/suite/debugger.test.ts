@@ -147,8 +147,10 @@ function connectWARDuino(interpreter: string, program: string, port: number, arg
 }
 
 class WARDuinoBridge extends ProcessBridge {
-    private readonly interpreter: string;
-    private readonly port: number;
+    public name: string = 'WARDuino bridge';
+
+    protected readonly interpreter: string;
+    protected readonly port: number;
 
     constructor(interpreter: string, port: number = 8200) {
         super();
@@ -185,39 +187,21 @@ class WARDuinoBridge extends ProcessBridge {
     }
 }
 
-class EDWARDBridge extends ProcessBridge {
-    private readonly interpreter: string;
-    private readonly port: number;
-    private readonly serial: string;
+class EDWARDBridge extends WARDuinoBridge {
+    public name: string = 'EDWARD bridge';
 
-    private supervisor?: Instance;
-    private proxy?: Instance;
+    private readonly proxy: string;
 
-    constructor(interpreter: string, port: number = 8200, serial: string = '/dev/ttyUSB0') {
-        super();
-        this.interpreter = interpreter;
-        this.port = port;
-        this.serial = serial;
+    constructor(interpreter: string, port: number = 8200, proxy: string = '/dev/ttyUSB0') {
+        super(interpreter, port);
+        this.proxy = proxy;
     }
 
     connect(program: string, args: string[] = []): Promise<Instance> {
         // TODO start proxy and supervisor. connect to both.
         // TODO which connection to return?
-        return new Promise<Instance>(() => {
-
-        });
-    }
-
-    sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void> {
-        // TODO use fake instructions? -> need an instruction to tell the BRIDGE to trigger an event on the proxy.
-        // TODO How to trigger events on the proxy?! (do we only do this with realworld events?)
-        return new Promise<Object | void>((resolve) => {
-            resolve();
-        });
-    }
-
-    disconnect(instance: Instance | void) {
-        // TODO implement
+        args.concat(['--proxy', this.proxy]);
+        return connectWARDuino(this.interpreter, program, this.port, args);
     }
 }
 
@@ -462,10 +446,26 @@ const eventNotificationTest: TestDescription = {
 
 describer.describeTest(eventNotificationTest);
 
-const receiveEventTest: TestDescription = {
-    title: 'Test Event Transfer (proxy -> supervisor)',
+const dumpEventsTest: TestDescription = {
+    title: 'Test DUMPEvents',
     program: `${examples}button.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
+    steps: [{
+        title: 'CHECK: event queue',
+        instruction: InterruptTypes.interruptDUMPEvents,
+        parser: stateParser,
+        expected: [{
+            'events': {kind: 'comparison', value: (state: string, value: Array<any>) => value.length === 0} as Expected<Array<any>>
+        }]
+    }]
+};
+
+describer.describeTest(dumpEventsTest);
+
+const receiveEventTest: TestDescription = {
+    title: 'Test Event Transfer (supervisor side)',
+    program: `${examples}button.wasm`,
+    bridge: new EDWARDBridge(interpreter, port++),
     steps: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
