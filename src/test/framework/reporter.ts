@@ -125,7 +125,9 @@ class Reporter {
         const message = failure.message?.toString();
 
         let prologue = 'Failure: ';
-        if (failure.showDiff) {
+        if (showCustomComparatorError(failure)) {
+            return prologue + message.split(':').slice(0, -1).join('');
+        } else if (showDifference(failure)) {
             return prologue + `runtime returned '${failure.actual}' (expected: ${failure.expected})`;
         } else if (message?.includes('throw an Error :)')) {
             return prologue + formatThrownError(message);
@@ -135,6 +137,14 @@ class Reporter {
             return prologue + message;
         }
     }
+}
+
+function showDifference(failure: any): boolean {
+    return failure.showDiff && failure.actual !== failure.exception;
+}
+
+function showCustomComparatorError(failure: any): boolean {
+    return failure.showDiff && failure.expected === true;
 }
 
 export = Reporter;
