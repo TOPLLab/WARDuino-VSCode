@@ -34,7 +34,7 @@ let port: number = 8200;
  * Test Suite of the WARDuino CLI
  */
 
-describe('WARDuino CLI Test Suite', () => {
+describe('WARDuino CLI: test exit codes', () => {
 
     /**
      * Tests to see if VM and debugger start properly
@@ -53,6 +53,9 @@ describe('WARDuino CLI Test Suite', () => {
             done();
         });
     });
+});
+
+describe('WARDuino CLI: test debugging socket', () => {
 
     it('Test: start websocket', function (done) {
         let succeeded = false;
@@ -82,7 +85,9 @@ describe('WARDuino CLI Test Suite', () => {
     it('Test: connect to websocket', async function () {
         await connectWARDuino(interpreter, `${examples}blink.wasm`, port++);
     });
+});
 
+describe('WARDuino CLI: test proxy connection', () => {
     it('Test: --proxy flag', function (done) {
         const address = {port: port, host: '127.0.0.1'};
         const proxy: net.Server = new net.Server();
