@@ -125,7 +125,9 @@ class Reporter {
         const message = failure.message?.toString();
 
         let prologue = 'Failure: ';
-        if (showCustomComparatorError(failure)) {
+        if (skippedTest(failure)) {
+            return message;
+        } else if (showCustomComparatorError(failure)) {
             return prologue + message.split(':').slice(0, -1).join('');
         } else if (showDifference(failure)) {
             return prologue + `runtime returned '${failure.actual}' (expected: ${failure.expected})`;
@@ -137,6 +139,10 @@ class Reporter {
             return prologue + message;
         }
     }
+}
+
+function skippedTest(failure: any): boolean {
+    return failure.message?.includes('Skip');
 }
 
 function showDifference(failure: any): boolean {

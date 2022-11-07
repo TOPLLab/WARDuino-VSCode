@@ -29,7 +29,7 @@ export type Expected<T> =
 /** discrimination union */
     | { kind: 'primitive'; value: T }
     | { kind: 'description'; value: Description }
-    | { kind: 'comparison'; value: (state: Object, value: T) => boolean ; message?: string}
+    | { kind: 'comparison'; value: (state: Object, value: T) => boolean; message?: string }
     | { kind: 'behaviour'; value: Behaviour };
 
 export interface Breakpoint {
@@ -121,9 +121,13 @@ export interface TestDescription {
     steps?: Step[];
 
     skip?: boolean;
+
+    dependencies?: TestDescription[];
 }
 
 export class Describer {
+
+    private states: Map<string, string> = new Map<string, string>();
 
     public describeTest(description: TestDescription) {
         const describer = this;
@@ -140,12 +144,13 @@ export class Describer {
                     description.bridge.connect(description.program, description.args ?? []));
             });
 
-            afterEach('Clear listeners on interface', () => {
+            afterEach('Clear listeners on interface', function () {
                 // after each step: remove the installed listeners
                 instance?.interface.removeAllListeners('data');
             });
 
-            after('Shutdown debugger', () => {
+            after('Shutdown debugger', function () {
+                describer.states.set(description.title, this.currentTest?.state ?? 'unknown');
                 description.bridge.disconnect(instance);
             });
 
@@ -156,9 +161,15 @@ export class Describer {
 
                 /** Perform the step and check if expectations were met */
 
-                it(step.title, async () => {
+                it(step.title, async function () {
                     if (instance === undefined) {
                         assert.fail('Cannot run test: no debugger connection.');
+                        return;
+                    }
+
+                    const failedDependencies: TestDescription[] = describer.failedDependencies(description);
+                    if (failedDependencies.length > 0) {
+                        assert.fail(`Skipped: failed dependent tests: ${failedDependencies.map(dependence => dependence.title)}`);
                         return;
                     }
 
@@ -177,6 +188,10 @@ export class Describer {
                 });
             }
         });
+    }
+
+    private failedDependencies(description: TestDescription): TestDescription[] {
+        return (description?.dependencies ?? []).filter(dependence => this.states.get(dependence.title) !== 'passed');
     }
 
     private expect(expectation: Expectation, actual: any, previous: any): void {
