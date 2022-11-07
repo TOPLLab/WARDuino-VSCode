@@ -299,21 +299,20 @@ const DUMP: Step = {
     expected: expectDUMP
 };
 
-const jsonTest: TestDescription = {
-    title: 'Test valid JSON',
+const dumpTest: TestDescription = {
+    title: 'Test DUMP',
+    program: `${examples}blink.wasm`,
+    bridge: new WARDuinoBridge(interpreter, port++),
+    steps: [DUMP]
+};
+
+describer.describeTest(dumpTest);
+
+const dumpLocalsTest: TestDescription = {
+    title: 'Test DUMPLocals',
     program: `${examples}blink.wasm`,
     bridge: new WARDuinoBridge(interpreter, port++),
     steps: [{
-        title: 'Send DUMP command',
-        instruction: InterruptTypes.interruptDUMP,
-        parser: stateParser,
-        expected: expectDUMP
-    }, {
-        title: 'Send DUMPFull command',
-        instruction: InterruptTypes.interruptDUMPFull,
-        parser: stateParser,
-        expected: expectDUMP.concat(expectDUMPLocals)
-    }, {
         title: 'Send DUMPLocals command',
         instruction: InterruptTypes.interruptDUMPLocals,
         parser: stateParser,
@@ -321,7 +320,21 @@ const jsonTest: TestDescription = {
     }]
 };
 
-describer.describeTest(jsonTest);
+describer.describeTest(dumpLocalsTest);
+
+const dumpFullTest: TestDescription = {
+    title: 'Test DUMPFull',
+    program: `${examples}blink.wasm`,
+    bridge: new WARDuinoBridge(interpreter, port++),
+    steps: [{
+        title: 'Send DUMPFull command',
+        instruction: InterruptTypes.interruptDUMPFull,
+        parser: stateParser,
+        expected: expectDUMP.concat(expectDUMPLocals)
+    }]
+};
+
+describer.describeTest(dumpFullTest);
 
 const pauseTest: TestDescription = {
     title: 'Test PAUSE',
