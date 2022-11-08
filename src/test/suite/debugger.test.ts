@@ -11,7 +11,7 @@ import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {
     Behaviour,
     Describer,
-    Description,
+    Description, Emulator,
     Expectation,
     Expected,
     getValue,
@@ -22,7 +22,7 @@ import {
 } from '../framework/describer';
 import {assert, expect} from 'chai';
 import {ChildProcess, spawn} from 'child_process';
-import {ReadlineParser} from 'serialport';
+import {ReadlineParser, SerialPort} from 'serialport';
 import * as net from 'net';
 import {Duplex, Readable} from 'stream';
 import {afterEach} from 'mocha';
@@ -88,7 +88,7 @@ describe('WARDuino CLI: test debugging socket', () => {
     });
 
     it('Test: connect to websocket', async function () {
-        const instance = await connectWARDuino(interpreter, `${examples}blink.wasm`, port++);
+        const instance: Emulator = await connectSocket(interpreter, `${examples}blink.wasm`, port++);
         instance.interface.destroy();
         instance.process.kill('SIGKILL');
     });
@@ -103,7 +103,7 @@ describe('WARDuino CLI: test proxy connection', () => {
             done();
         });
 
-        connectWARDuino(interpreter, `${examples}blink.wasm`, port++, ['--proxy', address.port.toString()]).then((instance: Instance) => {
+        connectSocket(interpreter, `${examples}blink.wasm`, port++, ['--proxy', address.port.toString()]).then((instance: Emulator) => {
             instance.process.on('exit', function (code) {
                 assert.fail(`Interpreter should not exit. (code: ${code})`);
                 done();
@@ -128,7 +128,7 @@ function startWARDuino(interpreter: string, program: string, port: number, args:
     return spawn(interpreter, _args);
 }
 
-function connectWARDuino(interpreter: string, program: string, port: number, args: string[] = []): Promise<Instance> {
+function connectSocket(interpreter: string, program: string, port: number, args: string[] = []): Promise<Emulator> {
     const address = {port: port, host: '127.0.0.1'};
     const process = startWARDuino(interpreter, program, port, args);
 
@@ -158,22 +158,7 @@ function connectWARDuino(interpreter: string, program: string, port: number, arg
     });
 }
 
-class WARDuinoBridge extends ProcessBridge {
-    public name: string = 'WARDuino bridge';
-
-    protected readonly interpreter: string;
-    protected readonly port: number;
-
-    constructor(interpreter: string, port: number = 8200) {
-        super();
-        this.interpreter = interpreter;
-        this.port = port;
-    }
-
-    connect(program: string, args: string[] = []): Promise<Instance> {
-        return connectWARDuino(this.interpreter, program, this.port, args);
-    }
-
+abstract class WARDuinoBridge extends ProcessBridge {
     sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void> {
         const stack: MessageStack = new MessageStack('\n');
 
@@ -195,11 +180,64 @@ class WARDuinoBridge extends ProcessBridge {
 
     disconnect(instance: Instance | void) {
         instance?.interface.destroy();
+    }
+}
+
+class EmulatorBridge extends WARDuinoBridge {
+    public name: string = 'WARDuino bridge';
+
+    protected readonly interpreter: string;
+    protected readonly port: number;
+
+    constructor(interpreter: string, port: number = 8200) {
+        super();
+        this.interpreter = interpreter;
+        this.port = port;
+    }
+
+    connect(program: string, args: string[] = []): Promise<Instance> {
+        return connectSocket(this.interpreter, program, this.port, args);
+    }
+
+    disconnect(instance: Emulator | void) {
+        instance?.interface.destroy();
         instance?.process.kill('SIGKILL');
     }
 }
 
-class EDWARDBridge extends WARDuinoBridge {
+class HardwareBridge extends WARDuinoBridge {
+    public name: string = 'WARDuino bridge';
+
+    protected readonly interpreter: string;
+    protected readonly port: string;
+
+    constructor(interpreter: string, port: string = '/dev/ttyUSB0') {
+        super();
+        this.interpreter = interpreter;
+        this.port = port;
+    }
+
+    connect(program: string, args: string[] = []): Promise<Instance> {
+        const bridge = this;
+
+        // TODO upload program
+
+        let connection: SerialPort;
+        return new Promise<Instance>(function (resolve, reject) {
+            connection = new SerialPort({path: bridge.port, baudRate: 115200},
+                (error) => {
+                    if (error) {
+                        reject(`Could not connect to serial port: ${bridge.port}`);
+                        return;
+                    }
+                    resolve({interface: connection} as Instance);
+                }
+            );
+        });
+    }
+}
+
+class EDWARDBridge extends EmulatorBridge {
     public name: string = 'EDWARD bridge';
 
     private readonly proxy: string;
@@ -213,7 +251,7 @@ class EDWARDBridge extends WARDuinoBridge {
         // TODO start proxy and supervisor. connect to both.
         // TODO which connection to return?
         args.concat(['--proxy', this.proxy]);
-        return connectWARDuino(this.interpreter, program, this.port, args);
+        return connectSocket(this.interpreter, program, this.port, args);
     }
 }
 
@@ -314,7 +352,7 @@ const DUMP: Step = {
 const dumpTest: TestDescription = {
     title: 'Test DUMP',
     program: `${examples}blink.wasm`,
-    bridge: new WARDuinoBridge(interpreter, port++),
+    bridge: new EmulatorBridge(interpreter, port++),
     steps: [DUMP]
 };
 
@@ -323,7 +361,7 @@ describer.describeTest(dumpTest);
 const dumpLocalsTest: TestDescription = {
     title: 'Test DUMPLocals',
     program: `${examples}blink.wasm`,
-    bridge: new WARDuinoBridge(interpreter, port++),
+    bridge: new EmulatorBridge(interpreter, port++),
     steps: [{
         title: 'Send DUMPLocals command',
         instruction: InterruptTypes.interruptDUMPLocals,
@@ -337,7 +375,7 @@ describer.describeTest(dumpLocalsTest);
 const dumpFullTest: TestDescription = {
     title: 'Test DUMPFull',
     program: `${examples}blink.wasm`,
-    bridge: new WARDuinoBridge(interpreter, port++),
+    bridge: new EmulatorBridge(interpreter, port++),
     steps: [{
         title: 'Send DUMPFull command',
         instruction: InterruptTypes.interruptDUMPFull,
@@ -351,7 +389,7 @@ describer.describeTest(dumpFullTest);
 const pauseTest: TestDescription = {
     title: 'Test PAUSE',
     program: `${examples}blink.wasm`,
-    bridge: new WARDuinoBridge(interpreter, port++),
+    bridge: new EmulatorBridge(interpreter, port++),
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -382,7 +420,7 @@ describer.describeTest(pauseTest);
 const stepTest: TestDescription = {
     title: 'Test STEP',
     program: `${examples}blink.wasm`,
-    bridge: new WARDuinoBridge(interpreter, port++),
+    bridge: new EmulatorBridge(interpreter, port++),
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -411,7 +449,7 @@ describer.describeTest(stepTest);
 const runTest: TestDescription = {
     title: 'Test RUN',
     program: `${examples}blink.wasm`,
-    bridge: new WARDuinoBridge(interpreter, port++),
+    bridge: new EmulatorBridge(interpreter, port++),
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -460,7 +498,7 @@ function ackParser(text: string): Object {
 const eventNotificationTest: TestDescription = {
     title: 'Test "pushed event" Notification',
     program: `${examples}blink.wasm`,
-    bridge: new WARDuinoBridge(interpreter, port++),
+    bridge: new EmulatorBridge(interpreter, port++),
     dependencies: [dumpTest],
     steps: [{
         title: 'Push mock event',
@@ -482,7 +520,7 @@ describer.describeTest(eventNotificationTest);
 const dumpEventsTest: TestDescription = {
     title: 'Test DUMPEvents',
     program: `${examples}button.wasm`,
-    bridge: new WARDuinoBridge(interpreter, port++),
+    bridge: new EmulatorBridge(interpreter, port++),
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: event queue',
@@ -530,3 +568,23 @@ const receiveEventTest: TestDescription = {
 
 describer.describeTest(receiveEventTest);
 
+const dumpCallbackMappingTest: TestDescription = {
+    title: 'Test DUMPCallbackmapping',
+    program: `${examples}button.wasm`,
+    bridge: new EmulatorBridge(interpreter, port++),
+    dependencies: [dumpTest],
+    steps: [{
+        title: 'CHECK: callbackmapping',
+        instruction: InterruptTypes.interruptDUMPCallbackmapping,
+        parser: stateParser,
+        expected: [{
+            'callbacks': {
+                kind: 'comparison',
+                value: (state: string, value: Array<any>) => value.length === 1,
+                message: 'callbackmapping should contain one callback'
+            } as Expected<Array<any>>
+        }]
+    }]
+};
+
+describer.describeTest(dumpCallbackMappingTest);

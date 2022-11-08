@@ -88,6 +88,10 @@ export function getValue(object: any, field: string): any {
 }
 
 export interface Instance {
+    interface: Duplex;
+}
+
+export interface Emulator extends Instance {
     process: ChildProcess;
     interface: Duplex;
 }
