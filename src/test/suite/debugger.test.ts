@@ -25,6 +25,7 @@ import {ChildProcess, spawn} from 'child_process';
 import {ReadlineParser} from 'serialport';
 import * as net from 'net';
 import {Duplex, Readable} from 'stream';
+import {afterEach} from 'mocha';
 
 const interpreter: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const examples: string = 'src/test/suite/examples/';
@@ -35,23 +36,27 @@ let port: number = 7900;
  */
 
 describe('WARDuino CLI: test exit codes', () => {
-
+    let process: ChildProcess;
     /**
      * Tests to see if VM and debugger start properly
      */
 
     it('Test: exit code (0)', function (done) {
-        spawn(interpreter, ['--no-debug', '--file', `${examples}hello.wasm`]).on('exit', function (code) {
+        process = spawn(interpreter, ['--no-debug', '--file', `${examples}hello.wasm`]).on('exit', function (code) {
             expect(code).to.equal(0);
             done();
         });
     });
 
     it('Test: exit code (1)', function (done) {
-        spawn(interpreter, ['--socket', (port++).toString(), '--file', `${examples}nonexistent.wasm`]).on('exit', function (code) {
+        process = spawn(interpreter, ['--socket', (port++).toString(), '--file', `${examples}nonexistent.wasm`]).on('exit', function (code) {
             expect(code).to.equal(1);
             done();
         });
+    });
+
+    afterEach('Shutdown CLI', function () {
+        process.kill('SIGKILL');
     });
 });
 
@@ -83,7 +88,9 @@ describe('WARDuino CLI: test debugging socket', () => {
     });
 
     it('Test: connect to websocket', async function () {
-        await connectWARDuino(interpreter, `${examples}blink.wasm`, port++);
+        const instance = await connectWARDuino(interpreter, `${examples}blink.wasm`, port++);
+        instance.interface.destroy();
+        instance.process.kill('SIGKILL');
     });
 });
 
