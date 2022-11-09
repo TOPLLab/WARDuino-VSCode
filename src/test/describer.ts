@@ -2,10 +2,17 @@ import {ChildProcess} from 'child_process';
 import {InterruptTypes} from '../DebugBridges/InterruptTypes';
 import {Duplex} from 'stream';
 import {assert, expect} from 'chai';
+import { Maybe, Just, Nothing } from 'purify-ts/Maybe';
+import { SourceMapHelper } from './SourceMapHelper';
 import 'mocha';
-import {after} from 'mocha';
+import {after, describe} from 'mocha';
+import { Interface } from 'readline';
+import { CompileBridge } from '../CompilerBridges/CompileBridge';
+import { CompileBridgeFactory } from '../CompilerBridges/CompileBridgeFactory';
+import { Response } from 'vscode-debugadapter';
 
 const TIMEOUT = 2000;
+
 
 export enum Description {
     /** required properties */
@@ -118,6 +125,20 @@ export interface TestDescription {
 
 export class Describer {
 
+    private sourceMap: SourceMapHelper | undefined;
+    private compiler: CompileBridge | undefined;
+    private outputPath: string = '';
+    private wabtPath: string = '';
+
+    public compilerOutputPath(path: string): void {
+        this.outputPath = path;
+    }
+
+    public compilerWABTPath(path: string): void {
+        this.wabtPath = path;
+    }
+
+
     public describeTest(description: TestDescription) {
         const describer = this;
 
@@ -125,17 +146,67 @@ export class Describer {
             this.timeout(TIMEOUT);
 
             let instance: Instance | void;
+            let startAddress: number | void;
 
             /** Each test requires some housekeeping before and after */
 
             before('Connect to debugger', async function () {
-                instance = await description.bridge.connect(description.program, description.args ?? []).catch((message: string) => {
-                    console.error(message);
-                });
+                const tmpProgram = `${description.program.split('.')[0]}.wasm`;
+                instance = await description.bridge.connect(tmpProgram, description.args ?? []);
             });
 
-            afterEach('Clear listeners on interface', () => {
-                // after each step: remove the installed listeners
+            before('Load source mappings', async function (){
+                // No need to load source mappings if no intial bps set
+                if (!!!description.initialBreakpoints)
+                {return;}
+
+                describer.compiler = CompileBridgeFactory.makeCompileBridge(description.program, describer.outputPath, describer.wabtPath);
+                const sm = await describer.compiler?.compile();
+                describer.sourceMap = new SourceMapHelper(sm); 
+                let linenumbers = sm.lineInfoPairs.map(lp=>lp.lineInfo.line);
+                console.log(linenumbers);
+            });
+
+            before('Retrieve start address', async function () {
+                // No need for startaddress if no intial bps set
+                if (!!!description.initialBreakpoints)
+                {return;}
+
+                const itf = instance?.interface as Duplex;
+                const resp: any = await description.bridge.sendInstruction(itf, InterruptTypes.interruptOffset, true, JSON.parse);
+                if (resp.offset === undefined) {
+                    throw new Error(`Response expected to contain "offset" field. Got ${Object.keys(resp)}`);
+                }
+                else if(typeof(resp.offset) !== 'string'){
+                    throw new Error(`Start address is expected to be string. Got ${typeof(resp.off)}`);
+                }
+                startAddress = Number(resp.offset);
+                assert.isFalse(Number.isNaN(startAddress), 'start address should be a number');
+                assert.isTrue(startAddress >=0);
+                describer.sourceMap?.setStartAddress(startAddress);
+            });
+ 
+            before('Set initial breakpoints', async function () {
+
+                // Skip test if no intial bps set
+                if (!!!description.initialBreakpoints) {
+                    instance?.interface.removeAllListeners('data');
+                    return;
+                }
+
+                const itf = instance?.interface as Duplex;
+                const srcMap = describer.sourceMap as SourceMapHelper;
+
+                for (const bp of description.initialBreakpoints || []) {
+                    if(!srcMap.hasLine(bp.line)){
+                        throw new Error(`Setting bp on invalid line number ${bp.line} in ${description.program}`);
+                    }
+
+                    const addr: number = srcMap.lineToAddress(bp.line).unsafeCoerce();
+                    const cmd: string = srcMap.addBpCommand(bp.line).unsafeCoerce();
+                    const resp = await description.bridge.sendInstruction(itf, cmd, true, (s: string) => {return s;});
+                    assert.equal(resp, `BP 0x${addr.toString(16).toUpperCase()}!`);
+                }
                 instance?.interface.removeAllListeners('data');
             });
 

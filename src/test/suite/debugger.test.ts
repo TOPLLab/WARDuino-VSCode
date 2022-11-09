@@ -79,28 +79,28 @@ describe('WARDuino CLI Test Suite', () => {
         }
     });
 
-    it('Test: connect to websocket', async function () {
-        await connectWARDuino(interpreter, `${examples}blink.wasm`, port++);
-    });
+    // it('Test: connect to websocket', async function () {
+    //     await connectWARDuino(interpreter, `${examples}blink.wasm`, port++);
+    // });
 
-    it('Test: --proxy flag', function (done) {
-        const address = {port: port, host: '127.0.0.1'};
-        const proxy: net.Server = new net.Server();
-        proxy.listen(port++);
-        proxy.on('connection', () => {
-            done();
-        });
+    // it('Test: --proxy flag', function (done) {
+    //     const address = {port: port, host: '127.0.0.1'};
+    //     const proxy: net.Server = new net.Server();
+    //     proxy.listen(port++);
+    //     proxy.on('connection', () => {
+    //         done();
+    //     });
 
-        connectWARDuino(interpreter, `${examples}blink.wasm`, port++, ['--proxy', address.port.toString()]).then((instance: Instance) => {
-            instance.process.on('exit', function (code) {
-                assert.fail(`Interpreter should not exit. (code: ${code})`);
-                done();
-            });
-        }).catch(function (message) {
-            assert.fail(message);
-            done();
-        });
-    });
+    //     connectWARDuino(interpreter, `${examples}blink.wasm`, port++, ['--proxy', address.port.toString()]).then((instance: Instance) => {
+    //         instance.process.on('exit', function (code) {
+    //             assert.fail(`Interpreter should not exit. (code: ${code})`);
+    //             done();
+    //         });
+    //     }).catch(function (message) {
+    //         assert.fail(message);
+    //         done();
+    //     });
+    // });
 });
 
 /**
@@ -248,7 +248,13 @@ function stateParser(text: string): Object {
     return message;
 }
 
+const runPath = process.cwd();
+const wabtSDK = `${runPath}/WABT/build`;
+const output = `${runPath}/somedir/`;
+
 const describer: Describer = new Describer();
+describer.compilerOutputPath(output);
+describer.compilerWABTPath(wabtSDK);
 
 const expectDUMP: Expectation[] = [
     {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
@@ -292,7 +298,7 @@ const jsonTest: TestDescription = {
         title: 'Send DUMPFull command',
         instruction: InterruptTypes.interruptDUMPFull,
         parser: stateParser,
-        expected: expectDUMP.concat(expectDUMPLocals)
+        expected: expectDUMP.concat(expectDUMPLocals),
     }, {
         title: 'Send DUMPLocals command',
         instruction: InterruptTypes.interruptDUMPLocals,
@@ -301,7 +307,7 @@ const jsonTest: TestDescription = {
     }]
 };
 
-describer.describeTest(jsonTest);
+// describer.describeTest(jsonTest);
 
 const pauseTest: TestDescription = {
     title: 'Test PAUSE',
@@ -331,12 +337,13 @@ const pauseTest: TestDescription = {
     }]
 };
 
-describer.describeTest(pauseTest);
+// describer.describeTest(pauseTest);
 
 const stepTest: TestDescription = {
     title: 'Test STEP',
-    program: `${examples}blink.wasm`,
+    program: `${examples}blink.wast`,
     bridge: new WARDuinoBridge(interpreter, port++),
+    initialBreakpoints: [{line: 35}, {line: 33}],
     tests: [{
         title: 'Send PAUSE command',
         instruction: InterruptTypes.interruptPAUSE,
@@ -397,5 +404,5 @@ const runTest: TestDescription = {
     }]
 };
 
-describer.describeTest(runTest);
+// describer.describeTest(runTest);
 
