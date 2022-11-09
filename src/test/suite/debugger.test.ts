@@ -11,7 +11,8 @@ import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {
     Behaviour,
     Describer,
-    Description, Emulator,
+    Description,
+    Emulator,
     Expectation,
     Expected,
     getValue,
@@ -21,13 +22,16 @@ import {
     TestDescription
 } from '../framework/describer';
 import {assert, expect} from 'chai';
-import {ChildProcess, spawn} from 'child_process';
+import {ChildProcess, exec, spawn} from 'child_process';
 import {ReadlineParser, SerialPort} from 'serialport';
 import * as net from 'net';
 import {Duplex, Readable} from 'stream';
 import {afterEach} from 'mocha';
+import {WatCompiler} from '../framework/Compiler';
+import {ArduinoUploader} from '../framework/Uploader';
 
-const INTERPRETER: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
+const EMULATOR: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
+const ARDUINO: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/platforms/Arduino/`;
 const EXAMPLES: string = 'src/test/suite/examples/';
 let INITIAL_PORT: number = 7900;
 
@@ -42,14 +46,14 @@ describe('WARDuino CLI: test exit codes', () => {
      */
 
     it('Test: exit code (0)', function (done) {
-        process = spawn(INTERPRETER, ['--no-debug', '--file', `${EXAMPLES}hello.wasm`]).on('exit', function (code) {
+        process = spawn(EMULATOR, ['--no-debug', '--file', `${EXAMPLES}hello.wasm`]).on('exit', function (code) {
             expect(code).to.equal(0);
             done();
         });
     });
 
     it('Test: exit code (1)', function (done) {
-        process = spawn(INTERPRETER, ['--socket', (INITIAL_PORT++).toString(), '--file', `${EXAMPLES}nonexistent.wasm`]).on('exit', function (code) {
+        process = spawn(EMULATOR, ['--socket', (INITIAL_PORT++).toString(), '--file', `${EXAMPLES}nonexistent.wasm`]).on('exit', function (code) {
             expect(code).to.equal(1);
             done();
         });
@@ -65,7 +69,7 @@ describe('WARDuino CLI: test debugging socket', () => {
     it('Test: start websocket', function (done) {
         let succeeded = false;
 
-        const process: ChildProcess = startWARDuino(INTERPRETER, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
+        const process: ChildProcess = startWARDuino(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
         process.on('exit', function (code) {
             assert.isTrue(succeeded, `Interpreter should not exit (${code}).`);
             done();
@@ -88,7 +92,7 @@ describe('WARDuino CLI: test debugging socket', () => {
     });
 
     it('Test: connect to websocket', async function () {
-        const instance: Emulator = await connectSocket(INTERPRETER, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
+        const instance: Emulator = await connectSocket(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
         instance.interface.destroy();
         instance.process.kill('SIGKILL');
     });
@@ -103,7 +107,7 @@ describe('WARDuino CLI: test proxy connection', () => {
             done();
         });
 
-        connectSocket(INTERPRETER, `${EXAMPLES}blink.wasm`, INITIAL_PORT++, ['--proxy', address.port.toString()]).then((instance: Emulator) => {
+        connectSocket(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++, ['--proxy', address.port.toString()]).then((instance: Emulator) => {
             instance.process.on('exit', function (code) {
                 assert.fail(`Interpreter should not exit. (code: ${code})`);
                 done();
@@ -220,20 +224,10 @@ class HardwareBridge extends WARDuinoBridge {
     connect(program: string, args: string[] = []): Promise<Instance> {
         const bridge = this;
 
-        // TODO upload program
-
-        let connection: SerialPort;
-        return new Promise<Instance>(function (resolve, reject) {
-            connection = new SerialPort({path: bridge.port, baudRate: 115200},
-                (error) => {
-                    if (error) {
-                        reject(`Could not connect to serial port: ${bridge.port}`);
-                        return;
-                    }
-                    resolve({interface: connection} as Instance);
-                }
-            );
-        });
+        // TODO wabt + sdkpath
+        return new WatCompiler(program, '').compile().then((output) => {
+            return new ArduinoUploader(output.file, '', {path: bridge.port}).upload();
+        }).then((connection) => Promise.resolve({interface: connection}));
     }
 }
 
@@ -318,7 +312,7 @@ function stateParser(text: string): Object {
     return message;
 }
 
-const bridge: EmulatorBridge = new EmulatorBridge(INTERPRETER);
+const bridge: ProcessBridge = new HardwareBridge(ARDUINO);
 const describer: Describer = new Describer(bridge);
 
 const expectDUMP: Expectation[] = [
