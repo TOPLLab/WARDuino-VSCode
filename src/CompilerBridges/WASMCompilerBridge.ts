@@ -1,7 +1,6 @@
 import {exec, ExecException} from 'child_process';
 import * as parseUtils from '../Parsers/ParseUtils';
 import {CompileTimeError} from './CompileTimeError';
-import {LineInfo} from '../State/LineInfo';
 import {LineInfoPairs} from '../State/LineInfoPairs';
 import {CompileBridge} from './CompileBridge';
 import {SourceMap} from '../State/SourceMap';
@@ -33,29 +32,6 @@ function checkErrorObjDump(errorMessage: string) {
     if (errorMessage.match('wasm-objdump')) {
         throw new Error('Could not find wasm-objdump in the path');
     }
-}
-
-function extractLineInfo(lineString: string): LineInfo {
-    lineString = lineString.substring(1);
-    return parseUtils.jsonParse(lineString);
-}
-
-function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
-    let result = [];
-    for (let i = 0; i < lines.length; i++) {
-        if (lines[i].match(/@/)) {
-            result.push({
-                lineInfo: extractLineInfo(lines[i]),
-                lineAddress: parseUtils.extractAddressInformation(lines[i + 1])
-            });
-        }
-    }
-    return result;
-}
-
-function makeLineInfoPairs(sourceMapInput: String): LineInfoPairs[] {
-    let lines = sourceMapInput.split('\n');
-    return createLineInfoPairs(lines);
 }
 
 export class WASMCompilerBridge implements CompileBridge {
@@ -112,7 +88,7 @@ export class WASMCompilerBridge implements CompileBridge {
             function handleCompilerStreams(error: ExecException | null, stdout: String, stderr: any) {
                 that.handleStdError(stderr, reject);
                 that.handleError(error, reject);
-                lineInfoPairs = makeLineInfoPairs(stdout);
+                lineInfoPairs = parseUtils.getLineInfos(stdout);
             }
 
             let compile = exec(compileCommand, handleCompilerStreams);
@@ -164,7 +140,7 @@ export class WASMCompilerBridge implements CompileBridge {
             function handleCompilerStreams(error: ExecException | null, stdout: String, stderr: any) {
                 that.handleStdError(stderr, reject);
                 that.handleError(error, reject);
-                sourceMap = makeLineInfoPairs(stdout);
+                sourceMap = parseUtils.getLineInfos(stdout);
             }
 
             let cp = exec(command, handleCompilerStreams);

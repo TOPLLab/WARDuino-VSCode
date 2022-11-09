@@ -1,5 +1,7 @@
 import {FunctionInfo} from '../State/FunctionInfo';
 import {VariableInfo} from '../State/VariableInfo';
+import {LineInfoPairs} from '../State/LineInfoPairs';
+import {LineInfo} from '../State/LineInfo';
 
 export function jsonParse(obj: string) {
     return new Function(`return ${obj}`)();
@@ -102,6 +104,29 @@ function extractImportInfo(line: String): FunctionInfo {
     match = line.match(/<([a-zA-Z0-9 ._]+)>/);
     primitive.name = ((match === null) ? `${primitive.index}` : `$${match[1]}`);
     return primitive;
+}
+
+function extractLineInfo(lineString: string): LineInfo {
+    lineString = lineString.substring(1);
+    return jsonParse(lineString);
+}
+
+function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
+    let result = [];
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].match(/@/)) {
+            result.push({
+                lineInfo: extractLineInfo(lines[i]),
+                lineAddress: extractAddressInformation(lines[i + 1])
+            });
+        }
+    }
+    return result;
+}
+
+export function getLineInfos(sourceMapInput: String): LineInfoPairs[] {
+    let lines = sourceMapInput.split('\n');
+    return createLineInfoPairs(lines);
 }
 
 export function getFunctionInfos(input: String): FunctionInfo[] {
