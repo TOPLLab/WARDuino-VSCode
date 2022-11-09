@@ -113,9 +113,6 @@ export interface TestDescription {
     /** File to load into the interpreter */
     program: string;
 
-    /** A communication bridge to talk to the vm */
-    bridge: ProcessBridge;
-
     /** Initial breakpoints */
     initialBreakpoints?: Breakpoint[];
 
@@ -131,7 +128,15 @@ export interface TestDescription {
 
 export class Describer {
 
+    /** The current state for each described test */
     private states: Map<string, string> = new Map<string, string>();
+
+    /** A communication bridge to talk to the vm */
+    private bridge: ProcessBridge;
+
+    constructor(bridge: ProcessBridge) {
+        this.bridge = bridge;
+    }
 
     public describeTest(description: TestDescription) {
         const describer = this;
@@ -144,8 +149,8 @@ export class Describer {
             /** Each test requires some housekeeping before and after */
 
             before('Connect to debugger', async function () {
-                instance = await timeout<Instance>(`connecting with ${description.bridge.name}`, TIMEOUT,
-                    description.bridge.connect(description.program, description.args ?? []));
+                instance = await timeout<Instance>(`connecting with ${describer.bridge.name}`, TIMEOUT,
+                    describer.bridge.connect(description.program, description.args ?? []));
             });
 
             afterEach('Clear listeners on interface', function () {
@@ -155,7 +160,7 @@ export class Describer {
 
             after('Shutdown debugger', function () {
                 describer.states.set(description.title, this.currentTest?.state ?? 'unknown');
-                description.bridge.disconnect(instance);
+                describer.bridge.disconnect(instance);
             });
 
             /** Each test is made of one or more steps */
@@ -178,7 +183,7 @@ export class Describer {
                     }
 
                     const actual: Object | void = await timeout<Object | void>(`sending instruction ${step.instruction}`, TIMEOUT,
-                        description.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse));
+                        describer.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse));
 
                     await new Promise(f => setTimeout(f, step.delay ?? 0));
 

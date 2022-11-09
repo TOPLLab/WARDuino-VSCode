@@ -27,9 +27,9 @@ import * as net from 'net';
 import {Duplex, Readable} from 'stream';
 import {afterEach} from 'mocha';
 
-const interpreter: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
-const examples: string = 'src/test/suite/examples/';
-let port: number = 7900;
+const INTERPRETER: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
+const EXAMPLES: string = 'src/test/suite/examples/';
+let INITIAL_PORT: number = 7900;
 
 /**
  * Test Suite of the WARDuino CLI
@@ -42,14 +42,14 @@ describe('WARDuino CLI: test exit codes', () => {
      */
 
     it('Test: exit code (0)', function (done) {
-        process = spawn(interpreter, ['--no-debug', '--file', `${examples}hello.wasm`]).on('exit', function (code) {
+        process = spawn(INTERPRETER, ['--no-debug', '--file', `${EXAMPLES}hello.wasm`]).on('exit', function (code) {
             expect(code).to.equal(0);
             done();
         });
     });
 
     it('Test: exit code (1)', function (done) {
-        process = spawn(interpreter, ['--socket', (port++).toString(), '--file', `${examples}nonexistent.wasm`]).on('exit', function (code) {
+        process = spawn(INTERPRETER, ['--socket', (INITIAL_PORT++).toString(), '--file', `${EXAMPLES}nonexistent.wasm`]).on('exit', function (code) {
             expect(code).to.equal(1);
             done();
         });
@@ -65,7 +65,7 @@ describe('WARDuino CLI: test debugging socket', () => {
     it('Test: start websocket', function (done) {
         let succeeded = false;
 
-        const process: ChildProcess = startWARDuino(interpreter, `${examples}blink.wasm`, port++);
+        const process: ChildProcess = startWARDuino(INTERPRETER, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
         process.on('exit', function (code) {
             assert.isTrue(succeeded, `Interpreter should not exit (${code}).`);
             done();
@@ -88,7 +88,7 @@ describe('WARDuino CLI: test debugging socket', () => {
     });
 
     it('Test: connect to websocket', async function () {
-        const instance: Emulator = await connectSocket(interpreter, `${examples}blink.wasm`, port++);
+        const instance: Emulator = await connectSocket(INTERPRETER, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
         instance.interface.destroy();
         instance.process.kill('SIGKILL');
     });
@@ -96,14 +96,14 @@ describe('WARDuino CLI: test debugging socket', () => {
 
 describe('WARDuino CLI: test proxy connection', () => {
     it('Test: --proxy flag', function (done) {
-        const address = {port: port, host: '127.0.0.1'};
+        const address = {port: INITIAL_PORT, host: '127.0.0.1'};
         const proxy: net.Server = new net.Server();
-        proxy.listen(port++);
+        proxy.listen(INITIAL_PORT++);
         proxy.on('connection', () => {
             done();
         });
 
-        connectSocket(interpreter, `${examples}blink.wasm`, port++, ['--proxy', address.port.toString()]).then((instance: Emulator) => {
+        connectSocket(INTERPRETER, `${EXAMPLES}blink.wasm`, INITIAL_PORT++, ['--proxy', address.port.toString()]).then((instance: Emulator) => {
             instance.process.on('exit', function (code) {
                 assert.fail(`Interpreter should not exit. (code: ${code})`);
                 done();
@@ -184,10 +184,10 @@ abstract class WARDuinoBridge extends ProcessBridge {
 }
 
 class EmulatorBridge extends WARDuinoBridge {
-    public name: string = 'WARDuino bridge';
+    public name: string = 'Emulator bridge';
 
     protected readonly interpreter: string;
-    protected readonly port: number;
+    protected port: number;
 
     constructor(interpreter: string, port: number = 8200) {
         super();
@@ -196,7 +196,7 @@ class EmulatorBridge extends WARDuinoBridge {
     }
 
     connect(program: string, args: string[] = []): Promise<Instance> {
-        return connectSocket(this.interpreter, program, this.port, args);
+        return connectSocket(this.interpreter, program, this.port++, args);
     }
 
     disconnect(instance: Emulator | void) {
@@ -206,7 +206,7 @@ class EmulatorBridge extends WARDuinoBridge {
 }
 
 class HardwareBridge extends WARDuinoBridge {
-    public name: string = 'WARDuino bridge';
+    public name: string = 'Hardware bridge';
 
     protected readonly interpreter: string;
     protected readonly port: string;
@@ -318,7 +318,8 @@ function stateParser(text: string): Object {
     return message;
 }
 
-const describer: Describer = new Describer();
+const bridge: EmulatorBridge = new EmulatorBridge(INTERPRETER);
+const describer: Describer = new Describer(bridge);
 
 const expectDUMP: Expectation[] = [
     {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
@@ -351,8 +352,7 @@ const DUMP: Step = {
 
 const dumpTest: TestDescription = {
     title: 'Test DUMP',
-    program: `${examples}blink.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}blink.wasm`,
     steps: [DUMP]
 };
 
@@ -360,8 +360,7 @@ describer.describeTest(dumpTest);
 
 const dumpLocalsTest: TestDescription = {
     title: 'Test DUMPLocals',
-    program: `${examples}blink.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}blink.wasm`,
     steps: [{
         title: 'Send DUMPLocals command',
         instruction: InterruptTypes.interruptDUMPLocals,
@@ -374,8 +373,7 @@ describer.describeTest(dumpLocalsTest);
 
 const dumpFullTest: TestDescription = {
     title: 'Test DUMPFull',
-    program: `${examples}blink.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}blink.wasm`,
     steps: [{
         title: 'Send DUMPFull command',
         instruction: InterruptTypes.interruptDUMPFull,
@@ -388,8 +386,7 @@ describer.describeTest(dumpFullTest);
 
 const pauseTest: TestDescription = {
     title: 'Test PAUSE',
-    program: `${examples}blink.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}blink.wasm`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -419,8 +416,7 @@ describer.describeTest(pauseTest);
 
 const stepTest: TestDescription = {
     title: 'Test STEP',
-    program: `${examples}blink.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}blink.wasm`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -448,8 +444,7 @@ describer.describeTest(stepTest);
 
 const runTest: TestDescription = {
     title: 'Test RUN',
-    program: `${examples}blink.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}blink.wasm`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -497,8 +492,7 @@ function ackParser(text: string): Object {
 
 const eventNotificationTest: TestDescription = {
     title: 'Test "pushed event" Notification',
-    program: `${examples}blink.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}blink.wasm`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Push mock event',
@@ -519,8 +513,7 @@ describer.describeTest(eventNotificationTest);
 
 const dumpEventsTest: TestDescription = {
     title: 'Test DUMPEvents',
-    program: `${examples}button.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}button.wasm`,
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: event queue',
@@ -540,8 +533,7 @@ describer.describeTest(dumpEventsTest);
 
 const receiveEventTest: TestDescription = {
     title: 'Test Event Transfer (supervisor side)',
-    program: `${examples}button.wasm`,
-    bridge: new EDWARDBridge(interpreter, port++),
+    program: `${EXAMPLES}button.wasm`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -570,8 +562,7 @@ describer.describeTest(receiveEventTest);
 
 const dumpCallbackMappingTest: TestDescription = {
     title: 'Test DUMPCallbackmapping',
-    program: `${examples}button.wasm`,
-    bridge: new EmulatorBridge(interpreter, port++),
+    program: `${EXAMPLES}button.wasm`,
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: callbackmapping',
