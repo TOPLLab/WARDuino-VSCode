@@ -96,7 +96,7 @@ class Reporter {
 
             // pending
             if (stats?.pending) {
-                fmt = color('pending', ' ') + color('pending', ' %d pending');
+                fmt = color('pending', this.indent(1)) + color('pending', ' %d skipped');
 
                 console.log(fmt, stats?.pending);
             }

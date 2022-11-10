@@ -190,7 +190,8 @@ abstract class WARDuinoBridge extends ProcessBridge {
 }
 
 class EmulatorBridge extends WARDuinoBridge {
-    public name: string = 'Emulator bridge';
+    public readonly name: string = 'Emulator bridge';
+    public readonly connectionTimeout: number = 8000;
 
     protected readonly interpreter: string;
     protected port: number;
@@ -213,7 +214,9 @@ class EmulatorBridge extends WARDuinoBridge {
 }
 
 class HardwareBridge extends WARDuinoBridge {
-    public name: string = 'Hardware bridge';
+    public readonly name: string = 'Hardware bridge';
+    public readonly instructionTimeout: number = 5000;
+    public readonly connectionTimeout: number = 50000;
 
     protected readonly interpreter: string;
     protected readonly port: string;
@@ -328,8 +331,8 @@ function stateParser(text: string): Object {
     return message;
 }
 
-const bridge: ProcessBridge = new HardwareBridge(ARDUINO);
-const describer: Describer = new Describer(bridge);
+const cli: Describer = new Describer(new EmulatorBridge(EMULATOR));
+const mcu: Describer = new Describer(new HardwareBridge(ARDUINO)).skipall();
 
 const expectDUMP: Expectation[] = [
     {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
@@ -366,7 +369,8 @@ const dumpTest: TestDescription = {
     steps: [DUMP]
 };
 
-describer.describeTest(dumpTest);
+cli.describeTest(dumpTest);
+mcu.describeTest(dumpTest);
 
 const dumpLocalsTest: TestDescription = {
     title: 'Test DUMPLocals',
@@ -379,7 +383,8 @@ const dumpLocalsTest: TestDescription = {
     }]
 };
 
-describer.describeTest(dumpLocalsTest);
+cli.describeTest(dumpLocalsTest);
+mcu.describeTest(dumpLocalsTest);
 
 const dumpFullTest: TestDescription = {
     title: 'Test DUMPFull',
@@ -392,7 +397,8 @@ const dumpFullTest: TestDescription = {
     }]
 };
 
-describer.describeTest(dumpFullTest);
+cli.describeTest(dumpFullTest);
+mcu.describeTest(dumpFullTest);
 
 const pauseTest: TestDescription = {
     title: 'Test PAUSE',
@@ -422,7 +428,8 @@ const pauseTest: TestDescription = {
     }]
 };
 
-describer.describeTest(pauseTest);
+cli.describeTest(pauseTest);
+mcu.describeTest(pauseTest);
 
 const stepTest: TestDescription = {
     title: 'Test STEP',
@@ -450,7 +457,8 @@ const stepTest: TestDescription = {
     }]
 };
 
-describer.describeTest(stepTest);
+cli.describeTest(stepTest);
+mcu.describeTest(stepTest);
 
 const runTest: TestDescription = {
     title: 'Test RUN',
@@ -488,7 +496,8 @@ const runTest: TestDescription = {
     }]
 };
 
-describer.describeTest(runTest);
+cli.describeTest(runTest);
+mcu.describeTest(runTest);
 
 // EDWARD tests with mock proxy
 
@@ -519,7 +528,7 @@ const eventNotificationTest: TestDescription = {
     }]
 };
 
-describer.describeTest(eventNotificationTest);
+cli.describeTest(eventNotificationTest);
 
 const dumpEventsTest: TestDescription = {
     title: 'Test DUMPEvents',
@@ -539,7 +548,8 @@ const dumpEventsTest: TestDescription = {
     }]
 };
 
-describer.describeTest(dumpEventsTest);
+cli.describeTest(dumpEventsTest);
+mcu.describeTest(dumpEventsTest);
 
 const receiveEventTest: TestDescription = {
     title: 'Test Event Transfer (supervisor side)',
@@ -568,7 +578,7 @@ const receiveEventTest: TestDescription = {
     }]
 };
 
-describer.describeTest(receiveEventTest);
+cli.describeTest(receiveEventTest);
 
 const dumpCallbackMappingTest: TestDescription = {
     title: 'Test DUMPCallbackmapping',
@@ -588,4 +598,5 @@ const dumpCallbackMappingTest: TestDescription = {
     }]
 };
 
-describer.describeTest(dumpCallbackMappingTest);
+cli.describeTest(dumpCallbackMappingTest);
+mcu.describeTest(dumpCallbackMappingTest);
