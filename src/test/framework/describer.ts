@@ -6,6 +6,7 @@ import 'mocha';
 import {after} from 'mocha';
 
 const TIMEOUT = 2000;
+const CONNECTION_TIMEOUT = 20000;
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
@@ -142,14 +143,15 @@ export class Describer {
         const describer = this;
 
         describe(description.title, function () {
-            this.timeout(TIMEOUT * 1.5);  // must be larger than own timeout
+            this.timeout(TIMEOUT);  // must be larger than own timeout
 
             let instance: Instance | void;
 
             /** Each test requires some housekeeping before and after */
 
             before('Connect to debugger', async function () {
-                instance = await timeout<Instance>(`connecting with ${describer.bridge.name}`, TIMEOUT,
+                this.timeout(CONNECTION_TIMEOUT * 1.1);
+                instance = await timeout<Instance>(`connecting with ${describer.bridge.name}`, CONNECTION_TIMEOUT,
                     describer.bridge.connect(description.program, description.args ?? []));
             });
 

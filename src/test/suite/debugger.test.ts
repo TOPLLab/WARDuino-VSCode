@@ -226,7 +226,7 @@ class HardwareBridge extends WARDuinoBridge {
 
         // TODO wabt + sdkpath
         return new WatCompiler(program, '').compile().then((output) => {
-            return new ArduinoUploader(output.file, '', {path: bridge.port}).upload();
+            return new ArduinoUploader(output.file, this.interpreter, {path: bridge.port}).upload();
         }).then((connection) => Promise.resolve({interface: connection}));
     }
 }
