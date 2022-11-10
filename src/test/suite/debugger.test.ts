@@ -18,6 +18,7 @@ import {
     getValue,
     Instance,
     ProcessBridge,
+    SerialInstance,
     Step,
     TestDescription
 } from '../framework/describer';
@@ -182,8 +183,9 @@ abstract class WARDuinoBridge extends ProcessBridge {
         });
     }
 
-    disconnect(instance: Instance | void) {
+    disconnect(instance: Instance | void): Promise<void> {
         instance?.interface.destroy();
+        return Promise.resolve();
     }
 }
 
@@ -203,9 +205,10 @@ class EmulatorBridge extends WARDuinoBridge {
         return connectSocket(this.interpreter, program, this.port++, args);
     }
 
-    disconnect(instance: Emulator | void) {
+    disconnect(instance: Emulator | void): Promise<void> {
         instance?.interface.destroy();
         instance?.process.kill('SIGKILL');
+        return Promise.resolve();
     }
 }
 
@@ -228,6 +231,19 @@ class HardwareBridge extends WARDuinoBridge {
         return new WatCompiler(program, '').compile().then((output) => {
             return new ArduinoUploader(output.file, this.interpreter, {path: bridge.port}).upload();
         }).then((connection) => Promise.resolve({interface: connection}));
+    }
+
+    disconnect(instance: SerialInstance | void): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            instance?.interface.close((err) => {
+                if (err) {
+                    reject(err.message);
+                    return;
+                }
+                instance.interface.destroy();
+                resolve();
+            });
+        });
     }
 }
 
