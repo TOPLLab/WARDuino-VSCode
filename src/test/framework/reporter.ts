@@ -58,6 +58,11 @@ class Reporter {
             this.reportFailure(this.failures);
             this.failures = Array<any>();
 
+            if (suite.isPending()) {
+                let format = this.indent(this.indentationLevel + 1) + '\u25D7 Skipping test';
+                console.log(format);
+            }
+
             --this.indentationLevel;
             if (this.indentationLevel === 1) {
                 console.log();
@@ -65,7 +70,7 @@ class Reporter {
         });
 
         runner.on(Runner.constants.EVENT_TEST_PASS, (test) => {
-            let format = this.indent() + color('checkmark', '  ' + symbols.ok) + color('pass', ' %s');
+            let format = this.indent() + color('checkmark', '  ' + symbols.ok) + ' %s';
 
             if (test.speed === 'fast' || test.speed === undefined) {
                 console.log(format, test.title);
