@@ -1,5 +1,5 @@
 import {Duplex} from 'stream';
-import {exec} from 'child_process';
+import {exec, ExecException} from 'child_process';
 import {SerialPort} from 'serialport';
 import {SerialPortOpenOptions} from 'serialport/dist/serialport';
 
@@ -40,23 +40,37 @@ export class ArduinoUploader extends Uploader {
 
     private stage(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            const command = `cd ${this.source} ; xxd -i upload.wasm > ${this.sdkpath}/upload.h`;
+            const command = `xxd -i ${this.source} | sed -e 's/[^ ]*_wasm/upload_wasm/g' > ${this.sdkpath}/upload.h`;
 
             let createHeaders = exec(command);
 
             createHeaders.on('close', (code) => {
                 if (code !== 0) {
-                    reject('unable to stage program for Arduino platform');
+                    reject('staging failed: unable to initialize headers');
                     return;
                 }
                 resolve();
+            });
+        }).then(() => {
+            return new Promise<void>((resolve, reject) => {
+                let compile = exec('make compile', {cwd: this.sdkpath});
+
+                compile.on('close', (code) => {
+                    if (code !== 0) {
+                        reject('staging failed: unable to build Arduino program');
+                        return;
+                    }
+                    resolve();
+                });
             });
         });
     }
 
     private flash(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            const upload = exec(`make flash PORT=${this.options.path} FQBN=${this.fqbn}`, {cwd: this.source});
+            const command = `make flash PORT=${this.options.path} FQBN=${this.fqbn}`;
+
+            const upload = exec(command, {cwd: this.sdkpath});
 
             upload.on('close', (code) => {
                 if (code !== 0) {
