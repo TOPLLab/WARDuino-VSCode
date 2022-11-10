@@ -22,8 +22,8 @@ import {
     TestDescription
 } from '../framework/describer';
 import {assert, expect} from 'chai';
-import {ChildProcess, exec, spawn} from 'child_process';
-import {ReadlineParser, SerialPort} from 'serialport';
+import {ChildProcess, spawn} from 'child_process';
+import {ReadlineParser} from 'serialport';
 import * as net from 'net';
 import {Duplex, Readable} from 'stream';
 import {afterEach} from 'mocha';

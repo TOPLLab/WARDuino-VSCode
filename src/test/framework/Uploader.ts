@@ -1,10 +1,24 @@
 import {Duplex} from 'stream';
-import {exec, ExecException} from 'child_process';
+import {exec} from 'child_process';
 import {SerialPort} from 'serialport';
 import {SerialPortOpenOptions} from 'serialport/dist/serialport';
+import * as fs from 'fs';
+import * as path from 'path';
 
 abstract class Uploader {
     abstract upload(program: string): Promise<Duplex>;
+
+    protected removeTmpDir(tmpdir: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            fs.rm(tmpdir, {recursive: true}, err => {
+                if (err) {
+                    reject('Could not delete temporary directory.');
+                    return;
+                }
+                resolve();
+            });
+        });
+    }
 }
 
 interface SerialOptions {
@@ -32,6 +46,8 @@ export class ArduinoUploader extends Uploader {
 
     public upload(): Promise<Duplex> {
         return this.stage().then(() => {
+            return this.removeTmpDir(path.dirname(this.source));
+        }).then(() => {
             return this.flash();
         }).then(() => {
             return this.connect();
