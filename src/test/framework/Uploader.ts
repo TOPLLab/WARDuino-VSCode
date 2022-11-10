@@ -106,9 +106,14 @@ export class ArduinoUploader extends Uploader {
                         reject(`could not connect to serial port: ${this.options.path}`);
                         return;
                     }
-                    resolve(connection);
                 }
             );
+            connection.on('data', function (data) {
+                if (data.includes('LOADED')) {
+                    connection.removeAllListeners('data');
+                    resolve(connection);
+                }
+            });
         });
     }
 }
