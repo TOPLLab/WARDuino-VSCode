@@ -3,11 +3,8 @@ import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {Duplex} from 'stream';
 import {assert, expect} from 'chai';
 import 'mocha';
-import {after} from 'mocha';
+import {after, describe, PendingSuiteFunction, SuiteFunction} from 'mocha';
 import {SerialPort} from 'serialport';
-
-const TIMEOUT = 2000;
-const CONNECTION_TIMEOUT = 20000;
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
@@ -103,7 +100,10 @@ export interface Emulator extends Instance {
 }
 
 export abstract class ProcessBridge {
-    abstract name: string;
+    public readonly instructionTimeout: number = 2000;
+    public readonly connectionTimeout: number = 2000;
+
+    abstract readonly name: string;
 
     abstract connect(program: string, args: string[]): Promise<Instance>;
 
@@ -140,6 +140,8 @@ export class Describer {
     /** A communication bridge to talk to the vm */
     private bridge: ProcessBridge;
 
+    private suiteFunction: SuiteFunction | PendingSuiteFunction = describe;
+
     constructor(bridge: ProcessBridge) {
         this.bridge = bridge;
     }
@@ -147,15 +149,15 @@ export class Describer {
     public describeTest(description: TestDescription) {
         const describer = this;
 
-        describe(description.title, function () {
-            this.timeout(TIMEOUT * 1.1);  // must be larger than own timeout
+        this.suiteFunction(description.title, function () {
+            this.timeout(describer.bridge.instructionTimeout * 1.1);  // must be larger than own timeout
 
             let instance: Instance | void;
 
             /** Each test requires some housekeeping before and after */
 
             before('Connect to debugger', async function () {
-                this.timeout(CONNECTION_TIMEOUT * 1.1);
+                this.timeout(describer.bridge.connectionTimeout * 1.1);
 
                 const failedDependencies: TestDescription[] = describer.failedDependencies(description);
                 if (failedDependencies.length > 0) {
@@ -163,7 +165,7 @@ export class Describer {
                     throw new Error(`Skipped: failed dependent tests: ${failedDependencies.map(dependence => dependence.title)}`);
                 }
 
-                instance = await timeout<Instance>(`connecting with ${describer.bridge.name}`, CONNECTION_TIMEOUT,
+                instance = await timeout<Instance>(`connecting with ${describer.bridge.name}`, describer.bridge.connectionTimeout,
                     describer.bridge.connect(description.program, description.args ?? []));
             });
 
@@ -192,7 +194,7 @@ export class Describer {
                         return;
                     }
 
-                    const actual: Object | void = await timeout<Object | void>(`sending instruction ${step.instruction}`, TIMEOUT,
+                    const actual: Object | void = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
                         describer.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse));
 
                     await new Promise(f => setTimeout(f, step.delay ?? 0));
@@ -208,6 +210,11 @@ export class Describer {
             }
         });
     }
+
+    public skipall(): Describer {
+        this.suiteFunction = describe.skip;
+        return this;
+    };
 
     private failedDependencies(description: TestDescription): TestDescription[] {
         return (description?.dependencies ?? []).filter(dependence => this.states.get(dependence.title) !== 'passed');
