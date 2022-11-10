@@ -4,6 +4,7 @@ import {Duplex} from 'stream';
 import {assert, expect} from 'chai';
 import 'mocha';
 import {after} from 'mocha';
+import {SerialPort} from 'serialport';
 
 const TIMEOUT = 2000;
 const CONNECTION_TIMEOUT = 20000;
@@ -92,6 +93,10 @@ export interface Instance {
     interface: Duplex;
 }
 
+export interface SerialInstance extends Instance {
+    interface: SerialPort;
+}
+
 export interface Emulator extends Instance {
     process: ChildProcess;
     interface: Duplex;
@@ -104,7 +109,7 @@ export abstract class ProcessBridge {
 
     abstract sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void>;
 
-    abstract disconnect(instance: Instance | void): void;
+    abstract disconnect(instance: Instance | void): Promise<void>;
 }
 
 /** A series of tests to perform on a single instance of the vm */
@@ -143,7 +148,7 @@ export class Describer {
         const describer = this;
 
         describe(description.title, function () {
-            this.timeout(TIMEOUT);  // must be larger than own timeout
+            this.timeout(TIMEOUT * 1.1);  // must be larger than own timeout
 
             let instance: Instance | void;
 
@@ -160,9 +165,9 @@ export class Describer {
                 instance?.interface.removeAllListeners('data');
             });
 
-            after('Shutdown debugger', function () {
+            after('Shutdown debugger', async function () {
                 describer.states.set(description.title, this.currentTest?.state ?? 'unknown');
-                describer.bridge.disconnect(instance);
+                await describer.bridge.disconnect(instance);
             });
 
             /** Each test is made of one or more steps */
