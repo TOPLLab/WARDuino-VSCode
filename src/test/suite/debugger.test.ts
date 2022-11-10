@@ -346,7 +346,7 @@ const DUMP: Step = {
 
 const dumpTest: TestDescription = {
     title: 'Test DUMP',
-    program: `${EXAMPLES}blink.wasm`,
+    program: `${EXAMPLES}blink.wast`,
     steps: [DUMP]
 };
 
@@ -354,7 +354,7 @@ describer.describeTest(dumpTest);
 
 const dumpLocalsTest: TestDescription = {
     title: 'Test DUMPLocals',
-    program: `${EXAMPLES}blink.wasm`,
+    program: `${EXAMPLES}blink.wast`,
     steps: [{
         title: 'Send DUMPLocals command',
         instruction: InterruptTypes.interruptDUMPLocals,
@@ -367,7 +367,7 @@ describer.describeTest(dumpLocalsTest);
 
 const dumpFullTest: TestDescription = {
     title: 'Test DUMPFull',
-    program: `${EXAMPLES}blink.wasm`,
+    program: `${EXAMPLES}blink.wast`,
     steps: [{
         title: 'Send DUMPFull command',
         instruction: InterruptTypes.interruptDUMPFull,
@@ -380,7 +380,7 @@ describer.describeTest(dumpFullTest);
 
 const pauseTest: TestDescription = {
     title: 'Test PAUSE',
-    program: `${EXAMPLES}blink.wasm`,
+    program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -410,7 +410,7 @@ describer.describeTest(pauseTest);
 
 const stepTest: TestDescription = {
     title: 'Test STEP',
-    program: `${EXAMPLES}blink.wasm`,
+    program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -438,7 +438,7 @@ describer.describeTest(stepTest);
 
 const runTest: TestDescription = {
     title: 'Test RUN',
-    program: `${EXAMPLES}blink.wasm`,
+    program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -486,7 +486,7 @@ function ackParser(text: string): Object {
 
 const eventNotificationTest: TestDescription = {
     title: 'Test "pushed event" Notification',
-    program: `${EXAMPLES}blink.wasm`,
+    program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Push mock event',
@@ -507,7 +507,7 @@ describer.describeTest(eventNotificationTest);
 
 const dumpEventsTest: TestDescription = {
     title: 'Test DUMPEvents',
-    program: `${EXAMPLES}button.wasm`,
+    program: `${EXAMPLES}button.wast`,
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: event queue',
@@ -527,7 +527,7 @@ describer.describeTest(dumpEventsTest);
 
 const receiveEventTest: TestDescription = {
     title: 'Test Event Transfer (supervisor side)',
-    program: `${EXAMPLES}button.wasm`,
+    program: `${EXAMPLES}button.wast`,
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
@@ -556,7 +556,7 @@ describer.describeTest(receiveEventTest);
 
 const dumpCallbackMappingTest: TestDescription = {
     title: 'Test DUMPCallbackmapping',
-    program: `${EXAMPLES}button.wasm`,
+    program: `${EXAMPLES}button.wast`,
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: callbackmapping',
