@@ -156,6 +156,13 @@ export class Describer {
 
             before('Connect to debugger', async function () {
                 this.timeout(CONNECTION_TIMEOUT * 1.1);
+
+                const failedDependencies: TestDescription[] = describer.failedDependencies(description);
+                if (failedDependencies.length > 0) {
+                    instance = undefined;
+                    throw new Error(`Skipped: failed dependent tests: ${failedDependencies.map(dependence => dependence.title)}`);
+                }
+
                 instance = await timeout<Instance>(`connecting with ${describer.bridge.name}`, CONNECTION_TIMEOUT,
                     describer.bridge.connect(description.program, description.args ?? []));
             });
@@ -167,7 +174,9 @@ export class Describer {
 
             after('Shutdown debugger', async function () {
                 describer.states.set(description.title, this.currentTest?.state ?? 'unknown');
-                await describer.bridge.disconnect(instance);
+                if (instance) {
+                    await describer.bridge.disconnect(instance);
+                }
             });
 
             /** Each test is made of one or more steps */
@@ -180,12 +189,6 @@ export class Describer {
                 it(step.title, async function () {
                     if (instance === undefined) {
                         assert.fail('Cannot run test: no debugger connection.');
-                        return;
-                    }
-
-                    const failedDependencies: TestDescription[] = describer.failedDependencies(description);
-                    if (failedDependencies.length > 0) {
-                        assert.fail(`Skipped: failed dependent tests: ${failedDependencies.map(dependence => dependence.title)}`);
                         return;
                     }
 
