@@ -147,7 +147,7 @@ jobs:
                 cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
 
             - name: Run tests
-              run: npm run test-vm
+              run: npm run pretest; npm run test-vm
 
     test-ui:
         name: Plugin UI Test Suite
@@ -197,6 +197,6 @@ jobs:
                 cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
 
             - name: Run tests
-              run: xvfb-run -a npm run test-plugin
+              run: npm run pretest; xvfb-run -a npm run test-plugin
 
 
