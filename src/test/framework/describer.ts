@@ -149,7 +149,7 @@ export class Describer {
     public describeTest(description: TestDescription) {
         const describer = this;
 
-        this.suiteFunction(description.title, function () {
+        this.suiteFunction(this.formatTitle(description.title), function () {
             this.timeout(describer.bridge.instructionTimeout * 1.1);  // must be larger than own timeout
 
             let instance: Instance | void;
@@ -215,6 +215,10 @@ export class Describer {
         this.suiteFunction = describe.skip;
         return this;
     };
+
+    private formatTitle(title: string): string {
+        return `${this.bridge.name}: ${title}`;
+    }
 
     private failedDependencies(description: TestDescription): TestDescription[] {
         return (description?.dependencies ?? []).filter(dependence => this.states.get(dependence.title) !== 'passed');

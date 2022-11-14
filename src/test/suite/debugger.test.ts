@@ -190,7 +190,7 @@ abstract class WARDuinoBridge extends ProcessBridge {
 }
 
 class EmulatorBridge extends WARDuinoBridge {
-    public readonly name: string = 'Emulator bridge';
+    public readonly name: string = 'Emulator';
     public readonly connectionTimeout: number = 8000;
 
     protected readonly interpreter: string;
@@ -214,7 +214,7 @@ class EmulatorBridge extends WARDuinoBridge {
 }
 
 class HardwareBridge extends WARDuinoBridge {
-    public readonly name: string = 'Hardware bridge';
+    public readonly name: string = 'Hardware';
     public readonly instructionTimeout: number = 5000;
     public readonly connectionTimeout: number = 50000;
 
