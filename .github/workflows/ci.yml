@@ -99,8 +99,8 @@ jobs:
               if: steps.cache-wabt.outputs.cache-hit != 'true'
               run: ./WABT/build/wasm-objdump --version
 
-    test:
-        name: Mocha Test Suites
+    test-vm:
+        name: Virtual Machine Test Suite
         needs: [build-wabt, build-wdcli]
         runs-on: ubuntu-latest
     
@@ -147,5 +147,56 @@ jobs:
                 cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
 
             - name: Run tests
-              run: xvfb-run -a npm run test
+              run: npm run test-vm
+
+    test-ui:
+        name: Plugin UI Test Suite
+        needs: [build-wabt, build-wdcli]
+        runs-on: ubuntu-latest
+    
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v1
+              with:
+                node-version: 14
+
+            - name: Install Node.js dependencies
+              run: npm ci
+
+            - name: Get WABT cache
+              id: cache-wabt
+              uses: actions/cache@v2
+              with:
+                path: |
+                    ./WABT/build
+                key: ${{ env.WABT_CACHE }}-${{ steps.version.outputs.COMMIT }}
+
+            - name: Update $PATH
+              run: echo "${GITHUB_WORKSPACE}/WABT/build" >> $GITHUB_PATH
+
+            - name: Check wat2wasm
+              run: wat2wasm --version
+
+            - name: Check wasm-objdump
+              run: wasm-objdump --version
+
+            - name: Get WARDuino cache
+              id: cache-wdcli
+              uses: actions/cache@v2
+              with:
+                path: |
+                    ./WARDuino/build-emu
+                key: ${{ env.WDCLI_CACHE }}-${{ steps.version.outputs.COMMIT }}
+
+            - name: Move wdcli
+              run: |
+                mkdir -p $HOME/Arduino/libraries/WARDuino/build-emu/
+                cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
+
+            - name: Run tests
+              run: xvfb-run -a npm run test-plugin
+
 
