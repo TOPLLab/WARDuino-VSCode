@@ -159,6 +159,10 @@ function connectSocket(interpreter: string, program: string, port: number, args:
                     });
                 }
             });
+
+            reader.on('close', () => {
+                reject('Could not connect. Emulator closed down immediately.');
+            });
         } else {
             reject();
         }
