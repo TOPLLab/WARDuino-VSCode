@@ -99,7 +99,7 @@ describe('WARDuino CLI: test debugging socket', () => {
     });
 });
 
-describe('WARDuino CLI: test proxy connection', () => {
+describe.skip('WARDuino CLI: test proxy connection', () => {
     it('Test: --proxy flag', function (done) {
         const address = {port: INITIAL_PORT, host: '127.0.0.1'};
         const proxy: net.Server = new net.Server();
@@ -331,7 +331,7 @@ function stateParser(text: string): Object {
     return message;
 }
 
-const cli: Describer = new Describer(new EmulatorBridge(EMULATOR));
+const cli: Describer = new Describer(new EmulatorBridge(EMULATOR)).skipall();
 const mcu: Describer = new Describer(new HardwareBridge(ARDUINO)).skipall();
 
 const expectDUMP: Expectation[] = [
@@ -380,7 +380,8 @@ const dumpLocalsTest: TestDescription = {
         instruction: InterruptTypes.interruptDUMPLocals,
         parser: stateParser,
         expected: expectDUMPLocals
-    }]
+    }],
+    skip: true
 };
 
 cli.describeTest(dumpLocalsTest);
@@ -394,7 +395,8 @@ const dumpFullTest: TestDescription = {
         instruction: InterruptTypes.interruptDUMPFull,
         parser: stateParser,
         expected: expectDUMP.concat(expectDUMPLocals)
-    }]
+    }],
+    skip: true
 };
 
 cli.describeTest(dumpFullTest);

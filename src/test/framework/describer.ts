@@ -148,8 +148,9 @@ export class Describer {
 
     public describeTest(description: TestDescription) {
         const describer = this;
+        const call: SuiteFunction | PendingSuiteFunction = description.skip ? describe.skip : this.suiteFunction;
 
-        this.suiteFunction(this.formatTitle(description.title), function () {
+        call(this.formatTitle(description.title), function () {
             this.timeout(describer.bridge.instructionTimeout * 1.1);  // must be larger than own timeout
 
             let instance: Instance | void;
