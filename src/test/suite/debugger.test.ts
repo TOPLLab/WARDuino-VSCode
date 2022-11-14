@@ -42,6 +42,7 @@ let INITIAL_PORT: number = 7900;
 
 describe('WARDuino CLI: test exit codes', () => {
     let process: ChildProcess;
+
     /**
      * Tests to see if VM and debugger start properly
      */
@@ -61,6 +62,7 @@ describe('WARDuino CLI: test exit codes', () => {
     });
 
     afterEach('Shutdown CLI', function () {
+        process.removeAllListeners('exit');
         process.kill('SIGKILL');
     });
 });
