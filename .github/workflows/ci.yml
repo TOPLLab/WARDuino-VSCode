@@ -108,6 +108,12 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v2
 
+            - name: Retrieve version
+              run: |
+                cd WABT
+                echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+              id: version
+
             - name: Set up Node.js
               uses: actions/setup-node@v1
               with:
@@ -157,6 +163,12 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v2
+
+            - name: Retrieve version
+              run: |
+                cd WABT
+                echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+              id: version
 
             - name: Set up Node.js
               uses: actions/setup-node@v1
