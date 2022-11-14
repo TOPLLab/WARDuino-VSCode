@@ -209,7 +209,9 @@ class EmulatorBridge extends WARDuinoBridge {
     }
 
     connect(program: string, args: string[] = []): Promise<Instance> {
-        return connectSocket(this.interpreter, program, this.port++, args);
+        return new WatCompiler(program, '').compile().then((output) => {
+            return connectSocket(this.interpreter, output.file, this.port++, args);
+        });
     }
 
     disconnect(instance: Emulator | void): Promise<void> {
