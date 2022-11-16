@@ -33,6 +33,7 @@ import {ArduinoUploader} from '../framework/Uploader';
 
 const EMULATOR: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const ARDUINO: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/platforms/Arduino/`;
+const WABT: string = process.env.WABT ?? '';
 const EXAMPLES: string = 'src/test/suite/examples/';
 let INITIAL_PORT: number = 7900;
 
@@ -209,7 +210,7 @@ class EmulatorBridge extends WARDuinoBridge {
     }
 
     connect(program: string, args: string[] = []): Promise<Instance> {
-        return new WatCompiler(program, '').compile().then((output) => {
+        return new WatCompiler(program, WABT).compile().then((output) => {
             return connectSocket(this.interpreter, output.file, this.port++, args);
         });
     }
@@ -239,7 +240,7 @@ class HardwareBridge extends WARDuinoBridge {
         const bridge = this;
 
         // TODO wabt + sdkpath
-        return new WatCompiler(program, '').compile().then((output) => {
+        return new WatCompiler(program, WABT).compile().then((output) => {
             return new ArduinoUploader(output.file, this.interpreter, {path: bridge.port}).upload();
         }).then((connection) => Promise.resolve({interface: connection}));
     }

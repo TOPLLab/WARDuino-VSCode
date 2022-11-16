@@ -12,6 +12,14 @@ This directory contains the source code for the VS Code plugin for the WARDuino 
 
 The debugger contributes the following settings:
 
+## Testing
+
+To run the vm tests run:
+
+```bash
+env WABT='path to wabt commands' npm run test-vm
+```
+
 ## Development Notes
 
 Before first time use make sure you have:
