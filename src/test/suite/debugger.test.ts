@@ -340,7 +340,7 @@ function stateParser(text: string): Object {
     return message;
 }
 
-const cli: Describer = new Describer(new EmulatorBridge(EMULATOR)).skipall();
+const cli: Describer = new Describer(new EmulatorBridge(EMULATOR));
 const mcu: Describer = new Describer(new HardwareBridge(ARDUINO)).skipall();
 
 const expectDUMP: Expectation[] = [
@@ -586,7 +586,8 @@ const receiveEventTest: TestDescription = {
                 message: 'events queue should include 1 event'
             } as Expected<Array<any>>
         }]
-    }]
+    }],
+    skip: true
 };
 
 cli.describeTest(receiveEventTest);
