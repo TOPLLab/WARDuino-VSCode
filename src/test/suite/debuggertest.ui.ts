@@ -125,7 +125,7 @@ function receivingDumpData(json: string, text: string): boolean {
 describe('Debug API Test Suite (plugin)', () => {
     before(async function () {
         this.timeout(TIMEOUT);
-        await init(RunTimeTarget.embedded);
+        await init(RunTimeTarget.emulator);
         await bridge.connect();
     });
 
