@@ -161,7 +161,7 @@ jobs:
               cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
 
           - name: Run tests
-            run: npm run pretest; npm run test-vm
+            run: npm run pretest; env WABT='./WABT/build' npm run test-vm
 
     test-ui:
         name: Plugin UI Test Suite
