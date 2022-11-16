@@ -358,10 +358,10 @@ const expectDUMP: Expectation[] = [
 const expectDUMPLocals: Expectation[] = [
     {'locals': {kind: 'description', value: Description.defined} as Expected<string>},
     {
-        'locals.count': {
+        'count': {
             kind: 'comparison', value: (state: Object, value: number) => {
-                return value === getValue(state, 'locals.locals').length;
-            }, message: 'locals.count should equal length of locals array'
+                return value === getValue(state, 'locals').length;
+            }, message: 'count should equal length of locals array'
         } as Expected<number>
     }];
 
@@ -389,8 +389,7 @@ const dumpLocalsTest: TestDescription = {
         instruction: InterruptTypes.interruptDUMPLocals,
         parser: stateParser,
         expected: expectDUMPLocals
-    }],
-    skip: true
+    }]
 };
 
 cli.describeTest(dumpLocalsTest);
@@ -403,9 +402,14 @@ const dumpFullTest: TestDescription = {
         title: 'Send DUMPFull command',
         instruction: InterruptTypes.interruptDUMPFull,
         parser: stateParser,
-        expected: expectDUMP.concat(expectDUMPLocals)
-    }],
-    skip: true
+        expected: expectDUMP.concat([{
+            'locals.count': {
+                kind: 'comparison', value: (state: Object, value: number) => {
+                    return value === getValue(state, 'locals.locals').length;
+                }, message: 'locals.count should equal length of locals array'
+            } as Expected<number>
+        }])
+    }]
 };
 
 cli.describeTest(dumpFullTest);
