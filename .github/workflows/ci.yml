@@ -16,12 +16,13 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
 
             - name: Set up Node.js
-              uses: actions/setup-node@v1
+              uses: actions/setup-node@v3
               with:
-                node-version: 14
+                cache: 'npm'
+                node-version: 16
 
             - name: Install Node.js dependencies
               run: npm ci
@@ -35,7 +36,7 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                 submodules: recursive
 
@@ -70,7 +71,7 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                 submodules: recursive
 
@@ -106,7 +107,7 @@ jobs:
     
         steps:
           - name: Checkout
-            uses: actions/checkout@v2
+            uses: actions/checkout@v3
             with:
               submodules: recursive
 
@@ -134,9 +135,10 @@ jobs:
             run: wasm-objdump --version
 
           - name: Set up Node.js
-            uses: actions/setup-node@v1
+            uses: actions/setup-node@v3
             with:
-              node-version: 14
+              cache: 'npm'
+              node-version: 16
 
           - name: Install Node.js dependencies
             run: npm ci
@@ -170,7 +172,7 @@ jobs:
     
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                 submodules: recursive
 
@@ -198,9 +200,10 @@ jobs:
               run: wasm-objdump --version
 
             - name: Set up Node.js
-              uses: actions/setup-node@v1
+              uses: actions/setup-node@v3
               with:
-                node-version: 14
+                cache: 'npm'
+                node-version: 16
 
             - name: Install Node.js dependencies
               run: npm ci
