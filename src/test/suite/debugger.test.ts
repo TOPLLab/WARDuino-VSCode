@@ -196,7 +196,7 @@ abstract class WARDuinoBridge extends ProcessBridge {
     }
 }
 
-class EmulatorBridge extends WARDuinoBridge {
+export class EmulatorBridge extends WARDuinoBridge {
     public readonly name: string = 'Emulator';
     public readonly connectionTimeout: number = 8000;
 
