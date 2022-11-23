@@ -21,7 +21,7 @@ import {
     SerialInstance,
     Step,
     TestDescription
-} from '../framework/describer';
+} from '../framework/Describer';
 import {assert, expect} from 'chai';
 import {ChildProcess, spawn} from 'child_process';
 import {ReadlineParser} from 'serialport';
