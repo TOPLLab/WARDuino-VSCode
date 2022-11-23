@@ -49,6 +49,7 @@ describe('WARDuino CLI: test exit codes', () => {
      */
 
     it('Test: exit code (0)', function (done) {
+        this.timeout(3500);
         process = spawn(EMULATOR, ['--no-debug', '--file', `${EXAMPLES}hello.wasm`]).on('exit', function (code) {
             expect(code).to.equal(0);
             done();
