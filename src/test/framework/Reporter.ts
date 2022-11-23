@@ -30,14 +30,16 @@ function formatTimout(message: string): string {
 
 /** Custom Reporter for Describer framework */
 
-class Reporter {
+class Reporter extends reporters.Base {
     private readonly indentationSize: number = 2;
     private indentationLevel: number = 0;
 
     private failed: number = 0;  // number of failed suites
-    private failures = Array<any>();  // array to keep failed tests of suite (temporarily)
+    public failures = Array<any>();  // array to keep failed tests of suite (temporarily)
 
     constructor(runner: Runner, options?: MochaOptions) {
+        super(runner, options);
+
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
             // TODO report general information:
             // + information about the describer
