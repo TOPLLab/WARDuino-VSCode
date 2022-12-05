@@ -30,7 +30,8 @@ function formatTimout(message: string): string {
 
 /** Custom Reporter for Describer framework */
 
-class Reporter extends reporters.Base {
+class MochaReporter extends reporters.Base {
+    
     private readonly indentationSize: number = 2;
     private indentationLevel: number = 0;
 
@@ -160,4 +161,4 @@ function showCustomComparatorError(failure: any): boolean {
     return failure.showDiff && failure.expected === true;
 }
 
-export = Reporter;
+export = MochaReporter;
