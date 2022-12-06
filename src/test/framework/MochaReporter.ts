@@ -50,18 +50,14 @@ class MochaReporter extends reporters.Base {
         this.coreReporter = new Reporter(Framework.getImplementation());
 
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
-            // TODO report general information:
-            // + information about the describer
-            // + information about the VM (commit)
-            // + information about the system the test/vm are being run on
-            console.log(color('suite', '%sFramework'), this.indent(this.indentationLevel + 2));
-            console.log(color('suite', '%s========='), this.indent(this.indentationLevel + 2));
+            console.log(color('suite', '%sGeneral Information'), this.indent(this.indentationLevel + 2));
+            console.log(color('suite', '%s==================='), this.indent(this.indentationLevel + 2));
 
             const names: string[] = [];
             Framework.getImplementation().platforms().forEach((platform: Platform) => names.push(platform.name + (platform.disabled ? ' (disabled)' : '')));
             console.log(color('suite', '%sPlatforms  %s'), this.indent(this.indentationLevel + 2), names.join(', '));
 
-            console.log(color('suite', '%sVM commit  %s'), this.indent(this.indentationLevel + 2), 'eee5468'); // TODO
+            console.log(color('suite', '%sVM commit  %s'), this.indent(this.indentationLevel + 2), 'eee5468'); // TODO get actual vm commit
         });
 
         runner.on(Runner.constants.EVENT_SUITE_BEGIN, (suite: Suite) => {
