@@ -139,7 +139,7 @@ export class Describer {
     private states: Map<string, string> = new Map<string, string>();
 
     /** A communication bridge to talk to the vm */
-    private bridge: ProcessBridge;
+    public readonly bridge: ProcessBridge;
 
     private framework: Framework;
 
