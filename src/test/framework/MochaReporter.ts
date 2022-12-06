@@ -1,6 +1,6 @@
 import {MochaOptions, reporters, Runner, Suite, Test} from 'mocha';
 import {Reporter} from './Reporter';
-import {Framework} from './Framework';
+import {Framework, Platform} from './Framework';
 import color = reporters.Base.color;
 import colors = reporters.Base.colors;
 import symbols = reporters.Base.symbols;
@@ -54,6 +54,14 @@ class MochaReporter extends reporters.Base {
             // + information about the describer
             // + information about the VM (commit)
             // + information about the system the test/vm are being run on
+            console.log(color('suite', '%sFramework'), this.indent(this.indentationLevel + 2));
+            console.log(color('suite', '%s========='), this.indent(this.indentationLevel + 2));
+
+            const names: string[] = [];
+            Framework.getImplementation().platforms().forEach((platform: Platform) => names.push(platform.name + (platform.disabled ? ' (disabled)' : '')));
+            console.log(color('suite', '%sPlatforms  %s'), this.indent(this.indentationLevel + 2), names.join(', '));
+
+            console.log(color('suite', '%sVM commit  %s'), this.indent(this.indentationLevel + 2), 'eee5468'); // TODO
         });
 
         runner.on(Runner.constants.EVENT_SUITE_BEGIN, (suite: Suite) => {

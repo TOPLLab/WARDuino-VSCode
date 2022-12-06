@@ -344,7 +344,7 @@ function stateParser(text: string): Object {
 const framework = Framework.getImplementation();
 
 framework.platform(new EmulatorBridge(EMULATOR));
-// framework.platform(new HardwareBridge(ARDUINO));
+framework.platform(new HardwareBridge(ARDUINO), true);
 
 framework.suite('Integration tests: Debugger');
 

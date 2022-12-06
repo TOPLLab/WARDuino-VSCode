@@ -1,5 +1,12 @@
 import {Describer, ProcessBridge, TestDescription} from './Describer';
 
+export interface Platform {
+    name: string;
+    bridge: ProcessBridge;
+    describer: Describer;
+    disabled: boolean;
+}
+
 interface Suite {
     title: string;
     tests: TestDescription[];
@@ -8,7 +15,7 @@ interface Suite {
 export class Framework {
     private static implementation: Framework;
 
-    private platforms: Describer[] = [];
+    private bases: Platform[] = [];
     private suites: Suite[] = [];
 
     private constructor() {
@@ -23,7 +30,17 @@ export class Framework {
         if (disabled) {
             describer.skipall();
         }
-        this.platforms.push(describer);
+
+        this.bases.push({
+            name: bridge.name,
+            bridge: bridge,
+            describer: describer,
+            disabled: disabled
+        });
+    }
+
+    public platforms(): Platform[] {
+        return this.bases;
     }
 
     public suite(title: string) {
@@ -32,8 +49,8 @@ export class Framework {
 
     public test(test: TestDescription) {
         this.currentSuite().tests.push(test);
-        this.platforms.forEach(describer => {
-            describer.describeTest(test);
+        this.bases.forEach((base: Platform) => {
+            base.describer.describeTest(test);
         });
     }
 
