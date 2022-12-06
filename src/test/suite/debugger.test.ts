@@ -613,3 +613,6 @@ const dumpCallbackMappingTest: TestDescription = {
 };
 
 framework.test(dumpCallbackMappingTest);
+
+framework.run();
+
