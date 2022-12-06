@@ -151,8 +151,6 @@ export class Describer {
     }
 
     public describeTest(description: TestDescription) {
-        this.framework.addTest(description);
-
         const describer = this;
         const call: SuiteFunction | PendingSuiteFunction = description.skip ? describe.skip : this.suiteFunction;
 
