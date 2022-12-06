@@ -10,7 +10,6 @@ import 'mocha';
 import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {
     Behaviour,
-    Describer,
     Description,
     Emulator,
     Expectation,
@@ -30,6 +29,7 @@ import {Duplex, Readable} from 'stream';
 import {afterEach} from 'mocha';
 import {WatCompiler} from '../framework/Compiler';
 import {ArduinoUploader} from '../framework/Uploader';
+import {Framework} from "../framework/Framework";
 
 const EMULATOR: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const ARDUINO: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/platforms/Arduino/`;
@@ -341,8 +341,12 @@ function stateParser(text: string): Object {
     return message;
 }
 
-const cli: Describer = new Describer(new EmulatorBridge(EMULATOR));
-const mcu: Describer = new Describer(new HardwareBridge(ARDUINO)).skipall();
+const framework = Framework.getImplementation();
+
+framework.platform(new EmulatorBridge(EMULATOR));
+// framework.platform(new HardwareBridge(ARDUINO));
+
+framework.suite('Integration tests: Debugger');
 
 const expectDUMP: Expectation[] = [
     {'pc': {kind: 'description', value: Description.defined} as Expected<string>},
@@ -379,8 +383,7 @@ const dumpTest: TestDescription = {
     steps: [DUMP]
 };
 
-cli.describeTest(dumpTest);
-mcu.describeTest(dumpTest);
+framework.test(dumpTest);
 
 const dumpLocalsTest: TestDescription = {
     title: 'Test DUMPLocals',
@@ -393,8 +396,7 @@ const dumpLocalsTest: TestDescription = {
     }]
 };
 
-cli.describeTest(dumpLocalsTest);
-mcu.describeTest(dumpLocalsTest);
+framework.test(dumpLocalsTest);
 
 const dumpFullTest: TestDescription = {
     title: 'Test DUMPFull',
@@ -413,8 +415,7 @@ const dumpFullTest: TestDescription = {
     }]
 };
 
-cli.describeTest(dumpFullTest);
-mcu.describeTest(dumpFullTest);
+framework.test(dumpFullTest);
 
 const pauseTest: TestDescription = {
     title: 'Test PAUSE',
@@ -444,8 +445,7 @@ const pauseTest: TestDescription = {
     }]
 };
 
-cli.describeTest(pauseTest);
-mcu.describeTest(pauseTest);
+framework.test(pauseTest);
 
 const stepTest: TestDescription = {
     title: 'Test STEP',
@@ -473,8 +473,7 @@ const stepTest: TestDescription = {
     }]
 };
 
-cli.describeTest(stepTest);
-mcu.describeTest(stepTest);
+framework.test(stepTest);
 
 const runTest: TestDescription = {
     title: 'Test RUN',
@@ -512,8 +511,7 @@ const runTest: TestDescription = {
     }]
 };
 
-cli.describeTest(runTest);
-mcu.describeTest(runTest);
+framework.test(runTest);
 
 // EDWARD tests with mock proxy
 
@@ -544,7 +542,7 @@ const eventNotificationTest: TestDescription = {
     }]
 };
 
-cli.describeTest(eventNotificationTest);
+framework.test(eventNotificationTest);
 
 const dumpEventsTest: TestDescription = {
     title: 'Test DUMPEvents',
@@ -564,8 +562,7 @@ const dumpEventsTest: TestDescription = {
     }]
 };
 
-cli.describeTest(dumpEventsTest);
-mcu.describeTest(dumpEventsTest);
+framework.test(dumpEventsTest);
 
 const receiveEventTest: TestDescription = {
     title: 'Test Event Transfer (supervisor side)',
@@ -595,7 +592,7 @@ const receiveEventTest: TestDescription = {
     skip: true
 };
 
-cli.describeTest(receiveEventTest);
+framework.test(receiveEventTest);
 
 const dumpCallbackMappingTest: TestDescription = {
     title: 'Test DUMPCallbackmapping',
@@ -615,5 +612,4 @@ const dumpCallbackMappingTest: TestDescription = {
     }]
 };
 
-cli.describeTest(dumpCallbackMappingTest);
-mcu.describeTest(dumpCallbackMappingTest);
+framework.test(dumpCallbackMappingTest);
