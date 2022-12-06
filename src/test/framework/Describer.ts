@@ -5,6 +5,7 @@ import {assert, expect} from 'chai';
 import 'mocha';
 import {after, describe, PendingSuiteFunction, SuiteFunction} from 'mocha';
 import {SerialPort} from 'serialport';
+import {Framework} from './Framework';
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
@@ -140,13 +141,18 @@ export class Describer {
     /** A communication bridge to talk to the vm */
     private bridge: ProcessBridge;
 
+    private framework: Framework;
+
     private suiteFunction: SuiteFunction | PendingSuiteFunction = describe;
 
     constructor(bridge: ProcessBridge) {
         this.bridge = bridge;
+        this.framework = Framework.getImplementation();
     }
 
     public describeTest(description: TestDescription) {
+        this.framework.addTest(description);
+
         const describer = this;
         const call: SuiteFunction | PendingSuiteFunction = description.skip ? describe.skip : this.suiteFunction;
 

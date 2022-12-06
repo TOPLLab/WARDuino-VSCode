@@ -1,4 +1,6 @@
 import {MochaOptions, reporters, Runner, Suite, Test} from 'mocha';
+import {Reporter} from './Reporter';
+import {Framework} from './Framework';
 import color = reporters.Base.color;
 import colors = reporters.Base.colors;
 import symbols = reporters.Base.symbols;
@@ -30,8 +32,12 @@ function formatTimout(message: string): string {
 
 /** Custom Reporter for Describer framework */
 
+declare global {
+}
+
 class MochaReporter extends reporters.Base {
-    
+    private coreReporter: Reporter;
+
     private readonly indentationSize: number = 2;
     private indentationLevel: number = 0;
 
@@ -40,6 +46,8 @@ class MochaReporter extends reporters.Base {
 
     constructor(runner: Runner, options?: MochaOptions) {
         super(runner, options);
+
+        this.coreReporter = new Reporter(Framework.getImplementation());
 
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
             // TODO report general information:
