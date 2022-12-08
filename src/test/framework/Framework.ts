@@ -1,13 +1,17 @@
 import {Describer, ProcessBridge, TestDescription} from './Describer';
+import {HybridScheduler, Scheduler} from './Scheduler';
 
 export interface Platform {
     name: string;
     bridge: ProcessBridge;
     describer: Describer;
+
+    scheduler: Scheduler;
+
     disabled: boolean;
 }
 
-interface Suite {
+export interface Suite {
     title: string;
     tests: TestDescription[];
 }
@@ -30,7 +34,7 @@ export class Framework {
         return this.suites[this.suites.length - 1];
     }
 
-    public platform(bridge: ProcessBridge, disabled: boolean = false) {
+    public platform(bridge: ProcessBridge, scheduler: Scheduler = new HybridScheduler(), disabled: boolean = false) {
         const describer = new Describer(bridge);
         if (disabled) {
             describer.skipall();
@@ -40,7 +44,8 @@ export class Framework {
             name: bridge.name,
             bridge: bridge,
             describer: describer,
-            disabled: disabled
+            disabled: disabled,
+            scheduler: scheduler
         });
     }
 
@@ -58,67 +63,13 @@ export class Framework {
 
     public run(cores: number = 1) {
         this.suites.forEach((suite: Suite) => {
-            const order: TestDescription[] = this.schedule(suite);
-
             this.bases.forEach((base: Platform) => {
+                const order: TestDescription[] = base.scheduler.schedule(suite);
                 order.forEach((test: TestDescription) => {
                     base.describer.describeTest(test);
                 });
             });
         });
-    }
-
-    private schedule(suite: Suite): TestDescription[] {
-        // sort the tests into an efficient schedule
-        const schedule: TestDescription[][] = this.levels(suite);
-        schedule.forEach(level => level.sort((a: TestDescription, b: TestDescription) => {
-            // aggregate tests with the same program
-            return a.title.localeCompare(b.title);
-        }));
-        return schedule.flat(2);
-
-    }
-
-    private levels(suite: Suite): TestDescription[][] {
-        // input
-        const queue: TestDescription[] = suite.tests;
-        queue.sort((a: TestDescription, b: TestDescription) => (a.dependencies ?? []).length - (b.dependencies ?? []).length);
-        // output
-        const levels: TestDescription[][] = [];
-
-        // while more input remains
-        while (queue.length > 0) {
-            // @ts-ignore
-            const test: TestDescription = queue.shift();
-
-            // skip any test with unresolved dependencies
-            let skip: boolean = (test.dependencies ?? []).some((dependence: TestDescription) => queue.includes(dependence));
-
-            if (skip) {
-                queue.push(test);
-                break;
-            }
-
-            // add to level below
-            const level: number = this.lowest(test, levels) + 1;
-            if (levels[level] === undefined) {
-                levels[level] = [];
-            }
-            levels[level].push(test);
-        }
-
-        return levels;
-    }
-
-    private lowest(test: TestDescription, levels: TestDescription[][]): number {
-        for (let i = levels.length - 1; i >= 0; i--) {
-            for (let j = levels.length - 1; j >= 0; j--) {
-                if (test.dependencies?.includes(levels[i][j])) {
-                    return i;
-                }
-            }
-        }
-        return 0;
     }
 
     public static getImplementation() {
