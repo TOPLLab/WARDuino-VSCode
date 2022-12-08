@@ -29,7 +29,8 @@ import {Duplex, Readable} from 'stream';
 import {afterEach} from 'mocha';
 import {WatCompiler} from '../framework/Compiler';
 import {ArduinoUploader} from '../framework/Uploader';
-import {Framework} from "../framework/Framework";
+import {Framework} from '../framework/Framework';
+import {DependenceScheduler} from '../framework/Scheduler';
 
 const EMULATOR: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const ARDUINO: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/platforms/Arduino/`;
@@ -344,7 +345,7 @@ function stateParser(text: string): Object {
 const framework = Framework.getImplementation();
 
 framework.platform(new EmulatorBridge(EMULATOR));
-framework.platform(new HardwareBridge(ARDUINO), true);
+framework.platform(new HardwareBridge(ARDUINO), new DependenceScheduler(), true);
 
 framework.suite('Integration tests: Debugger');
 
