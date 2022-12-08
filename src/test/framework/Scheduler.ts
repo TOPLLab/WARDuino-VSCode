@@ -23,12 +23,20 @@ class SimpleScheduler implements Scheduler {
     }
 }
 
+/*
+ * The Hybrid Scheduler respects dependency trees while minimising the need to change programs.
+ *
+ * The schedule iterates breadth-first over each tree in succession,
+ * at each depth the tests are sorted alphabetically according to their program.
+ */
 export class HybridScheduler implements Scheduler {
     public schedule(suite: Suite): TestDescription[] {
         let scheme: TestDescription[] = [];
         const forest: TestDescription[][] = trees(suite.tests);
         for (const tree of forest) {
-            scheme = scheme.concat(levels(tree).flat(2));
+            const split = levels(tree);
+            split.forEach(level => level.sort(sortOnProgram));
+            scheme = scheme.concat(split.flat(2));
         }
         return scheme;
     }
@@ -37,15 +45,17 @@ export class HybridScheduler implements Scheduler {
 export class DependenceScheduler implements Scheduler {
     public schedule(suite: Suite): TestDescription[] {
         const schedule: TestDescription[][] = levels(suite.tests);
-        schedule.forEach(level => level.sort((a: TestDescription, b: TestDescription) => {
-            // aggregate tests with the same program
-            return a.program.localeCompare(b.program);
-        }));
+        schedule.forEach(level => level.sort(sortOnProgram));
         return schedule.flat(2);  // we flatten since we don't support parallelism yet (otherwise tests in the same level can be run in parallel)
     }
 }
 
 /* util functions */
+
+function sortOnProgram(a: TestDescription, b: TestDescription) {
+    // aggregate tests with the same program
+    return a.program.localeCompare(b.program);
+}
 
 // aggregate dependence forest into trees
 function trees(input: TestDescription[]): TestDescription[][] {
@@ -116,7 +126,7 @@ function trees(input: TestDescription[]): TestDescription[][] {
 function comparator(a: TestDescription, b: TestDescription): number {
     let comparison: number = (b.dependencies ?? []).length - (a.dependencies ?? []).length; // decreasing amount of dependencies
     if (comparison === 0) {
-        comparison = a.program.localeCompare(b.program);
+        comparison = sortOnProgram(a, b);
         if (comparison === 0) {
             comparison = a.title.localeCompare(b.title);
         }
