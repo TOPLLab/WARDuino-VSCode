@@ -19,6 +19,7 @@ import {DebugBridge} from '../DebugBridges/DebugBridge';
 import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
 import {RunTimeTarget} from "../DebugBridges/RunTimeTarget";
 import {CompileBridgeFactory} from "../CompilerBridges/CompileBridgeFactory";
+import {CompileBridge} from "../CompilerBridges/CompileBridge";
 import {SourceMap} from "../State/SourceMap";
 import {VariableInfo} from "../State/VariableInfo";
 import * as fs from "fs";
@@ -28,6 +29,7 @@ import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
 import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
+import { CompileResult } from '../CompilerBridges/CompileBridge';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -47,6 +49,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private proxyCallsProvider?: ProxyCallsProvider;
 
     private variableHandles = new Handles<'locals' | 'globals'>();
+    private compiler?: CompileBridge;
 
     public constructor(notifier: vscode.StatusBarItem, reporter: ErrorReporter) {
         super("debug_log.txt");
@@ -128,15 +131,15 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             });
         });
 
-        let compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
+        this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
 
-        let sourceMap: SourceMap | void = await compiler.compile().catch((reason) => this.handleCompileError(reason));
-        if (sourceMap) {
-            this.sourceMap = sourceMap;
+        let compileResult: CompileResult | void = await this.compiler.compile().catch((reason) => this.handleCompileError(reason));
+        if (compileResult) {
+            this.sourceMap = compileResult.sourceMap;
         }
         let that = this;
         const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
-        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider,
+        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.sourceMap, eventsProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface
@@ -149,7 +152,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 startMultiverseDebugging(woodState: WOODState) {
                     that.debugBridge?.disconnect();
 
-                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
+                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, that.sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
                         connected(): void {
@@ -237,6 +240,25 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     public upload() {
         this.debugBridge?.upload();
+    }
+
+    public updateModule() {
+        this.uploadHelper().then(r => { console.log(r); }).catch(e => {
+            console.error(`upload went wrong ${e}`);
+        });
+    }
+
+    private async uploadHelper(): Promise<string> {
+        let res: void | CompileResult = await this.compiler?.compile().catch((reason) => this.handleCompileError(reason));
+        if(!!res){
+            this.sourceMap = res.sourceMap;
+            this.debugBridge?.updateSourceMapper(res.sourceMap);
+            if(!!res.wasm){
+                this.debugBridge?.updateModule(res.wasm);
+                return "sent upload module";
+            }
+        }
+        return "failed to upload module";
     }
 
     public startMultiverseDebugging() {
