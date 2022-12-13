@@ -302,4 +302,19 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.callstack = callstack;
         this.listener.notifyStateUpdate();
     }
+
+    updateSourceMapper(newSourceMap: SourceMap): void {
+        this.sourceMap = newSourceMap;
+    }
+
+    updateModule(wasm: Buffer): void {
+        const w = new Uint8Array(wasm);
+        const sizeBuffer = Buffer.allocUnsafe(4);
+        sizeBuffer.writeUint32BE(w.length);
+        const sizeHex = sizeBuffer.toString("hex");
+        const wasmHex = Buffer.from(w).toString("hex");
+        let command = `${InterruptTypes.interruptUPDATEMod}${sizeHex}${wasmHex} \n`;
+        console.log("Plugin: send Update module command");
+        this.client?.write(command);
+    }
 }
