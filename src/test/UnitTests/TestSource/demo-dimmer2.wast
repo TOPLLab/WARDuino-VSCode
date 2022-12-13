@@ -14,7 +14,7 @@
   (import "env" "subscribe_interrupt" (func $env.subscribe_interrupt (type $t2)))
   (import "env" "chip_ledc_setup" (func $env.chip_ledc_setup (type $t2)))
   (import "env" "chip_ledc_attach_pin" (func $env.chip_ledc_attach_pin (type $t0)))
-  (import "env" "chip_ledc_analog_write" (func $env.chip_ledc_analog_write (type $t2)))
+  (import "env" "chip_analog_write" (func $env.chip_ledc_analog_write (type $t2)))
 
   ;; Non-mutable globals
   (global $led i32 (i32.const 26))
