@@ -10,6 +10,7 @@ export enum InterruptTypes {
     interruptDUMPLocals = '11',
     interruptDUMPFull = '12',
     interruptUPDATEFun = '20',
+    interruptUPDATEMod = '22',
     // Pull debugging messages
     interruptWOODDump = '60',
     interruptOffset = '61',
