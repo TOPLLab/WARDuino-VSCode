@@ -7,6 +7,7 @@ import {CompileBridge} from "./CompileBridge";
 import {SourceMap} from "../State/SourceMap";
 import {FunctionInfo} from "../State/FunctionInfo";
 import {VariableInfo} from "../State/VariableInfo";
+import { readFileSync } from "fs";
 
 function checkCompileTimeError(errorMessage: string) {
     let regexpr = /:(?<line>(\d+)):(?<column>(\d+)): error: (?<message>(.*))/;
@@ -71,7 +72,9 @@ export class WASMCompilerBridge implements CompileBridge {
     async compile() {
         let sourceMap: SourceMap = await this.compileAndDump(this.compileToWasmCommand(), this.getNameDumpCommand());
         await this.compileHeader();
-        return sourceMap;
+        const path2Wasm = `${this.tmpdir}/upload.wasm`;
+        const w: Buffer = readFileSync(path2Wasm);
+        return {sourceMap:sourceMap, wasm: w};
     }
 
     async compileHeader() {

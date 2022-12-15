@@ -1,6 +1,7 @@
 import {CompileBridge} from "./CompileBridge";
 import {exec, ExecException} from "child_process";
 import {SourceMap} from "../State/SourceMap";
+import { readFileSync } from "fs";
 
 export class AssemblyScriptCompilerBridge implements CompileBridge {
     sourceFilePath: String;
@@ -10,7 +11,9 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
     }
 
     async compile() {
-        return await this.executeCompileCommand(this.compileCommand());
+        // TODO test reading wasm file 
+        const wasm = readFileSync("/tmp/warduino/upload.wasm");
+        return {sourceMap: await this.executeCompileCommand(this.compileCommand()), wasm: wasm};
     }
 
     private executeCompileCommand(command: string): Promise<SourceMap> {

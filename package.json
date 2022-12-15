@@ -49,6 +49,12 @@
         "category": "WARDuino",
         "title": "Pop event",
         "icon": "$(arrow-down)"
+      },
+      {
+        "command": "warduinodebug.updateModule",
+        "category": "WARDuino",
+        "title": "Update Module",
+        "icon": "$(arrow-circle-up)"
       }
     ],
     "views": {
