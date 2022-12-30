@@ -115,6 +115,12 @@
           "default": "/dev/cu.usbserial-1420",
           "description": "The port to use in order to program the microcontroller"
         },
+        "warduino.Baudrate": {
+          "type": "string",
+          "scope": "resource",
+          "default": "115200",
+          "description": "Baudrate to use for the serial connection"
+        },
         "warduino.Device": {
           "type": "string",
           "scope": "resource",
