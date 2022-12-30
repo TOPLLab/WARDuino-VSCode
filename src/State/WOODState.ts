@@ -20,21 +20,21 @@ function serializeUInt8(n: number): string {
         return serializeUInt(n, 4, false);
     }
 
-    function serializeBigUInt64LE(n: number): string {
+    function serializeBigUInt64LE(n: bigint): string {
         return serializeBigUInt64(n, false);
     }
 
-    function serializeBigUInt64BE(n: number): string {
+    function serializeBigUInt64BE(n: bigint): string {
         return serializeBigUInt64(n, true);
     }
 
-    function serializeBigUInt64(n: number, bigendian: boolean) {
+    function serializeBigUInt64(n: bigint, bigendian: boolean) {
         const buff = Buffer.allocUnsafe(8);
         if (bigendian) {
-            // buff.writeBigUInt64BE(n);
+            buff.writeBigUInt64BE(n);
         }
         else {
-            // buff.writeBigUInt64LE(n);
+            buff.writeBigUInt64LE(n);
         }
         return buff.toString("hex");
     }
@@ -155,7 +155,7 @@ export enum RecvStateType {
 
 interface StackValue {
     type: string;
-    value: number;
+    value: number | bigint;
 }
 
 interface Frame {
@@ -506,7 +506,6 @@ export class WOODState {
         console.log("Memory");
         console.log("--------------");
         const sizeHeader = RecvStateType.memState.length + 4 * 2 + 4 * 2 ;
-        // let bytes: string[] = this.woodResponse.memory.bytes.toString('hex');//.match(/.{1,2}/g) || [];
         let bytes = Array.from(this.woodResponse.memory.bytes).map (b => b.toString (16).padStart (2, "0"));
         console.log(`Total Memory Bytes ${this.woodResponse.memory.bytes.length}`);
         let startMemIdx = 0;
@@ -619,33 +618,31 @@ export class WOODState {
 
         if (val.type === "i32") {
             if (val.value < 0) {
-                v = serializeInt32LE(val.value);
+                v = serializeInt32LE(val.value as number);
             }
             else {
-                v = serializeUInt32LE(val.value);
+                v = serializeUInt32LE(val.value as number);
             }
             type = 0;
             type_str = 'i32';
         }
         else if (val.type === "i64") {
             if (val.value < 0) {
-                console.warn("uncomment next line");
-                // v = this.serializeBigUInt64LE(val.value);
+                v = serializeBigUInt64LE(val.value as bigint);
             }
             else {
-                console.warn("uncomment next line");
-                // v = this.serializeBigUInt64LE(val.value);
+                v = serializeBigUInt64LE(val.value as bigint);
             }
             type = 1;
             type_str = 'i64';
         }
         else if (val.type === "f32") {
-            v = serializeFloatLE(val.value);
+            v = serializeFloatLE(val.value as number);
             type = 2;
             type_str = 'f32';
         }
         else if (val.type === "f64") {
-            v = serializeDoubleLE(val.value);
+            v = serializeDoubleLE(val.value as number);
             type = 3;
             type_str = 'f64';
         }
