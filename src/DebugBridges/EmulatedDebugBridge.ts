@@ -136,7 +136,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
                     }
                 });
                 errParser.on('data', (data) => {  // Print debug and trace information
-                    console.log(`stderr: ${data}`);
+                    console.log(`EmulatedDebugBridge stderr: ${data}`);
                 });
 
                 this.cp.on('error', (err) => {
