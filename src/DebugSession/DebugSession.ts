@@ -156,8 +156,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         notifyError(): void {
                         },
                         connected(): void {
-                            that.debugBridge?.pushSession(woodState);
-                            (that.debugBridge as WOODDebugBridge).specifyProxyCalls();
+                            (that.debugBridge as WOODDebugBridge).pushSession(woodState).
+                                then(v => {
+                                    (that.debugBridge as WOODDebugBridge).specifyProxyCalls();
+                                }).catch(console.error);
                         },
                         startMultiverseDebugging(woodState: WOODState) {
                         },

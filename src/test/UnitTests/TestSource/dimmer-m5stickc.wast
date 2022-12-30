@@ -1,4 +1,3 @@
-
 (module
   (type $t0 (func (param i32 i32)))
   (type $t1 (func (param i32) (result i32)))

@@ -11,12 +11,10 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         console.log("Plugin: WOOD RecvState");
         let offset = await this.getOffset();
 
-        const messages: string[] = await woodState.toBinary(this.tmpdir, offset).catch(reason => {
-            throw new Error(`Plugin: toBinary failed: ${reason}`);
-        }) ?? [];
+        const messages: string[] = woodState.toBinary(offset);
+        console.log(`sending ${messages.length} messages as new State\n`);
         for (let i = 0; i < messages.length; i++) {
-            console.log(`send 62 message: ${messages[i]}\n`);
-            this.client?.write(`${messages[i]} \n`);
+            this.client?.write(messages[i]);
         }
 
         this.pushCallbacks(woodState.callbacks);
