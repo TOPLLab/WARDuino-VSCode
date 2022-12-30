@@ -125,7 +125,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
         upload.on("close", (code) => {
             if (code === 0) {
-                resolver(true)
+                resolver(true);
             } else {
                 reject(`Could not flash ended with ${code} \n${lastStdOut}`);
             }
@@ -142,7 +142,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
 
         compile.stderr.on("data", (data: string) => {
-            console.error(`stderr: ${data}`);
+            console.error(`HardwareDebugBridge stderr: ${data}`);
             this.listener.notifyProgress(Messages.initialisationFailure);
             reject(data);
         });
