@@ -398,7 +398,7 @@ export class WOODState {
         console.log(`Total Stack length ${this.woodResponse.stack.length}`);
 
         const ws = this;
-        let stack = this.woodResponse.stack.map(ws.serializeValue);
+        let stack = this.woodResponse.stack.map(v=>ws.serializeValue(v));
         const nrBytesUsedForAmountVals = 2 * 2;
         const headerSize = RecvStateType.stackvalsState.length + nrBytesUsedForAmountVals;
         while (stack.length !== 0 ){
@@ -480,7 +480,7 @@ export class WOODState {
 
         console.log(`Total Globals ${this.woodResponse.globals.length}`);
         const ws = this;
-        let globals = this.woodResponse.globals.map(ws.serializeValue);
+        let globals = this.woodResponse.globals.map(v=>ws.serializeValue(v));
         const nrBytesNeededForAmountGlbs = 4*2;
         const headerSize = RecvStateType.globalsState.length + nrBytesNeededForAmountGlbs;
         while( globals.length !== 0 ){
@@ -610,7 +610,7 @@ export class WOODState {
         return `${pointerSize}${cleanedAddr}`;
     }
 
-    private serializeValue(val: StackValue) {
+    private serializeValue(val: StackValue, includeType: boolean = true) {
         // |   Type      |       value       |
         // | 1 * 2 bytes |  4*2 or 8*2 bytes |
         let type = -1;
@@ -653,8 +653,13 @@ export class WOODState {
             throw (new Error(`Got unexisting stack Value type ${val.type} value ${val.value}`));
         }
         console.log(`Value: type=${type_str}(idx ${type}) val=${val.value}`);
-        const typeHex = serializeUInt8(type);
-        return `${typeHex}${v}`;
+        if(includeType){
+            const typeHex = serializeUInt8(type);
+            return `${typeHex}${v}`;
+        }
+        else{
+            return v;
+        }
     }
 
     private serializeFrame(frame: Frame): string {
@@ -692,5 +697,13 @@ export class WOODState {
         const noHexAddr = addr.startsWith("0x") ? addr.slice(2,addr.length): addr;
         const charsMissing = noHexAddr.length % 2;
         return `${'0'.repeat(charsMissing)}${noHexAddr}`;
+    }
+
+    public serializeRFCall(functionId: number, args: StackValue[]): string {
+        const ws = this;
+        const ignoreType = false;
+        const fidxHex = serializeUInt32BE(functionId);
+        const argsHex = args.map(v=>ws.serializeValue(v, ignoreType)).join(""); 
+        return `${InterruptTypes.interruptProxyCall}${fidxHex}${argsHex}`;
     }
 }
