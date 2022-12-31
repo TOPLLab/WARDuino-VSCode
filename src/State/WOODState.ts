@@ -22,8 +22,8 @@ interface Frame {
     fidx: string;
     sp: number;
     fp: number;
-    block_key: string;
-    ra: string;
+    block_key: number;
+    ra: number;
     idx: number;
 }
 
@@ -46,9 +46,8 @@ interface BRTable {
 }
 
 interface WOODDumpResponse {
-    pc: string;
-    start: string[];
-    breakpoints: string[];
+    pc: number;
+    breakpoints: number[];
     stack: StackValue[];
     callstack: Frame[];
     globals: StackValue[];
@@ -175,10 +174,7 @@ export class WOODState {
         this.woodResponse = JSON.parse(this.unparsedJSON);
     }
 
-    toBinary(offset: string, maxInterruptSize: number = 1024): string[] {
-
-        // rebase all addresses to target VM
-        this.rebaseState(offset);
+    toBinary(maxInterruptSize: number = 1024): string[] {
 
         const stateMessages = new HexaStateMessages(maxInterruptSize);
         
@@ -199,26 +195,6 @@ export class WOODState {
     }
 
     // Helper methods
-
-    private rebaseState(targetOffset: string): void {
-        const oldOffset = Number(this.woodResponse.start[0]);
-        const newOffset = Number(targetOffset);
-
-        const rebase = (addr: string) => {
-            const newAddr = Number(addr) - oldOffset + newOffset;
-            return newAddr.toString(16);
-        };
-
-        this.woodResponse.pc = rebase(this.woodResponse.pc);
-        this.woodResponse.breakpoints = this.woodResponse.breakpoints.map(rebase);
-
-        this.woodResponse.callstack.forEach(frame => {
-            frame.ra = rebase(frame.ra);
-            if(frame.type !== 0){
-                frame.block_key = rebase(frame.block_key);
-            }
-        });
-    }
 
     private serializeBPs(stateMsgs: HexaStateMessages): void {
         // |      Header       |        Breakpoints
@@ -420,11 +396,11 @@ export class WOODState {
     }
 
     private serializePC(stateMsgs: HexaStateMessages): void {
-        // |  PCState Header | NrBytes PC | PC
-        // |     2 bytes     |   1 * 2    |  hexa address 
-        console.log('==========');
-        console.log('PC');
-        console.log('----------');
+        // |  PCState Header | PC
+        // |     2 bytes     | serializePointer 
+        console.log("==========");
+        console.log("PC");
+        console.log("----------");
         const ser = this.serializePointer(this.woodResponse.pc);
         console.log(`PC: pc=${this.woodResponse.pc}`);
         const payload = `${RecvStateType.pcState}${ser}`;
@@ -460,12 +436,10 @@ export class WOODState {
         stateMsgs.addPayload(payload);
     }
 
-    private serializePointer(addr: string) {
-        // | Address   |
+    private serializePointer(addr: number) {
+        // | Pointer   |
         // | 4*2 bytes |
-        const cleanedAddr = this.makeAddressEven(addr);
-        const pointerSize = HexaEncoder.serializeUInt8(Math.floor(cleanedAddr.length / 2)); // div by 2 since addr is hexa
-        return `${pointerSize}${cleanedAddr}`;
+        return HexaEncoder.serializeUInt32BE(addr);
     }
 
     private serializeValue(val: StackValue, includeType: boolean = true) {
