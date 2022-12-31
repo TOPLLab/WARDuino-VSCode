@@ -1,146 +1,5 @@
 import { InterruptTypes } from "../DebugBridges/InterruptTypes";
-
-function serializeUInt8(n: number): string {
-        return serializeUInt(n, 1, true);
- }
-
- function serializeUInt16BE(n: number): string {
-        return serializeUInt(n, 2, true);
-  }
-
-  function serializeUInt32BE(n: number): string {
-        return serializeUInt(n, 4, true);
-   }
-    
-   function serializeInt32LE(n: number): string {
-        return serializeUInt(n, 4, false);
-    }
-
-    function serializeUInt32LE(n: number): string {
-        return serializeUInt(n, 4, false);
-    }
-
-    function serializeBigUInt64LE(n: bigint): string {
-        return serializeBigUInt64(n, false);
-    }
-
-    function serializeBigUInt64BE(n: bigint): string {
-        return serializeBigUInt64(n, true);
-    }
-
-    function serializeBigUInt64(n: bigint, bigendian: boolean) {
-        const buff = Buffer.allocUnsafe(8);
-        if (bigendian) {
-            buff.writeBigUInt64BE(n);
-        }
-        else {
-            buff.writeBigUInt64LE(n);
-        }
-        return buff.toString("hex");
-    }
-
-    function serializeUInt(n: number, amountBytes: number, bigendian: boolean): string {
-        const buff = Buffer.allocUnsafe(amountBytes);
-        if (amountBytes === 1) {
-            if(n < 0){
-                buff.writeInt8(n);
-            }
-            else{
-                buff.writeUInt8(n);
-            }
-        }
-        else if (amountBytes === 2) {
-            if (bigendian) {
-                if(n < 0){
-                    buff.writeUInt16BE(n);
-
-                }
-                else{
-                    buff.writeUInt16BE(n);
-                }
-            }
-            else {
-                if(n < 0){
-                    buff.writeInt16LE(n);
-                }
-                else{
-                    buff.writeUInt16LE(n);
-                }
-            }
-
-        }
-        else if (amountBytes === 4) {
-            if (bigendian) {
-                if(n < 0){
-                    buff.writeInt32BE(n);
-                }
-                else{
-                    buff.writeUInt32BE(n);
-                }
-            }
-            else {
-                if(n < 0){
-                    buff.writeInt32LE(n);
-                }
-                else{
-                    buff.writeUInt32LE(n);
-                }
-            }
-        }
-        else {
-            throw (new Error("invalid amount of bytes"));
-        }
-        return buff.toString("hex");
-    };
-
-    function serializeInt32(n: number, bigendian: boolean): string {
-        const buff = Buffer.allocUnsafe(4);
-        if (bigendian) {
-            buff.writeInt32BE(n);
-        }
-        else {
-            buff.writeUInt32LE(n);
-        }
-        return buff.toString("hex");
-    }
-
-    function serializeFloatBE(n: number): string {
-        return serializeFloat(n, true);
-    }
-
-    function serializeFloatLE(n: number): string {
-        return serializeFloat(n, false);
-    }
-
-    function serializeFloat(n: number, bigendian: boolean): string {
-        const buff = Buffer.allocUnsafe(4);
-        if (bigendian) {
-            buff.writeFloatBE(n);
-        }
-        else {
-            buff.writeFloatLE(n);
-        }
-        return buff.toString("hex");
-    }
-
-    function serializeDoubleBE(n: number): string {
-        return serializeDouble(n, true);
-    }
-
-    function serializeDoubleLE(n: number): string {
-        return serializeDouble(n, false);
-    }
-
-    function serializeDouble(n: number, bigendian: boolean): string {
-        const buff = Buffer.allocUnsafe(8);
-        if (bigendian) {
-            buff.writeDoubleBE(n);
-        }
-        else {
-            buff.writeDoubleLE(n);
-        }
-        return buff.toString("hex");
-    }
+import {HexaEncoder} from "../Util/hexaEncoding";
 
 export enum RecvStateType {
     pcState = "01",
@@ -292,7 +151,7 @@ class HexaStateMessages {
         const lastChar = this.terminatorChar;
         return this.messages.map((payload, msgIdx) => {
             const size = Math.floor(payload.length / 2);
-            const sizeHexa = serializeUInt32BE(size);
+            const sizeHexa = HexaEncoder.serializeUInt32BE(size);
             const done = (msgIdx + 1) === amountMessages ? "01" : "00";
             const msg = `${InterruptTypes.interruptWOODRecvState}${sizeHexa}${payload}${done}${lastChar}`;
             if (msg.length % 2 !== 0) {
@@ -379,7 +238,7 @@ export class WOODState {
                 continue;
             }
             const bps = breakpoints.slice(0, fits).join("");
-            const amountBPs = serializeUInt8(fits);
+            const amountBPs = HexaEncoder.serializeUInt8(fits);
             console.log(`Breakpoints: amount=${breakpoints.length}`);
             const payload = `${RecvStateType.bpsState}${amountBPs}${bps}`;
             stateMsgs.addPayload(payload);
@@ -406,7 +265,7 @@ export class WOODState {
             if(fit === 0){
                 stateMsgs.forceNewMessage();
             }
-            const amountVals = serializeUInt16BE(fit);
+            const amountVals = HexaEncoder.serializeUInt16BE(fit);
             const vals = stack.slice(0, fit).join("");
             const payload = `${RecvStateType.stackvalsState}${amountVals}${vals}`;
             stateMsgs.addPayload(payload);
@@ -422,7 +281,7 @@ export class WOODState {
         console.log("==============");
         console.log("TABLE");
         console.log("--------------");
-        let elements = this.woodResponse.table.elements.map(serializeUInt32BE);
+        let elements = this.woodResponse.table.elements.map(HexaEncoder.serializeUInt32BE);
         console.log(`Total Elements ${this.woodResponse.table.elements.length}`);
         const nrBytesUsedForAmountElements = 4*2;
         const headerSize = RecvStateType.tblState.length + nrBytesUsedForAmountElements;
@@ -432,7 +291,7 @@ export class WOODState {
                 stateMsgs.forceNewMessage();
                 continue;
             }
-        const amountElements = serializeUInt32BE(fit);
+        const amountElements = HexaEncoder.serializeUInt32BE(fit);
         const elems = elements.slice(0, fit).join("");
         const el_str = this.woodResponse.table.elements.slice(0,fit).map(e=>e.toString()).join(", ");
         console.log(`msg: amountElements ${fit} elements ${el_str}`);
@@ -461,7 +320,7 @@ export class WOODState {
                 stateMsgs.forceNewMessage();
                 continue;
             }
-            const amountFrames = serializeUInt16BE(fit);
+            const amountFrames = HexaEncoder.serializeUInt16BE(fit);
             const fms = frames.slice(0, fit).join("");
             console.log(`msg: amountFrames=${fit}`);
             const payload =  `${RecvStateType.callstackState}${amountFrames}${fms}`;
@@ -489,7 +348,7 @@ export class WOODState {
                 stateMsgs.forceNewMessage();
                 continue;
             }
-            const amountGlobals = serializeUInt32BE(fit);
+            const amountGlobals = HexaEncoder.serializeUInt32BE(fit);
             const glbs = globals.slice(0, fit).join("");
             const payload = `${RecvStateType.globalsState}${amountGlobals}${glbs}`;
             stateMsgs.addPayload(payload);
@@ -518,8 +377,8 @@ export class WOODState {
             }
             endMemIdx = startMemIdx + fit - 1;
             const bytesHexa = bytes.slice(0, fit).join("");
-            const startMemIdxHexa = serializeUInt32BE(startMemIdx);
-            const endMemIdxHexa = serializeUInt32BE(endMemIdx);
+            const startMemIdxHexa = HexaEncoder.serializeUInt32BE(startMemIdx);
+            const endMemIdxHexa = HexaEncoder.serializeUInt32BE(endMemIdx);
             const payload = `${RecvStateType.memState}${startMemIdxHexa}${endMemIdxHexa}${bytesHexa}`;
             stateMsgs.addPayload(payload);
             startMemIdx = endMemIdx + 1;
@@ -537,7 +396,7 @@ export class WOODState {
         console.log("--------------");
         console.log(`Total Labels ${this.woodResponse.br_table.labels.length}`);
 
-        let elements = this.woodResponse.br_table.labels.map(serializeUInt32BE);
+        let elements = this.woodResponse.br_table.labels.map(HexaEncoder.serializeUInt32BE);
         const sizeHeader = RecvStateType.brtblState.length + 2 * 2 + 2 * 2 ;
         let startTblIdx = 0;
         let endTblIdx = 0;
@@ -549,8 +408,8 @@ export class WOODState {
             }
             endTblIdx = startTblIdx + fit - 1;
             const elems = elements.slice(0, fit).join("");
-            const startTblIdxHexa = serializeUInt16BE(startTblIdx);
-            const endTblIdxHexa = serializeUInt16BE(endTblIdx);
+            const startTblIdxHexa = HexaEncoder.serializeUInt16BE(startTblIdx);
+            const endTblIdxHexa = HexaEncoder.serializeUInt16BE(endTblIdx);
             const payload = `${RecvStateType.brtblState}${startTblIdxHexa}${endTblIdxHexa}${elems}`;
             stateMsgs.addPayload(payload);
             console.log(`msg: startTblIdx=${startTblIdx} endTblIdx=${endTblIdx}`);
@@ -579,21 +438,21 @@ export class WOODState {
 
         // Globals
         const wr = this.woodResponse;
-        const gblsAmountHex = serializeUInt32BE(wr.globals.length);
+        const gblsAmountHex = HexaEncoder.serializeUInt32BE(wr.globals.length);
         console.log(`Globals: total=${wr.globals.length}`);
         const globals = `${RecvStateType.globalsState}${gblsAmountHex}`;
 
         // Table
-        const tblInitHex = serializeUInt32BE(wr.table.init);
-        const tblMaxHex = serializeUInt32BE(wr.table.max);
-        const tblSizeHex = serializeUInt32BE(wr.table.elements.length);
+        const tblInitHex = HexaEncoder.serializeUInt32BE(wr.table.init);
+        const tblMaxHex = HexaEncoder.serializeUInt32BE(wr.table.max);
+        const tblSizeHex = HexaEncoder.serializeUInt32BE(wr.table.elements.length);
         const tbl = `${RecvStateType.tblState}${tblInitHex}${tblMaxHex}${tblSizeHex}`;
 
         console.log(`Table:  init=${wr.table.init} max=${wr.table.max} size=${wr.table.elements.length}`);
         // Memory
-        const memInitHex = serializeUInt32BE(wr.memory.init);
-        const memMaxHex = serializeUInt32BE(wr.memory.max);
-        const memPagesHex = serializeUInt32BE(wr.memory.pages);
+        const memInitHex = HexaEncoder.serializeUInt32BE(wr.memory.init);
+        const memMaxHex = HexaEncoder.serializeUInt32BE(wr.memory.max);
+        const memPagesHex = HexaEncoder.serializeUInt32BE(wr.memory.pages);
         const mem = `${RecvStateType.memState}${memMaxHex}${memInitHex}${memPagesHex}`;
         console.log(`Mem: max=${wr.memory.max} init=${wr.memory.init}  pages=${wr.memory.pages}`);
         const payload = `${globals}${tbl}${mem}`;
@@ -602,10 +461,10 @@ export class WOODState {
     }
 
     private serializePointer(addr: string) {
-        // |   size Adress in non-hexa | Address |
-        // |          1*2 bytes        |
+        // | Address   |
+        // | 4*2 bytes |
         const cleanedAddr = this.makeAddressEven(addr);
-        const pointerSize = serializeUInt8(Math.floor(cleanedAddr.length / 2)); // div by 2 since addr is hexa
+        const pointerSize = HexaEncoder.serializeUInt8(Math.floor(cleanedAddr.length / 2)); // div by 2 since addr is hexa
         return `${pointerSize}${cleanedAddr}`;
     }
 
@@ -618,31 +477,31 @@ export class WOODState {
 
         if (val.type === "i32") {
             if (val.value < 0) {
-                v = serializeInt32LE(val.value as number);
+                v = HexaEncoder.serializeInt32LE(val.value as number);
             }
             else {
-                v = serializeUInt32LE(val.value as number);
+                v = HexaEncoder.serializeUInt32LE(val.value as number);
             }
             type = 0;
             type_str = 'i32';
         }
         else if (val.type === "i64") {
             if (val.value < 0) {
-                v = serializeBigUInt64LE(val.value as bigint);
+                v = HexaEncoder.serializeBigUInt64LE(val.value as bigint);
             }
             else {
-                v = serializeBigUInt64LE(val.value as bigint);
+                v = HexaEncoder.serializeBigUInt64LE(val.value as bigint);
             }
             type = 1;
             type_str = 'i64';
         }
         else if (val.type === "f32") {
-            v = serializeFloatLE(val.value as number);
+            v = HexaEncoder.serializeFloatLE(val.value as number);
             type = 2;
             type_str = 'f32';
         }
         else if (val.type === "f64") {
-            v = serializeDoubleLE(val.value as number);
+            v = HexaEncoder.serializeDoubleLE(val.value as number);
             type = 3;
             type_str = 'f64';
         }
@@ -651,7 +510,7 @@ export class WOODState {
         }
         console.log(`Value: type=${type_str}(idx ${type}) val=${val.value}`);
         if(includeType){
-            const typeHex = serializeUInt8(type);
+            const typeHex = HexaEncoder.serializeUInt8(type);
             return `${typeHex}${v}`;
         }
         else{
@@ -672,14 +531,14 @@ export class WOODState {
         if (validTypes.indexOf(frame.type) === -1) {
             throw (new Error(`received unknow frame type ${frame.type}`));
         }
-        const type = serializeUInt8(frame.type);
-        const sp = serializeInt32(frame.sp, true);
-        const fp = serializeInt32(frame.fp, true);
+        const type = HexaEncoder.serializeUInt8(frame.type);
+        const sp = HexaEncoder.serializeInt32(frame.sp, true);
+        const fp = HexaEncoder.serializeInt32(frame.fp, true);
         const ra = this.serializePointer(frame.ra);
         let rest = "";
         let res_str = ''; //TODO remove
         if (frame.type === funcType) {
-            rest = serializeUInt32BE(Number(frame.fidx));
+            rest = HexaEncoder.serializeUInt32BE(Number(frame.fidx));
             res_str = `fun_idx=${Number(frame.fidx)}`;
         }
         else {
@@ -699,7 +558,7 @@ export class WOODState {
     public serializeRFCall(functionId: number, args: StackValue[]): string {
         const ws = this;
         const ignoreType = false;
-        const fidxHex = serializeUInt32BE(functionId);
+        const fidxHex = HexaEncoder.serializeUInt32BE(functionId);
         const argsHex = args.map(v=>ws.serializeValue(v, ignoreType)).join(""); 
         return `${InterruptTypes.interruptProxyCall}${fidxHex}${argsHex}`;
     }
