@@ -13,8 +13,8 @@ export class DebugInfoParser {
             bridge.refresh();
         }
 
-        if (line.includes('AT')) {
-            let breakpointInfo = line.match(/AT (0x.*)!/);
+        if (line.includes("AT")) {
+            let breakpointInfo = line.match(/AT ([0-9]+)!/);
             if (breakpointInfo.length > 1) {
                 let pc = parseInt(breakpointInfo[1]);
                 bridge.setProgramCounter(pc);
