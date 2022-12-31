@@ -9,9 +9,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
 
     public async pushSession(woodState: WOODState) {
         console.log("Plugin: WOOD RecvState");
-        let offset = await this.getOffset();
-
-        const messages: string[] = woodState.toBinary(offset);
+        const messages: string[] = woodState.toBinary();
         console.log(`sending ${messages.length} messages as new State\n`);
         for (let i = 0; i < messages.length; i++) {
             this.client?.write(messages[i]);
@@ -46,25 +44,6 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         const primitives = this.getSelectedProxiesByIndex();
         const message: string = this.monitorProxiesCommand(primitives);
         this.client?.write(message);
-    }
-
-    private getOffset(): Promise<string> {
-        let that = this;
-        this.sendInterrupt(InterruptTypes.interruptOffset);
-        return new Promise<string>((resolve, reject) => {
-            function parseOffset(data: Buffer) {
-                console.log(`parse offset: ${data.toString().split("\n").length} ${data}`);
-                data.toString().split("\n").forEach((line) => {
-                    console.log(line);
-                    if (line.startsWith("{")) {
-                        that.client?.removeListener("data", parseOffset);
-                        resolve(JSON.parse(line).offset);
-                    }
-                });
-            }
-
-            this.client?.on("data", parseOffset);
-        });
     }
 
     async updateSelectedProxies(proxy: ProxyCallItem) {
