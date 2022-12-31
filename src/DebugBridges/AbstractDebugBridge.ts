@@ -1,16 +1,17 @@
-import {DebugBridge} from './DebugBridge';
-import {Frame} from '../Parsers/Frame';
-import {VariableInfo} from '../State/VariableInfo';
-import {SourceMap} from '../State/SourceMap';
-import {DebugBridgeListener} from './DebugBridgeListener';
-import {WOODState} from '../State/WOODState';
-import {InterruptTypes} from './InterruptTypes';
-import {Duplex} from 'stream';
-import {EventItem, EventsProvider} from '../Views/EventsProvider';
-import {FunctionInfo} from '../State/FunctionInfo';
-import {ProxyCallItem} from '../Views/ProxyCallsProvider';
-import {RuntimeState} from '../State/RuntimeState';
-import {Breakpoint, UniqueSet} from '../State/Breakpoint';
+import { Frame } from '../Parsers/Frame';
+import { Duplex } from 'stream';
+import { DebugBridge } from "./DebugBridge";
+import { VariableInfo } from "../State/VariableInfo";
+import { SourceMap } from "../State/SourceMap";
+import { DebugBridgeListener } from "./DebugBridgeListener";
+import { WOODState } from "../State/WOODState";
+import { InterruptTypes } from "./InterruptTypes";
+import { EventItem, EventsProvider } from "../Views/EventsProvider";
+import { FunctionInfo } from "../State/FunctionInfo";
+import { ProxyCallItem } from "../Views/ProxyCallsProvider";
+import { RuntimeState } from "../State/RuntimeState";
+import { Breakpoint, UniqueSet } from "../State/Breakpoint";
+import { HexaEncoder } from "../Util/hexaEncoding";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -120,8 +121,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     abstract getCurrentFunctionIndex(): number;
 
     private unsetBreakPoint(breakpoint: Breakpoint) {
-        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
-        let command = `${InterruptTypes.interruptBPRem}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
+        let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
+        let command = `${InterruptTypes.interruptBPRem}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
         this.client?.write(command);
         this.breakpoints.delete(breakpoint);
@@ -129,8 +130,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     private setBreakPoint(breakpoint: Breakpoint) {
         this.breakpoints.add(breakpoint);
-        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
-        let command = `${InterruptTypes.interruptBPAdd}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
+        let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
+        let command = `${InterruptTypes.interruptBPAdd}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
         this.client?.write(command);
     }
@@ -289,7 +290,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
         if (fidx >= this.sourceMap.functionInfos.length) {
             console.log(`warning setting locals for new function with index: ${fidx}`);
-            this.sourceMap.functionInfos[fidx] = {index: fidx, name: '<anonymous>', locals: []};
+            this.sourceMap.functionInfos[fidx] = { index: fidx, name: '<anonymous>', locals: [] };
         }
         this.sourceMap.functionInfos[fidx].locals = locals;
     }
