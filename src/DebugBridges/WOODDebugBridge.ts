@@ -81,7 +81,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
         const port: string = vscode.workspace.getConfiguration().get("warduino.Port") ?? "/dev/ttyUSB0";
         const baudrate: string = vscode.workspace.getConfiguration().get("warduino.Baudrate") ?? "115200";
-        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${EMULATOR_PORT}`, '--baudrate', baudrate]);
+        return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${EMULATOR_PORT}`, '--baudrate', baudrate]);
         // return spawn(`echo`, ['"Listening"']);
     }
 }
