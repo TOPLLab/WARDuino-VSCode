@@ -43,7 +43,7 @@ jobs:
             - name: Retrieve version
               run: |
                 cd WARDuino
-                echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_STATE
+                echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
               id: version
 
             - name: Cache build files
@@ -78,7 +78,7 @@ jobs:
             - name: Retrieve version
               run: |
                 cd WABT
-                echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_STATE
+                echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
               id: version
 
             - name: Cache build files
