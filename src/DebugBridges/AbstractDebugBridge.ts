@@ -309,9 +309,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     updateModule(wasm: Buffer): void {
         const w = new Uint8Array(wasm);
-        const sizeBuffer = Buffer.allocUnsafe(4);
-        sizeBuffer.writeUint32BE(w.length);
-        const sizeHex = sizeBuffer.toString("hex");
+        const sizeHex: string = convertToLEB128(w.length);
         const wasmHex = Buffer.from(w).toString("hex");
         let command = `${InterruptTypes.interruptUPDATEMod}${sizeHex}${wasmHex} \n`;
         console.log("Plugin: send Update module command");
