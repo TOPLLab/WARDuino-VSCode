@@ -51,14 +51,14 @@ describe('WARDuino CLI: test exit codes', () => {
 
     it('Test: exit code (0)', function (done) {
         this.timeout(3500);
-        process = spawn(EMULATOR, ['--no-debug', '--file', `${EXAMPLES}hello.wasm`]).on('exit', function (code) {
+        process = spawn(EMULATOR, [`${EXAMPLES}hello.wasm`, '--no-debug']).on('exit', function (code) {
             expect(code).to.equal(0);
             done();
         });
     });
 
     it('Test: exit code (1)', function (done) {
-        process = spawn(EMULATOR, ['--socket', (INITIAL_PORT++).toString(), '--file', `${EXAMPLES}nonexistent.wasm`]).on('exit', function (code) {
+        process = spawn(EMULATOR, [`${EXAMPLES}nonexistent.wasm`, '--socket', (INITIAL_PORT++).toString()]).on('exit', function (code) {
             expect(code).to.equal(1);
             done();
         });
@@ -134,7 +134,7 @@ function isReadable(x: Readable | null): x is Readable {
 }
 
 function startWARDuino(interpreter: string, program: string, port: number, args: string[] = []): ChildProcess {
-    const _args: string[] = ['--socket', (port).toString(), '--file', program].concat(args);
+    const _args: string[] = [program, '--socket', (port).toString()].concat(args);
     return spawn(interpreter, _args);
 }
 
