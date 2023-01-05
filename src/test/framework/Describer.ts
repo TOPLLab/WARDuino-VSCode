@@ -110,6 +110,8 @@ export abstract class ProcessBridge {
 
     abstract sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void>;
 
+    abstract setProgram(socket: Duplex, program: string): Promise<Object | void>;
+
     abstract disconnect(instance: Instance | void): Promise<void>;
 }
 
