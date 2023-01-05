@@ -31,6 +31,7 @@ import {WatCompiler} from '../framework/Compiler';
 import {ArduinoUploader} from '../framework/Uploader';
 import {Framework} from '../framework/Framework';
 import {DependenceScheduler} from '../framework/Scheduler';
+import * as fs from 'fs';
 
 const EMULATOR: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 const ARDUINO: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/platforms/Arduino/`;
@@ -173,6 +174,23 @@ function connectSocket(interpreter: string, program: string, port: number, args:
 }
 
 abstract class WARDuinoBridge extends ProcessBridge {
+    private convertToLEB128(a: number): string { // TODO can only handle 32 bit
+        a |= 0;
+        const result = [];
+        while (true) {
+            const byte_ = a & 0x7f;
+            a >>= 7;
+            if (
+                (a === 0 && (byte_ & 0x40) === 0) ||
+                (a === -1 && (byte_ & 0x40) !== 0)
+            ) {
+                result.push(byte_.toString(16).padStart(2, '0'));
+                return result.join('').toUpperCase();
+            }
+            result.push((byte_ | 0x80).toString(16).padStart(2, '0'));
+        }
+    }
+
     sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void> {
         const stack: MessageStack = new MessageStack('\n');
 
@@ -190,6 +208,12 @@ abstract class WARDuinoBridge extends ProcessBridge {
                 resolve(undefined);
             }
         });
+    }
+
+    setProgram(socket: Duplex, program: string): Promise<Object | void> {
+        const binary = fs.readFileSync(program, 'binary');
+        const size: string = this.convertToLEB128(binary.length);
+        return this.sendInstruction(socket, `${InterruptTypes.interruptUPDATEMod}${size}${binary}`, true, (text: string) => text.includes('CHANGE Module'));
     }
 
     disconnect(instance: Instance | void): Promise<void> {
