@@ -164,7 +164,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
-        return spawn(`${this.sdk}/build-emu/wdcli`, ['--file', `${this.tmpdir}/upload.wasm`, '--socket', `${EMULATOR_PORT}`]);
+        return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--socket', `${EMULATOR_PORT}`]);
         //return spawn(`echo`, ['"Listening"']);
     }
 
