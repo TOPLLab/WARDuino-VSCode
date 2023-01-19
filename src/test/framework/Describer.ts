@@ -6,6 +6,7 @@ import 'mocha';
 import {after, describe, PendingSuiteFunction, SuiteFunction} from 'mocha';
 import {SerialPort} from 'serialport';
 import {Framework} from './Framework';
+import {Action, Interrupt} from './Actions';
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
@@ -42,7 +43,7 @@ export interface Step {
     title: string;
 
     /** Type of the instruction */
-    instruction: InterruptTypes;
+    instruction: Interrupt | Action;
 
     /* Optional payload of the instruction */
     payload?: string;
@@ -97,7 +98,6 @@ export interface SerialInstance extends Instance {
 
 export interface Emulator extends Instance {
     process: ChildProcess;
-    interface: Duplex;
 }
 
 export abstract class ProcessBridge {
@@ -201,8 +201,13 @@ export class Describer {
                         return;
                     }
 
-                    const actual: Object | void = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
-                        describer.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse));
+                    let actual: Object | void;
+                    if (step.instruction instanceof Action) {
+                        actual = await step.instruction.perform(step.parser ?? (() => Object()));
+                    } else {
+                        actual = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
+                            describer.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse));
+                    }
 
                     await new Promise(f => setTimeout(f, step.delay ?? 0));
 
