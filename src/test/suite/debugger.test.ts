@@ -7,7 +7,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import 'mocha';
-import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {
     Behaviour,
     Description,
@@ -34,6 +33,7 @@ import {
     isReadable,
     startWARDuino
 } from './warduino.bridge';
+import {Action, Interrupt} from '../framework/Actions';
 
 const EXAMPLES: string = 'src/test/suite/examples/';
 let INITIAL_PORT: number = 7900;
@@ -166,7 +166,7 @@ const expectDUMPLocals: Expectation[] = [
 
 const DUMP: Step = {
     title: 'Send DUMP command',
-    instruction: InterruptTypes.interruptDUMP,
+    instruction: Interrupt.dump,
     parser: stateParser,
     expected: expectDUMP
 };
@@ -184,7 +184,7 @@ const dumpLocalsTest: TestDescription = {
     program: `${EXAMPLES}blink.wast`,
     steps: [{
         title: 'Send DUMPLocals command',
-        instruction: InterruptTypes.interruptDUMPLocals,
+        instruction: Interrupt.dumpLocals,
         parser: stateParser,
         expected: expectDUMPLocals
     }]
@@ -197,7 +197,7 @@ const dumpFullTest: TestDescription = {
     program: `${EXAMPLES}blink.wast`,
     steps: [{
         title: 'Send DUMPFull command',
-        instruction: InterruptTypes.interruptDUMPFull,
+        instruction: Interrupt.dumpAll,
         parser: stateParser,
         expected: expectDUMP.concat([{
             'locals.count': {
@@ -217,19 +217,19 @@ const pauseTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
-        instruction: InterruptTypes.interruptPAUSE,
+        instruction: Interrupt.pause,
         parser: stateParser,
         expectResponse: false
     }, {
         title: 'Send DUMP command',
-        instruction: InterruptTypes.interruptDUMP,
+        instruction: Interrupt.dump,
         parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }]
     }, {
         title: 'CHECK: execution is stopped',
-        instruction: InterruptTypes.interruptDUMP,
+        instruction: Interrupt.dump,
         parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
@@ -247,17 +247,17 @@ const stepTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
-        instruction: InterruptTypes.interruptPAUSE,
+        instruction: Interrupt.pause,
         parser: stateParser,
         expectResponse: false
     }, DUMP, {
         title: 'Send STEP command',
-        instruction: InterruptTypes.interruptSTEP,
+        instruction: Interrupt.step,
         parser: stateParser,
         expectResponse: false
     }, {
         title: 'CHECK: execution took one step',
-        instruction: InterruptTypes.interruptDUMP,
+        instruction: Interrupt.dump,
         parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
@@ -275,12 +275,12 @@ const runTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
-        instruction: InterruptTypes.interruptPAUSE,
+        instruction: Interrupt.pause,
         parser: stateParser,
         expectResponse: false
     }, DUMP, {
         title: 'CHECK: execution is stopped',
-        instruction: InterruptTypes.interruptDUMP,
+        instruction: Interrupt.dump,
         parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
@@ -289,13 +289,13 @@ const runTest: TestDescription = {
         }]
     }, {
         title: 'Send RUN command',
-        instruction: InterruptTypes.interruptRUN,
+        instruction: Interrupt.run,
         parser: stateParser,
         delay: 100,
         expectResponse: false
     }, {
         title: 'CHECK: execution continues',
-        instruction: InterruptTypes.interruptDUMP,
+        instruction: Interrupt.dump,
         parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
@@ -323,7 +323,7 @@ const eventNotificationTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Push mock event',
-        instruction: InterruptTypes.interruptPUSHEvent,
+        instruction: Interrupt.pushEvent,
         payload: encodeEvent('interrupt', ''),
         parser: ackParser,
         expected: [{
@@ -344,7 +344,7 @@ const dumpEventsTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: event queue',
-        instruction: InterruptTypes.interruptDUMPEvents,
+        instruction: Interrupt.dumpEvents,
         parser: stateParser,
         expected: [{
             'events': {
@@ -364,16 +364,16 @@ const receiveEventTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
-        instruction: InterruptTypes.interruptPAUSE,
+        instruction: Interrupt.pause,
         expectResponse: false
     }, {
         title: 'Push mock event',
-        instruction: InterruptTypes.interruptPUSHEvent,
+        instruction: Interrupt.pushEvent,
         payload: encodeEvent('interrupt', ''),
         expectResponse: false
     }, {
         title: 'CHECK: event queue',
-        instruction: InterruptTypes.interruptDUMPEvents,
+        instruction: Interrupt.dumpEvents,
         parser: stateParser,
         expected: [{
             'events': {
@@ -394,7 +394,7 @@ const dumpCallbackMappingTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: callbackmapping',
-        instruction: InterruptTypes.interruptDUMPCallbackmapping,
+        instruction: Interrupt.dumpCallbackmapping,
         parser: stateParser,
         expected: [{
             'callbacks': {
@@ -407,6 +407,42 @@ const dumpCallbackMappingTest: TestDescription = {
 };
 
 framework.test(dumpCallbackMappingTest);
+
+
+function mqtt(): Promise<string> {
+    // await breakpoint hit
+
+    // send mqtt message
+
+    return Promise.resolve('ok');
+}
+
+const scenario: TestDescription = { // MQTT test scenario
+    title: 'Test MQTT primitives',
+    program: `${EXAMPLES}program.ts`,
+    dependencies: [],
+    initialBreakpoints: [{line: 8, column: 1}, {line: 11, column: 55}],
+    steps: [{
+        title: 'Continue',
+        instruction: Interrupt.run,
+        expectResponse: false
+    }, {
+        title: 'Send MQTT message and await breakpoint hit',
+        instruction: new Action(mqtt),
+        expectResponse: false
+    }, {
+        title: 'CHECK: entered callback function',
+        instruction: Interrupt.dump,
+        parser: stateParser,
+        expected: [{
+            'state': {kind: 'primitive', value: 'paused'} as Expected<string>,
+            'line': {kind: 'primitive', value: 11} as Expected<number>,
+            'column': {kind: 'primitive', value: 55} as Expected<number>
+        }]
+    }]
+};
+
+framework.test(scenario);
 
 framework.run();
 
