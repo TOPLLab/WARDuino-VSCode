@@ -46,7 +46,7 @@ export interface Step {
     instruction: Interrupt | Action;
 
     /* Optional payload of the instruction */
-    payload?: string;
+    payload?: Promise<string>;
 
     /** Whether the instruction is expected to return data */
     expectResponse?: boolean;
@@ -205,8 +205,12 @@ export class Describer {
                     if (step.instruction instanceof Action) {
                         actual = await step.instruction.perform(step.parser ?? (() => Object()));
                     } else {
+                        let payload: string = '';
+                        if (step.payload !== undefined) {
+                            payload = await timeout<string | void>(`encoding payload ${step.instruction}`, describer.bridge.instructionTimeout, step.payload) ?? '';
+                        }
                         actual = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
-                            describer.bridge.sendInstruction(instance.interface, step.instruction, step.expectResponse ?? true, step.parser ?? JSON.parse));
+                            describer.bridge.sendInstruction(instance.interface, `${step.instruction}${payload}`, step.expectResponse ?? true, step.parser ?? JSON.parse));
                     }
 
                     await new Promise(f => setTimeout(f, step.delay ?? 0));

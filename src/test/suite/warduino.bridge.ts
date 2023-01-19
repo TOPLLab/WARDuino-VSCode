@@ -11,7 +11,7 @@ import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {WatCompiler} from '../framework/Compiler';
 import {ArduinoUploader} from '../framework/Uploader';
 
-const WABT: string = process.env.WABT ?? '';
+export const WABT: string = process.env.WABT ?? '';
 
 export const EMULATOR: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/build-emu/wdcli`;
 export const ARDUINO: string = `${require('os').homedir()}/Arduino/libraries/WARDuino/platforms/Arduino/`;
@@ -60,7 +60,7 @@ export function connectSocket(interpreter: string, program: string, port: number
 }
 
 abstract class WARDuinoBridge extends ProcessBridge {
-    private convertToLEB128(a: number): string { // TODO can only handle 32 bit
+    public static convertToLEB128(a: number): string { // TODO can only handle 32 bit
         a |= 0;
         const result = [];
         while (true) {
@@ -98,7 +98,7 @@ abstract class WARDuinoBridge extends ProcessBridge {
 
     setProgram(socket: Duplex, program: string): Promise<Object | void> {
         const binary = fs.readFileSync(program, 'binary');
-        const size: string = this.convertToLEB128(binary.length);
+        const size: string = WARDuinoBridge.convertToLEB128(binary.length);
         return this.sendInstruction(socket, `${InterruptTypes.interruptUPDATEMod}${size}${binary}`, true, (text: string) => text.includes('CHANGE Module'));
     }
 
