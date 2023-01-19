@@ -309,8 +309,8 @@ framework.test(runTest);
 
 // EDWARD tests with mock proxy
 
-function encodeEvent(topic: string, payload: string): string {
-    return `{topic: '${topic}', payload: '${payload}'}`;
+function encodeEvent(topic: string, payload: string): Promise<string> {
+    return Promise.resolve(`{topic: '${topic}', payload: '${payload}'}`);
 }
 
 function ackParser(text: string): Object {
@@ -445,4 +445,3 @@ const scenario: TestDescription = { // MQTT test scenario
 framework.test(scenario);
 
 framework.run();
-
