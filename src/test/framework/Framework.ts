@@ -61,6 +61,10 @@ export class Framework {
         this.currentSuite().tests.push(test);
     }
 
+    public tests(tests: TestDescription[]) {
+        tests.forEach(test => this.currentSuite().tests.push(test));
+    }
+
     public run(cores: number = 1) {
         this.suites.forEach((suite: Suite) => {
             this.bases.forEach((base: Platform) => {
