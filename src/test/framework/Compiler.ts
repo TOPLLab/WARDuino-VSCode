@@ -3,9 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import {exec, ExecException} from 'child_process';
-import * as parseUtils from '../../Parsers/ParseUtils';
-import {FunctionInfo} from '../../State/FunctionInfo';
-import {VariableInfo} from '../../State/VariableInfo';
+import {parseExport} from './Parsers';
 
 interface CompileOutput {
     file: string; // the compiled file
@@ -81,25 +79,16 @@ export class WatCompiler extends Compiler {
         // object dump
         return new Promise<SourceMap>((resolve, reject) => {
             const command = `${this.wabt}/wasm-objdump -x -m ${output.file}`;
-            const lines = parseUtils.getLineInfos(output.out ?? '');
-            let functions: FunctionInfo[] = [];
-            let globals: VariableInfo[] = [];
-            let imports: FunctionInfo[] = [];
 
-            function handle(error: ExecException | null, stdout: String, stderr: any) {
-                functions = parseUtils.getFunctionInfos(stdout);
-                globals = parseUtils.getGlobalInfos(stdout);
-                imports = parseUtils.getImportInfos(stdout);
-            }
-
-            let compile = exec(command, handle);
+            let compile = exec(command, (error: ExecException | null, stdout: String, stderr: any) => {
+                resolve(this.parseWasmObjDump(output, stdout.toString()));
+            });
 
             compile.on('close', (code) => {
                 if (code !== 0) {
                     reject(`wasm-objdump exited with code ${code}`);
                     return;
                 }
-                resolve({lineInfoPairs: lines, functionInfos: functions, globalInfos: globals, importInfos: imports});
             });
         });
     }
@@ -109,6 +98,11 @@ export class WatCompiler extends Compiler {
             return this.dump(output);
         });
     }
+
+    private parseWasmObjDump(context: CompileOutput, input: string): SourceMap {
+        return {lineInfoPairs: [], functionInfos: parseExport(input), globalInfos: [], importInfos: []};
+    }
+
 }
 
 export class AsScriptCompiler extends Compiler {
