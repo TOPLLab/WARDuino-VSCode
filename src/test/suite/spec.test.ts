@@ -18,7 +18,7 @@ framework.platform(new EmulatorBridge(EMULATOR));
 framework.suite('Integration tests: WebAssembly Spec');
 
 function returnParser(text: string): Object {
-    return JSON.parse(text);
+    return JSON.parse(text).stack[0];
 }
 
 async function encode(program: string, name: string, args: number[]): Promise<string> {
@@ -39,8 +39,8 @@ async function encode(program: string, name: string, args: number[]): Promise<st
     });
 }
 
-// (assert_return (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0))
-const f32: TestDescription = {
+const f32: TestDescription[] = [{
+    // (assert_return (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0))
     title: 'Test f32 operations',
     program: `${SPEC}f32.wast`,
     dependencies: [],
@@ -50,11 +50,25 @@ const f32: TestDescription = {
         payload: encode(`${SPEC}f32.wast`, 'add', [0, 0]),
         parser: returnParser,
         expected: [{
-            'stack': {kind: 'description', value: Description.defined} as Expected<Array<number>>
+            'value': {kind: 'primitive', value: 0} as Expected<number>
         }]
     }]
-};
+}, {
+    // (assert_return (invoke "add" (f32.const -0x0p+0) (f32.const -0x1p-149)) (f32.const -0x1p-149))
+    title: 'Test f32 operations',
+    program: `${SPEC}f32.wast`,
+    dependencies: [],
+    steps: [{
+        title: 'ASSERT: (invoke "add" (f32.const -0xcp+0) (f32.const 0x08p+0)) (f32.const -0x4p+0))',
+        instruction: Interrupt.invoke,
+        payload: encode(`${SPEC}f32.wast`, 'add', [-12, 8]),
+        parser: returnParser,
+        expected: [{
+            'value': {kind: 'primitive', value: -4} as Expected<number>
+        }]
+    }]
+}];
 
-framework.test(f32);
+framework.tests(f32);
 
 framework.run();
