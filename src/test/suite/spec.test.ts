@@ -30,8 +30,10 @@ async function encode(program: string, name: string, args: number[]): Promise<st
         if (func === undefined) {
             reject('cannot find fidx');
         } else {
-            let result: string = func.index.toString() ?? '';
-            args.forEach((arg: number) => {result += EmulatorBridge.convertToLEB128(arg);});
+            let result: string = EmulatorBridge.convertToLEB128(func.index);
+            args.forEach((arg: number) => {
+                result += EmulatorBridge.convertToLEB128(arg);
+            });
             resolve(result);
         }
     });
