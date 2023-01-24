@@ -27,7 +27,7 @@ function getIndex(line: string): number {
 }
 
 function getName(line: string): string {
-    const match = /-> "([a-zA-Z0-9]+)"/.exec(line);
+    const match = /-> "([^"]+)"/.exec(line);
     if (match === null || match[1] === undefined) {
         return '';
     }
