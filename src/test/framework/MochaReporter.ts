@@ -1,6 +1,7 @@
 import {MochaOptions, reporters, Runner, Suite, Test} from 'mocha';
 import {Reporter} from './Reporter';
 import {Framework, Platform} from './Framework';
+import {Archiver} from './Archiver';
 import color = reporters.Base.color;
 import colors = reporters.Base.colors;
 import symbols = reporters.Base.symbols;
@@ -38,6 +39,8 @@ declare global {
 class MochaReporter extends reporters.Base {
     private coreReporter: Reporter;
 
+    private archiver: Archiver;
+
     private readonly indentationSize: number = 2;
     private indentationLevel: number = 0;
 
@@ -49,12 +52,15 @@ class MochaReporter extends reporters.Base {
 
         this.coreReporter = new Reporter(Framework.getImplementation());
 
+        this.archiver = new Archiver('suite.log');
+
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
             console.log(color('suite', '%sGeneral Information'), this.indent(this.indentationLevel + 2));
             console.log(color('suite', '%s==================='), this.indent(this.indentationLevel + 2));
 
             const names: string[] = [];
             Framework.getImplementation().platforms().forEach((platform: Platform) => names.push(platform.name + (platform.disabled ? ' (disabled)' : '')));
+            names.forEach((name: string) => this.archiver.extend('platforms', name));
             console.log(color('suite', '%sPlatforms  %s'), this.indent(this.indentationLevel + 2), names.join(', '));
 
             console.log(color('suite', '%sVM commit  %s'), this.indent(this.indentationLevel + 2), 'eee5468'); // TODO get actual vm commit
@@ -82,6 +88,8 @@ class MochaReporter extends reporters.Base {
             if (this.indentationLevel === 1) {
                 console.log();
             }
+
+            this.archiver.write();
         });
 
         runner.on(Runner.constants.EVENT_TEST_PASS, (test) => {
@@ -93,12 +101,15 @@ class MochaReporter extends reporters.Base {
                 format += color(test.speed, ' (%dms)');
                 console.log(format, test.title, test.duration);
             }
+
+            this.archiver.extend('passes', test.title);
         });
 
         runner.on(Runner.constants.EVENT_TEST_FAIL, (test: Test, error: any) => {
             console.log(this.indent(this.indentationLevel + 1) + color('fail', symbols.err + ' %s'), test.title);
             console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(error)}`));
             this.failures.push(error);
+            this.archiver.extend('fails', test.title);
         });
 
         runner.once(Runner.constants.EVENT_RUN_END, () => {
