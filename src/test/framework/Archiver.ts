@@ -1,11 +1,11 @@
 import {writeFileSync} from 'fs';
 
 export class Archiver {
-    private information: Map<string, Array<string>>;
-    private archive: string;
+    private readonly information: Map<string, string[]>;
+    private readonly archive: string;
 
     constructor(file: string) {
-        this.information = new Map<string, Array<string>>();
+        this.information = new Map<string, string[]>();
         this.archive = file;
     }
 
@@ -23,4 +23,6 @@ export class Archiver {
     public write() {
         writeFileSync(this.archive, `${JSON.stringify(Object.fromEntries(this.information))}\n`, {flag: 'w'});
     }
+
+    // TODO also add access functions to compare with previous runs
 }
