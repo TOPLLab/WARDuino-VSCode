@@ -1,7 +1,7 @@
 /**
  * Specification test suite for WebAssembly.
  */
-import {Description, Expected, TestDescription} from '../framework/Describer';
+import {Expected, TestDescription} from '../framework/Describer';
 import {Interrupt} from '../framework/Actions';
 import {Framework} from '../framework/Framework';
 import {EMULATOR, EmulatorBridge, WABT} from './warduino.bridge';
@@ -15,7 +15,7 @@ const framework = Framework.getImplementation();
 
 framework.platform(new EmulatorBridge(EMULATOR));
 
-framework.suite('Integration tests: WebAssembly Spec');
+framework.suite('WebAssembly Spec tests: f32 operations');
 
 function returnParser(text: string): Object {
     return JSON.parse(text).stack[0];
@@ -41,11 +41,11 @@ async function encode(program: string, name: string, args: number[]): Promise<st
 
 const f32: TestDescription[] = [{
     // (assert_return (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0))
-    title: 'Test f32 operations',
+    title: 'Test: (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)',
     program: `${SPEC}f32.wast`,
     dependencies: [],
     steps: [{
-        title: 'ASSERT: (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0))',
+        title: 'ASSERT: returns f32.const 0x0p+0',
         instruction: Interrupt.invoke,
         payload: encode(`${SPEC}f32.wast`, 'add', [0, 0]),
         parser: returnParser,
@@ -55,20 +55,60 @@ const f32: TestDescription[] = [{
     }]
 }, {
     // (assert_return (invoke "add" (f32.const -0x0p+0) (f32.const -0x1p-149)) (f32.const -0x1p-149))
-    title: 'Test f32 operations',
+    title: 'Test: (invoke "add" (f32.const -0xcp+0) (f32.const 0x08p+0)) (f32.const -0x4p+0)',
     program: `${SPEC}f32.wast`,
     dependencies: [],
     steps: [{
-        title: 'ASSERT: (invoke "add" (f32.const -0xcp+0) (f32.const 0x08p+0)) (f32.const -0x4p+0))',
+        title: 'ASSERT: returns f32.const -0x4p+0',
         instruction: Interrupt.invoke,
         payload: encode(`${SPEC}f32.wast`, 'add', [-12, 8]),
         parser: returnParser,
         expected: [{
-            'value': {kind: 'primitive', value: -4} as Expected<number>
+            'value': {kind: 'primitive', value: 252} as Expected<number>
         }]
     }]
 }];
 
 framework.tests(f32);
+
+framework.suite('WebAssembly Spec tests: f64 operations');
+
+const brIf: TestDescription[] = [{
+    // (assert_return (invoke "as-global.set-value" (i32.const 0)) (i32.const -1))
+    title: 'Test: (invoke "as-global.set-value" (i32.const 0)) (i32.const -1)',
+    program: `${SPEC}br_if.wast`,
+    dependencies: [],
+    steps: [{
+        title: 'ASSERT: returns i32.const -1',
+        instruction: Interrupt.invoke,
+        payload: encode(`${SPEC}br_if.wast`, 'as-global.set-value', [0]),
+        parser: returnParser,
+        expected: [{
+            'value': {kind: 'primitive', value: -1} as Expected<number>
+        }]
+    }]
+}];
+
+framework.tests(brIf);
+
+framework.suite('WebAssembly Spec tests: f64 operations');
+
+const f64: TestDescription[] = [{
+    // (assert_return (invoke "add" (f64.const 0x0p+0) (f64.const 0x0p+0)) (f64.const 0x0p+0))
+    title: 'Test: (invoke "add" (f64.const 0x0p+0) (f64.const 0x0p+0)) (f64.const 0x0p+0)',
+    program: `${SPEC}f64.wast`,
+    dependencies: [],
+    steps: [{
+        title: 'ASSERT: returns f64.const 0x0p+0',
+        instruction: Interrupt.invoke,
+        payload: encode(`${SPEC}f64.wast`, 'add', [0, 0]),
+        parser: returnParser,
+        expected: [{
+            'value': {kind: 'primitive', value: 0} as Expected<number>
+        }]
+    }]
+}];
+
+framework.tests(f64);
 
 framework.run();
