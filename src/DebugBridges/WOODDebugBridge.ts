@@ -1,8 +1,8 @@
-import {EmulatedDebugBridge, EMULATOR_PORT} from './EmulatedDebugBridge';
-import {WOODState} from '../State/WOODState';
-import {InterruptTypes} from './InterruptTypes';
-import {ProxyCallItem} from '../Views/ProxyCallsProvider';
-import {ChildProcess, spawn} from 'child_process';
+import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
+import {WOODState} from "../State/WOODState";
+import {InterruptTypes} from "./InterruptTypes";
+import {ProxyCallItem} from "../Views/ProxyCallsProvider";
+import {ChildProcess, spawn} from "child_process";
 import * as vscode from 'vscode';
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
@@ -58,9 +58,9 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
 
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
-        const port: string = vscode.workspace.getConfiguration().get('warduino.Port') ?? '/dev/ttyUSB0';
-        const baudrate: string = vscode.workspace.getConfiguration().get('warduino.Baudrate') ?? '115200';
-        return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${EMULATOR_PORT}`, '--baudrate', baudrate]);
+        const port: string = vscode.workspace.getConfiguration().get("warduino.Port") ?? "/dev/ttyUSB0";
+        const baudrate: string = vscode.workspace.getConfiguration().get("warduino.Baudrate") ?? "115200";
+        return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${this.deviceConfig.port}`, '--baudrate', baudrate]);
         // return spawn(`echo`, ['"Listening"']);
     }
 }

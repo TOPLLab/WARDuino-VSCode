@@ -1,12 +1,13 @@
 import {AbstractDebugBridge, Messages} from './AbstractDebugBridge';
 import {DebugBridgeListener} from './DebugBridgeListener';
 import {ReadlineParser, SerialPort} from 'serialport';
-import {DebugInfoParser} from '../Parsers/DebugInfoParser';
-import {InterruptTypes} from './InterruptTypes';
-import {exec, spawn} from 'child_process';
-import {SourceMap} from '../State/SourceMap';
-import {WOODState} from '../State/WOODState';
-import {EventsProvider} from '../Views/EventsProvider';
+import {DebugInfoParser} from "../Parsers/DebugInfoParser";
+import {InterruptTypes} from "./InterruptTypes";
+import {exec, spawn} from "child_process";
+import {SourceMap} from "../State/SourceMap";
+import {WOODState} from "../State/WOODState";
+import {EventsProvider} from "../Views/EventsProvider";
+import { DeviceConfig } from "../DebuggerConfig";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
@@ -18,14 +19,16 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     private woodState?: WOODState;
     private woodDumpDetected: boolean = false;
 
-    constructor(sourceMap: SourceMap | void,
-        eventsProvider: EventsProvider | void,
-        tmpdir: string,
-        listener: DebugBridgeListener,
-        portAddress: string,
-        fqbn: string,
-        warduinoSDK: string) {
-        super(sourceMap, eventsProvider, listener);
+    constructor(wasmPath: string,
+                deviceConfig: DeviceConfig,
+                sourceMap: SourceMap | void,
+                eventsProvider: EventsProvider | void,
+                tmpdir: string,
+                listener: DebugBridgeListener,
+                portAddress: string,
+                fqbn: string,
+                warduinoSDK: string) {
+        super(deviceConfig, sourceMap, eventsProvider, listener);
 
         this.sourceMap = sourceMap;
         this.listener = listener;

@@ -17,18 +17,20 @@ import {CompileTimeError} from '../CompilerBridges/CompileTimeError';
 import {ErrorReporter} from './ErrorReporter';
 import {DebugBridge} from '../DebugBridges/DebugBridge';
 import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
-import {RunTimeTarget} from '../DebugBridges/RunTimeTarget';
-import {CompileBridgeFactory} from '../CompilerBridges/CompileBridgeFactory';
-import {SourceMap} from '../State/SourceMap';
-import {VariableInfo} from '../State/VariableInfo';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import {WOODState} from '../State/WOODState';
-import {WOODDebugBridge} from '../DebugBridges/WOODDebugBridge';
-import {EventsProvider} from '../Views/EventsProvider';
-import {ProxyCallItem, ProxyCallsProvider} from '../Views/ProxyCallsProvider';
-import {CompileBridge, CompileResult} from '../CompilerBridges/CompileBridge';
+import {RunTimeTarget} from "../DebugBridges/RunTimeTarget";
+import {CompileBridgeFactory} from "../CompilerBridges/CompileBridgeFactory";
+import {CompileBridge} from "../CompilerBridges/CompileBridge";
+import {SourceMap} from "../State/SourceMap";
+import {VariableInfo} from "../State/VariableInfo";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import {WOODState} from "../State/WOODState";
+import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
+import {EventsProvider} from "../Views/EventsProvider";
+import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
+import { CompileResult } from '../CompilerBridges/CompileBridge';
+import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ['emulated', RunTimeTarget.emulator],
@@ -50,6 +52,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private variableHandles = new Handles<'locals' | 'globals'>();
     private compiler?: CompileBridge;
+
+    private debuggerConfig: DebuggerConfig = new DebuggerConfig();
 
     public constructor(notifier: vscode.StatusBarItem, reporter: ErrorReporter) {
         super('debug_log.txt');
@@ -117,6 +121,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.reporter.clear();
         this.program = args.program;
 
+        this.debuggerConfig.fillConfig(args);
+
         const eventsProvider = new EventsProvider();
         vscode.window.registerTreeDataProvider('events', eventsProvider);
 
@@ -138,8 +144,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.sourceMap = compileResult.sourceMap;
         }
         let that = this;
-        const debugmode: string = vscode.workspace.getConfiguration().get('warduino.DebugMode') ?? 'emulated';
-        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.sourceMap, eventsProvider,
+        const debugmode: string = this.debuggerConfig.device.debugMode;
+        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap, eventsProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface
@@ -151,8 +157,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 },
                 startMultiverseDebugging(woodState: WOODState) {
                     that.debugBridge?.disconnect();
+                    // TODO make device config make
+                    const dc = DeviceConfig.defaultDeviceConfig(args.program);
 
-                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, that.sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
+                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
                         connected(): void {

@@ -9,8 +9,9 @@ import {WOODState} from '../State/WOODState';
 import {EventsProvider} from '../Views/EventsProvider';
 import {Readable} from 'stream';
 import {ReadlineParser} from 'serialport';
+import { DeviceConfig } from '../DebuggerConfig';
 
-export const EMULATOR_PORT: number = 8300;
+// export const EMULATOR_PORT: number = 8300;
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
     public client: net.Socket | undefined;
@@ -20,9 +21,9 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser;
     private buffer: string = '';
 
-    constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
-        warduinoSDK: string) {
-        super(sourceMap, eventsProvider, listener);
+    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
+                warduinoSDK: string) {
+        super(config, sourceMap, eventsProvider, listener);
 
         this.sdk = warduinoSDK;
         this.sourceMap = sourceMap;
@@ -52,7 +53,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             let that = this;
-            let address = {port: EMULATOR_PORT, host: '127.0.0.1'};  // TODO config
+            let address = {port: this.deviceConfig.port, host: "127.0.0.1"};  // TODO config
             if (this.client === undefined) {
                 this.client = new net.Socket();
                 this.client.connect(address, () => {
@@ -162,7 +163,12 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
-        return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--socket', `${EMULATOR_PORT}`]);
+        const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${this.deviceConfig.port}`];
+        if(this.deviceConfig.needsProxyToAnotherVM()){
+            args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
+        }
+        return spawn(`${this.sdk}/build-emu/wdcli`, args);
+        //return spawn(`echo`, ['"Listening"']);
     }
 
 }

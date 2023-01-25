@@ -12,6 +12,7 @@ import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { RuntimeState } from "../State/RuntimeState";
 import { Breakpoint, UniqueSet } from "../State/Breakpoint";
 import { HexaEncoder } from "../Util/hexaEncoding";
+import { DeviceConfig } from "../DebuggerConfig";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -61,13 +62,16 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     private history: RuntimeState[] = [];
     private present = -1;
 
-    protected constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
+    public readonly deviceConfig: DeviceConfig;
+
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
             ?? new Set<ProxyCallItem>();
         this.eventsProvider = eventsProvider;
         this.listener = listener;
+        this.deviceConfig = deviceConfig;
     }
 
     // General Bridge functionality
