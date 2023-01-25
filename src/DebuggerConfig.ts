@@ -108,8 +108,8 @@ export class ProxyConfig {
 export class DeviceConfig {
 
     static readonly emulatedDebugMode: string = "emulated";
-    static readonly mcuDebugMode: string = "mcu";
-    static readonly allowedModes: Set<string> = new Set<string>([DeviceConfig.emulatedDebugMode, DeviceConfig.mcuDebugMode]);
+    static readonly embeddedDebugMode: string = "embedded";
+    static readonly allowedModes: Set<string> = new Set<string>([DeviceConfig.emulatedDebugMode, DeviceConfig.embeddedDebugMode]);
     static readonly defaultDebugPort: number = 8300;
 
     public name: string = "";
@@ -137,7 +137,7 @@ export class DeviceConfig {
         }
         if (obj.hasOwnProperty("proxy")) {
             this.proxyConfig = new ProxyConfig(obj.proxy);
-            if (this.debugMode === DeviceConfig.mcuDebugMode) {
+            if (this.debugMode === DeviceConfig.embeddedDebugMode) {
                 throw (new InvalidDebuggerConfiguration("Proxying not allowed for MCU"));
             }
         }
