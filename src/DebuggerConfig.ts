@@ -74,14 +74,14 @@ export class ProxyConfig {
 
 export class DeviceConfig {
 
-    static readonly defaultDebugMode: string = "emulated";
-    static readonly allowedModes: Set<string> = new Set<string>([DeviceConfig.defaultDebugMode, "mcu"]);
+    static readonly emulatedDebugMode: string = "emulated";
+    static readonly allowedModes: Set<string> = new Set<string>([DeviceConfig.emulatedDebugMode, "mcu"]);
     static readonly defaultDebugPort: number = 8300;
 
     public name: string = "";
     public ip: string = "";
     public port: number = DeviceConfig.defaultDebugPort;
-    public debugMode: string = DeviceConfig.defaultDebugMode;
+    public debugMode: string = DeviceConfig.emulatedDebugMode;
     public proxyConfig: undefined | ProxyConfig;
 
     constructor(obj: any) {
@@ -113,7 +113,7 @@ export class DeviceConfig {
         return new DeviceConfig({
             name: name,
             port: DeviceConfig.defaultDebugPort,
-            mode: DeviceConfig.defaultDebugMode
+            mode: DeviceConfig.emulatedDebugMode
         });
     }
 }
