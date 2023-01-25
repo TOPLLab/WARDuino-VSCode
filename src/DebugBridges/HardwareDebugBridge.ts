@@ -161,17 +161,19 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            if(!this.deviceConfig.onStartConfig.flash){
+            if (this.deviceConfig.onStartConfig.flash) {
+                const sdkpath: string = this.sdk + "/platforms/Arduino/";
+                const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
+                cp.on("error", err => {
+                    reject("Could not store upload file to sdk path.");
+                });
+                cp.on("close", (code) => {
+                    this.compileArduino(sdkpath, resolve, reject);
+                });
+            }
+            else {
                 resolve(true);
             }
-            const sdkpath: string = this.sdk + "/platforms/Arduino/";
-            const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
-            cp.on('error', err => {
-                reject('Could not store upload file to sdk path.');
-            });
-            cp.on('close', (code) => {
-                this.compileArduino(sdkpath, resolve, reject);
-            });
         });
     }
 
