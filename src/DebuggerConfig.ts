@@ -7,6 +7,39 @@ class InvalidDebuggerConfiguration extends Error {
     }
 };
 
+class OnStartConfig {
+    public readonly flash: boolean = true;
+    public readonly updateSource: boolean = false;
+    constructor(flash: boolean, updateSource: boolean) {
+        this.flash = flash;
+        this.updateSource = updateSource;
+    }
+
+    static defaultConfig(): OnStartConfig {
+        return new OnStartConfig(true, false);
+    }
+
+    static fromAnyObject(obj: any): OnStartConfig {
+        if (typeof obj !== 'object') {
+            throw (new InvalidDebuggerConfiguration("`onStart` property expected to be an object"));
+        }
+
+        const c = { flash: true, updateSource: false };
+
+        if (obj.hasOwnProperty('flash')) {
+            c.flash = obj.flash;
+        }
+
+        if (obj.hasOwnProperty('updateSource')) {
+            c.updateSource = obj.updateSource;
+            console.log(`DebuggerConfig: update source not yet activated`);
+        }
+        return new OnStartConfig(c.flash, c.updateSource);
+    }
+
+}
+
+
 
 export class WiFiCredentials {
     public readonly ssid: string;
@@ -84,6 +117,7 @@ export class DeviceConfig {
     public port: number = DeviceConfig.defaultDebugPort;
     public debugMode: string = DeviceConfig.emulatedDebugMode;
     public proxyConfig: undefined | ProxyConfig;
+    public onStartConfig: OnStartConfig;
 
     constructor(obj: any) {
         if (obj.hasOwnProperty('ip')) {
@@ -106,6 +140,13 @@ export class DeviceConfig {
             if (this.debugMode === DeviceConfig.mcuDebugMode) {
                 throw (new InvalidDebuggerConfiguration("Proxying not allowed for MCU"));
             }
+        }
+
+        if (obj.hasOwnProperty("onStart")) {
+            this.onStartConfig = OnStartConfig.fromAnyObject(obj.onStart);
+        }
+        else {
+            this.onStartConfig = OnStartConfig.defaultConfig();
         }
     }
 
