@@ -1,5 +1,4 @@
 import {ChildProcess} from 'child_process';
-import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
 import {Duplex} from 'stream';
 import {assert, expect} from 'chai';
 import 'mocha';
@@ -59,9 +58,6 @@ export interface Step {
 
     /** Checks to run against the result. */
     expected?: Expectation[];
-
-    /** Command to use to retrieve the result of the vm */
-    inspector?: InterruptTypes;
 }
 
 export interface Expectation {
