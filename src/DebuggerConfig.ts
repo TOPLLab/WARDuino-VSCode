@@ -103,6 +103,9 @@ export class DeviceConfig {
         }
         if (obj.hasOwnProperty("proxy")) {
             this.proxyConfig = new ProxyConfig(obj.proxy);
+            if (this.debugMode === DeviceConfig.mcuDebugMode) {
+                throw (new InvalidDebuggerConfiguration("Proxying not allowed for MCU"));
+            }
         }
     }
 
