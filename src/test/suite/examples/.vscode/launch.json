@@ -13,6 +13,10 @@
             "device": {
                 "name": "VM Fac",
                 "debugMode": "emulated",
+                "onStart": {
+                    "flash": true,
+                    "updateSource": true
+                },
                 "port": 8080,
                 "proxy":{
                     "port": 8081,
