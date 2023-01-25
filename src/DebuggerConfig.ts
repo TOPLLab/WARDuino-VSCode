@@ -97,7 +97,7 @@ export class DeviceConfig {
             this.name = this.ip === "" ? "device unknown" : this.ip;
         }
 
-        if (obj.hasOwnProperty("debugMode") && DeviceConfig.allowedModes.has(obj.mode)) {
+        if (DeviceConfig.allowedModes.has(obj.debugMode)) {
             this.debugMode = obj.debugMode;
         }
         if (obj.hasOwnProperty("proxy")) {
