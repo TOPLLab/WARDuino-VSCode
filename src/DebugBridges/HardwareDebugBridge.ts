@@ -163,6 +163,9 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
+            if(!this.deviceConfig.onStartConfig.flash){
+                resolve(true);
+            }
             const sdkpath: string = this.sdk + "/platforms/Arduino/";
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
             cp.on("error", err => {
