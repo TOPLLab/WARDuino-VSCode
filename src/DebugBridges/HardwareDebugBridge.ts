@@ -7,6 +7,7 @@ import {exec, spawn} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
+import { DeviceConfig } from "../DebuggerConfig";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
@@ -20,6 +21,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     private woodDumpDetected: boolean = false;
 
     constructor(wasmPath: string,
+                deviceConfig: DeviceConfig,
                 sourceMap: SourceMap | void,
                 eventsProvider: EventsProvider | void,
                 tmpdir: string,
@@ -27,7 +29,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
                 portAddress: string,
                 fqbn: string,
                 warduinoSDK: string) {
-        super(sourceMap, eventsProvider, listener);
+        super(deviceConfig, sourceMap, eventsProvider, listener);
 
         this.wasmPath = wasmPath;
         this.sourceMap = sourceMap;

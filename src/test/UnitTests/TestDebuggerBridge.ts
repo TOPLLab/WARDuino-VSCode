@@ -11,7 +11,8 @@ import {RunTimeTarget} from "../../DebugBridges/RunTimeTarget";
 import {WOODDebugBridge} from "../../DebugBridges/WOODDebugBridge";
 import {DebugBridgeListener} from "../../DebugBridges/DebugBridgeListener";
 import ErrnoException = NodeJS.ErrnoException;
-
+import { DeviceConfig } from "../../DebuggerConfig";
+ 
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
 const wabtSDK = `${runPath}/WABT/build`;
@@ -47,6 +48,8 @@ async function init(target: RunTimeTarget) {
                     switch (target) {
                         case RunTimeTarget.wood:
                             bridge = new WOODDebugBridge("",
+                            //TODO fix
+                            DeviceConfig.defaultDeviceConfig("wood"),
                                 undefined,
                                 undefined,
                                 tmpdir,
@@ -57,6 +60,7 @@ async function init(target: RunTimeTarget) {
                         case RunTimeTarget.emulator:
                         default:
                             bridge = new EmulatedDebugBridge("",
+                                DeviceConfig.defaultDeviceConfig("emulated"),
                                 undefined,
                                 undefined,
                                 tmpdir,
