@@ -4,10 +4,8 @@
 import {Expected, TestDescription} from '../framework/Describer';
 import {Interrupt} from '../framework/Actions';
 import {Framework} from '../framework/Framework';
-import {EMULATOR, EmulatorBridge, WABT} from './warduino.bridge';
-import {WatCompiler} from '../framework/Compiler';
-import {SourceMap} from '../../State/SourceMap';
-import {FunctionInfo} from '../../State/FunctionInfo';
+import {EMULATOR, EmulatorBridge} from './warduino.bridge';
+import {encode, returnParser} from './spec.util';
 
 const SPEC: string = 'src/test/suite/spec/';
 
@@ -16,28 +14,6 @@ const framework = Framework.getImplementation();
 framework.platform(new EmulatorBridge(EMULATOR));
 
 framework.suite('WebAssembly Spec tests');
-
-function returnParser(text: string): Object {
-    return JSON.parse(text).stack[0];
-}
-
-async function encode(program: string, name: string, args: number[]): Promise<string> {
-    const map: SourceMap = await new WatCompiler(program, WABT).map();
-
-    return new Promise((resolve, reject) => {
-        const func = map.functionInfos.find((func: FunctionInfo) => func.name === name);
-
-        if (func === undefined) {
-            reject('cannot find fidx');
-        } else {
-            let result: string = EmulatorBridge.convertToLEB128(func.index);
-            args.forEach((arg: number) => {
-                result += EmulatorBridge.convertToLEB128(arg);
-            });
-            resolve(result);
-        }
-    });
-}
 
 const f32: TestDescription = {
     title: 'Test: f32 operations',
@@ -52,13 +28,13 @@ const f32: TestDescription = {
         expected: [{
             'value': {kind: 'primitive', value: 0} as Expected<number>
         }]
-    },{
+    }, {
         title: 'ASSERT: (invoke "add" (f32.const -0x12p+0) (f32.const 0x8p+0)) (f32.const -0x4p+0)',
         instruction: Interrupt.invoke,
         payload: encode(`${SPEC}f32.wast`, 'add', [-12, 8]),
         parser: returnParser,
         expected: [{
-            'value': {kind: 'primitive', value: 252} as Expected<number>
+            'value': {kind: 'primitive', value: -4} as Expected<number>
         }]
     }]
 };
