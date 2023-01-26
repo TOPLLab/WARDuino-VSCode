@@ -19,15 +19,15 @@ function consumeUntil(text: string, until: string): string {
 }
 
 function getIndex(line: string): number {
-    const match = /func\[([0-9]+)\]/.exec(line);
-    if (match === null || match[1] === undefined) {
-        return -1;
-    }
-    return parseInt(match[1]);
+    return parseInt(find(/func\[([0-9]+)\]/, line));
 }
 
 function getName(line: string): string {
-    const match = /-> "([^"]+)"/.exec(line);
+    return find(/-> "([^"]+)"/, line);
+}
+
+export function find(regex: RegExp, input: string) {
+    const match = regex.exec(input);
     if (match === null || match[1] === undefined) {
         return '';
     }
