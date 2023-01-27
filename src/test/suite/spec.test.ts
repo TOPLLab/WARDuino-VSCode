@@ -1,4 +1,4 @@
-import {Description, Expected, Step} from '../framework/Describer';
+import {Description, Expectation, Expected, getValue, Step} from '../framework/Describer';
 import {Interrupt} from '../framework/Actions';
 import {Framework} from '../framework/Framework';
 import {EMULATOR, EmulatorBridge} from './warduino.bridge';
@@ -6,7 +6,7 @@ import {encode, parseArguments, parseAsserts, parseResult, returnParser} from '.
 import {readdirSync} from 'fs';
 import {find} from '../framework/Parsers';
 
-export const CORESUITE: string = process.env.CORESUITE ?? '.';
+export const CORESUITE: string = process.env.CORESUITE ?? './';
 
 const framework = Framework.getImplementation();
 
@@ -31,7 +31,7 @@ for (const file of files) {
     process.stdout.write(tally);
 }
 
-process.stdout.write('\n\n> Starting framework');
+process.stdout.write('\n\n> Starting framework (this may take a while)\n\n');
 framework.run();
 
 function createTest(module: string, asserts: string[]) {
@@ -43,9 +43,15 @@ function createTest(module: string, asserts: string[]) {
         const args: number[] = parseArguments(assert.replace(`(invoke "${fidx} "`, ''), cursor);
         const result: number | undefined = parseResult(assert.slice(cursor.value));  // todo parse
 
-        let expectation: Expected<number> = (result === undefined) ?
-            {kind: 'description', value: Description.notDefined} as Expected<number> :
-            {kind: 'primitive', value: result} as Expected<number>;
+        let expectation: Expectation = (result === undefined) ?
+            {
+                'stack': {
+                    kind: 'comparison', value: (state: Object, value: Array<any>) => {
+                        return value.length === 0;
+                    }, message: 'stack should be empty'
+                } as Expected<Array<any>>
+            } :
+            {'value': {kind: 'primitive', value: result} as Expected<number>};
 
         steps.push({
             // (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)
@@ -53,9 +59,7 @@ function createTest(module: string, asserts: string[]) {
             instruction: Interrupt.invoke,
             payload: encode(module, fidx, args),
             parser: returnParser,
-            expected: [{
-                'value': expectation
-            }]
+            expected: [expectation]
         });
     }
 
