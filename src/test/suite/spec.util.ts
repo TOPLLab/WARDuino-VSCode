@@ -5,8 +5,7 @@ import {EmulatorBridge, WABT} from './warduino.bridge';
 import {WatCompiler} from '../framework/Compiler';
 import {SourceMap} from '../../State/SourceMap';
 import {FunctionInfo} from '../../State/FunctionInfo';
-import * as readline from 'readline';
-import {createReadStream} from 'fs';
+import {readFileSync} from 'fs';
 
 interface Cursor {
     value: number;
@@ -51,19 +50,13 @@ function consume(input: string, cursor: number, regex: RegExp = / /): number {
     return (regex.exec(input.slice(cursor))?.index ?? input.length) + 1;
 }
 
-export function parseAsserts(file: string): Promise<string[]> {
-    return new Promise<string[]>((resolve) => {
-        const asserts: string[] = [];
-        const reader = readline.createInterface(createReadStream(file));
-
-        reader.on('line', (line) => {
-            asserts.push(line.replace('(assert_return', '('));
-        });
-
-        reader.on('close', () => {
-            resolve(asserts);
-        });
+export function parseAsserts(file: string): string[] {
+    const asserts: string[] = [];
+    readFileSync(file).toString().split('\n').forEach((line) => {
+        asserts.push(line.replace('(assert_return', '('));
     });
+    return asserts;
+
 }
 
 // describe('Test Spec test generation', () => {
