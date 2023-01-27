@@ -1,10 +1,9 @@
-import {Expected, Step} from '../framework/Describer';
+import {Description, Expected, Step} from '../framework/Describer';
 import {Interrupt} from '../framework/Actions';
 import {Framework} from '../framework/Framework';
 import {EMULATOR, EmulatorBridge} from './warduino.bridge';
-import {encode, parseFloat, returnParser} from './spec.util';
-import {createReadStream, readdirSync} from 'fs';
-import * as readline from 'readline';
+import {encode, parseArguments, parseAsserts, parseResult, returnParser} from './spec.util';
+import {readdirSync} from 'fs';
 import {find} from '../framework/Parsers';
 
 const framework = Framework.getImplementation();
@@ -13,26 +12,41 @@ framework.platform(new EmulatorBridge(EMULATOR));
 
 framework.suite('WebAssembly Spec tests');
 
-const files: string[] = readdirSync('core');
+const files: string[] = readdirSync('/home/tom/Arduino/libraries/WARDuino/core');
 
+const promises: Promise<void>[] = [];
 for (const file of files) {
-    if (!file.endsWith('.assert.wast')) {
+    if (!file.endsWith('.asserts.wast')) {
         // only look at assert files
-        break;
+        continue;
     }
 
-    const module: string = file.replace('.asserts.wast', '.wast');
+    promises.push(new Promise((resolve) => {
+        const module: string = file.replace('.asserts.wast', '.wast');
 
-    parseAsserts(file).then((asserts: string[]) => createTest(module, asserts));
+        parseAsserts(file).then((asserts: string[]) => {
+            createTest(module, asserts);
+            resolve();
+        });
+    }));
 }
+Promise.all([]).then(() => {
+    framework.run();
+});
+
 
 function createTest(module: string, asserts: string[]) {
     const steps: Step[] = [];
 
     for (const assert of asserts) {
+        const cursor = {value: 0};
         const fidx: string = find(/invoke "([^"]+)"/, assert);
-        const args: number[] = parseArguments(assert.replace(`(invoke "${fidx} "`, ''));
-        const result: number = 0;  // todo parse
+        const args: number[] = parseArguments(assert.replace(`(invoke "${fidx} " `, ''), cursor);
+        const result: number | undefined = parseResult(assert.slice(cursor.value));  // todo parse
+
+        let expectation: Expected<number> = (result === undefined) ?
+            {kind: 'description', value: Description.notDefined} as Expected<number> :
+            {kind: 'primitive', value: result} as Expected<number>;
 
         steps.push({
             // (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)
@@ -41,7 +55,7 @@ function createTest(module: string, asserts: string[]) {
             payload: encode(module, fidx, args),
             parser: returnParser,
             expected: [{
-                'value': {kind: 'primitive', value: result} as Expected<number>
+                'value': expectation
             }]
         });
     }
@@ -51,47 +65,5 @@ function createTest(module: string, asserts: string[]) {
         program: module,
         dependencies: [],
         steps: steps
-    });
-}
-
-function parseArguments(input: string): number[] {
-    const consume = (input: string, cursor: number): number =>
-        / /.exec(input.slice(cursor))?.index ?? input.length;
-    const args: number[] = [];
-
-    let stack: number = 1;
-    let cursor: number = 0;
-    while (cursor < input.length && 0 < stack) {
-        if (input[cursor] !== '(') {
-            break;
-        }
-
-        stack += 1;
-        cursor = consume(input, cursor);
-        args.push(parseFloat(input.slice(cursor)));
-
-        if (input[cursor] !== ')') {
-            break;
-        }
-
-        stack -= 1;
-        cursor = consume(input, cursor);
-    }
-
-    return args;
-}
-
-function parseAsserts(file: string): Promise<string[]> {
-    return new Promise<string[]>((resolve) => {
-        const asserts: string[] = [];
-        const reader = readline.createInterface(createReadStream(file));
-
-        reader.on('line', (line) => {
-            asserts.push(line.replace('(assert_return', '('));
-        });
-
-        reader.on('close', () => {
-            resolve(asserts);
-        });
     });
 }
