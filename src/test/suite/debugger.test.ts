@@ -408,7 +408,6 @@ const dumpCallbackMappingTest: TestDescription = {
 
 framework.test(dumpCallbackMappingTest);
 
-
 function mqtt(): Promise<string> {
     // await breakpoint hit
 
@@ -426,6 +425,19 @@ const scenario: TestDescription = { // MQTT test scenario
         title: 'Continue',
         instruction: Interrupt.run,
         expectResponse: false
+    }, {
+        title: 'CHECK: callback function registered',
+        instruction: Interrupt.dumpCallbackmapping,
+        parser: stateParser,
+        expected: [{
+            'callbacks': {
+                kind: 'comparison',
+                value: (state: string, mapping: Array<any>) => mapping.some((map: any) => {
+                    return map.hasOwnProperty('parrot') && map['parrot'].length > 0;
+                }),
+                message: 'callback should be registered for parrot topic'
+            } as Expected<Array<any>>
+        }]
     }, {
         title: 'Send MQTT message and await breakpoint hit',
         instruction: new Action(mqtt),
