@@ -53,7 +53,9 @@ function consume(input: string, cursor: number, regex: RegExp = / /): number {
 export function parseAsserts(file: string): string[] {
     const asserts: string[] = [];
     readFileSync(file).toString().split('\n').forEach((line) => {
-        asserts.push(line.replace('(assert_return', '('));
+        if (line.includes('(assert_return')) {
+            asserts.push(line.replace('(assert_return', '('));
+        }
     });
     return asserts;
 
