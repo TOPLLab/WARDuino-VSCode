@@ -80,10 +80,12 @@ export function parseAsserts(file: string): string[] {
 //         expect(parseArguments('(invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', {value: 0})).to.eql([0, 0]);
 //         expect(parseArguments('(((((invoke "none" ( )))))))))))))) (f32.const 0x0p+0)', {value: 0})).to.eql([]);
 //         expect(parseArguments('((invoke "as-br-value") (i32.const 1))', {value: 0})).to.eql([]);
+//         expect(parseArguments('( (invoke "as-unary-operand") (f64.const 1.0))', {value: 0})).to.eql([]);
 //     });
 //
 //     it('Parse result', async () => {
 //         expect(parseResult(') (f32.const 0x0p+0)')).to.equal(0);
+//         expect(parseResult(') (f64.const 1.0))')).to.equal(0);
 //     });
 // });
 
@@ -103,6 +105,9 @@ export function parseFloat(hex: string): number | undefined {
 }
 
 function magnitude(n: number) {
+    if (n === 0) {
+        return 1;
+    }
     return Math.pow(10, Math.ceil(Math.log(n) / Math.LN10));
 }
 
