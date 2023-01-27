@@ -6,26 +6,32 @@ import {encode, parseArguments, parseAsserts, parseResult, returnParser} from '.
 import {readdirSync} from 'fs';
 import {find} from '../framework/Parsers';
 
+export const CORESUITE: string = process.env.CORESUITE ?? '.';
+
 const framework = Framework.getImplementation();
 
 framework.platform(new EmulatorBridge(EMULATOR));
 
 framework.suite('WebAssembly Spec tests');
 
-const files: string[] = readdirSync('/home/tom/Arduino/libraries/WARDuino/core');
+process.stdout.write(`> Scanning suite: ${CORESUITE}\n\n`);
 
+const files: string[] = readdirSync(CORESUITE).filter((file) => file.endsWith('.asserts.wast'));
+
+let count = 0;
+let tally: string = ` [${count++}/${files.length}]`;
+process.stdout.write(`> Building scenarios${tally}`);
 for (const file of files) {
-    if (!file.endsWith('.asserts.wast')) {
-        // only look at assert files
-        continue;
-    }
-
     const module: string = file.replace('.asserts.wast', '.wast');
+    const asserts: string[] = parseAsserts(CORESUITE + file);
+    createTest(CORESUITE + module, asserts);
 
-    const asserts: string[] = parseAsserts(file);
-    createTest(module, asserts);
+    tally = ` [${count++}/${files.length}]`;
+    process.stdout.moveCursor(-tally.length, 0);
+    process.stdout.write(tally);
 }
 
+process.stdout.write('\n\n> Starting framework');
 framework.run();
 
 function createTest(module: string, asserts: string[]) {
