@@ -26,8 +26,8 @@ for (const file of files) {
     const asserts: string[] = parseAsserts(CORESUITE + file);
     createTest(CORESUITE + module, asserts);
 
-    tally = ` [${count++}/${files.length}]`;
     process.stdout.moveCursor(-tally.length, 0);
+    tally = ` [${count++}/${files.length}]`;
     process.stdout.write(tally);
 }
 
@@ -41,7 +41,7 @@ function createTest(module: string, asserts: string[]) {
         const cursor = {value: 0};
         const fidx: string = find(/invoke "([^"]+)"/, assert);
         const args: number[] = parseArguments(assert.replace(`(invoke "${fidx} "`, ''), cursor);
-        const result: number | undefined = parseResult(assert.slice(cursor.value));  // todo parse
+        const result: number | undefined = parseResult(assert.slice(cursor.value));
 
         let expectation: Expectation = (result === undefined) ?
             {
