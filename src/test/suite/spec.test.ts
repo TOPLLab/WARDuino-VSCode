@@ -40,7 +40,7 @@ function createTest(module: string, asserts: string[]) {
     for (const assert of asserts) {
         const cursor = {value: 0};
         const fidx: string = find(/invoke "([^"]+)"/, assert);
-        const args: number[] = parseArguments(assert.replace(`(invoke "${fidx} " `, ''), cursor);
+        const args: number[] = parseArguments(assert.replace(`(invoke "${fidx} "`, ''), cursor);
         const result: number | undefined = parseResult(assert.slice(cursor.value));  // todo parse
 
         let expectation: Expected<number> = (result === undefined) ?

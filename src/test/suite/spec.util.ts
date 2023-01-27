@@ -7,13 +7,15 @@ import {SourceMap} from '../../State/SourceMap';
 import {FunctionInfo} from '../../State/FunctionInfo';
 import {readFileSync} from 'fs';
 
+// import {expect} from 'chai';
+
 interface Cursor {
     value: number;
 }
 
 export function parseResult(input: string): number | undefined {
     let cursor = 0;
-    const delta: number = consume(input, cursor, /\(/);
+    const delta: number = consume(input, cursor, /\(/d);
     if (delta === 0) {
         return undefined;
     }
@@ -25,17 +27,20 @@ export function parseResult(input: string): number | undefined {
 export function parseArguments(input: string, index: Cursor): number[] {
     const args: number[] = [];
 
-    let cursor: number = 0;
+    let cursor: number = consume(input, 0, /invoke "[^"]+"/d);
     while (cursor < input.length) {
-        const delta: number = consume(input, cursor, /\(/);
+        const delta: number = consume(input, cursor, /^[^)]*\(/d);
         if (delta === 0) {
             break;
         }
 
-        cursor += delta + consume(input, cursor + delta);
-        args.push(parseFloat(input.slice(cursor)));
+        cursor += delta + consume(input, cursor + delta, /^[^)]*const /d);
+        const maybe: number | undefined = parseFloat(input.slice(cursor));
+        if (maybe !== undefined) {
+            args.push(maybe);
+        }
 
-        cursor += consume(input, cursor, /\)/);
+        cursor += consume(input, cursor, /\)/d);
         if (input[cursor] === ')') {
             break;
         }
@@ -46,15 +51,17 @@ export function parseArguments(input: string, index: Cursor): number[] {
     return args;
 }
 
-function consume(input: string, cursor: number, regex: RegExp = / /): number {
-    return (regex.exec(input.slice(cursor))?.index ?? input.length) + 1;
+function consume(input: string, cursor: number, regex: RegExp = / /d): number {
+    const match = regex.exec(input.slice(cursor));
+    // @ts-ignore
+    return (match?.indices[0][1]) ?? 0;
 }
 
 export function parseAsserts(file: string): string[] {
     const asserts: string[] = [];
     readFileSync(file).toString().split('\n').forEach((line) => {
         if (line.includes('(assert_return')) {
-            asserts.push(line.replace('(assert_return', '('));
+            asserts.push(line.replace(/.*\(assert_return/, '('));
         }
     });
     return asserts;
@@ -70,7 +77,9 @@ export function parseAsserts(file: string): string[] {
 //     });
 //
 //     it('Parse arguments', async () => {
-//         expect(parseArguments('(f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', {value: 0})).to.eql([0, 0]);
+//         expect(parseArguments('(invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', {value: 0})).to.eql([0, 0]);
+//         expect(parseArguments('(((((invoke "none" ( )))))))))))))) (f32.const 0x0p+0)', {value: 0})).to.eql([]);
+//         expect(parseArguments('((invoke "as-br-value") (i32.const 1))', {value: 0})).to.eql([]);
 //     });
 //
 //     it('Parse result', async () => {
@@ -78,16 +87,19 @@ export function parseAsserts(file: string): string[] {
 //     });
 // });
 
-export function parseFloat(hex: string): number {
+export function parseFloat(hex: string): number | undefined {
     if (hex === undefined) {
-        return NaN;
+        return undefined;
     }
     const radix: number = hex.includes('0x') ? 16 : 10;
     let result: number = parseInt(hex.split('.')[0], radix);
     const decimals = parseInt(hex.split('.')[1], radix);
     result = Math.sign(result) * (Math.abs(result) + (isNaN(decimals) ? 0 : (decimals / magnitude(decimals))));
-    const exponent: number = parseFloat(hex.split(radix === 16 ? 'p' : 'e')[1]);
-    return result * Math.pow(10, isNaN(exponent) ? 0 : exponent);
+    if (isNaN(result) && !hex.includes('nan')) {
+        return undefined;
+    }
+    const exponent: number | undefined = parseFloat(hex.split(radix === 16 ? 'p' : 'e')[1]);
+    return result * Math.pow(10, exponent === undefined || isNaN(exponent) ? 0 : exponent);
 }
 
 function magnitude(n: number) {
