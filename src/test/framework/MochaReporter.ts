@@ -117,24 +117,33 @@ class MochaReporter extends reporters.Base {
 
             console.log();
 
+            this.indentationLevel = 2;
+
+            console.log(color('suite', '%sTest Suite Results'), this.indent());
+            console.log(color('suite', '%s==================\n'), this.indent());
+
+            console.log(color('suite', '%sScenarios:'), this.indent());
+
+            this.indentationLevel += 1;
+
             // passes
             let fmt =
-                color('bright pass', this.indent(1)) +
-                color('green', ' %d passing') +
+                color('bright pass', this.indent()) +
+                color('green', '%d passing') +
                 color('light', ' (%s)');
 
             console.log(fmt, (stats?.suites ?? this.failed) - this.failed, seconds(stats?.duration ?? 0));
 
             // pending
             if (stats?.pending) {
-                fmt = color('pending', this.indent(1)) + color('pending', ' %d skipped');
+                fmt = color('pending', this.indent()) + color('pending', ' %d skipped');
 
                 console.log(fmt, stats?.pending);
             }
 
             // failures
             if (stats?.failures) {
-                fmt = color('error', `${this.indent(1)} %d failing`);
+                fmt = color('error', `${this.indent()}%d failing`);
 
                 console.log(fmt, this.failed);
 
@@ -143,6 +152,52 @@ class MochaReporter extends reporters.Base {
                 });
                 console.log();
             }
+
+            console.log();
+
+            this.indentationLevel -= 1;
+
+            console.log(color('suite', '%sActions:'), this.indent());
+
+            this.indentationLevel += 1;
+
+            // number of passed/failed actions
+
+            // percentage of failures due to timeouts
+
+            console.log();
+
+            this.indentationLevel -= 1;
+
+            console.log(color('suite', '%sExpectations:'), this.indent());
+
+            this.indentationLevel += 1;
+
+            // number of passed/failed expectations
+
+            fmt =
+                color('bright pass', this.indent()) +
+                color('green', '%d passing');
+
+            console.log(fmt, stats?.passes || 0);
+
+            if (stats?.failures) {
+                fmt = color('error', `${this.indent()}%d failing`);
+
+                console.log(fmt, stats?.failures);
+            }
+
+            this.indentationLevel -= 1;
+
+            console.log();
+
+            console.log(color('suite', '%sSuite Health:'), this.indent());
+
+            // increases/decreases in execution time
+
+            // increases/decreases in failures
+
+            // increases/decreases in flakiness
 
             console.log();
         });
