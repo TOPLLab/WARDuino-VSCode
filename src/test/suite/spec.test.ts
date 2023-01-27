@@ -2,7 +2,7 @@ import {Expected, Step} from '../framework/Describer';
 import {Interrupt} from '../framework/Actions';
 import {Framework} from '../framework/Framework';
 import {EMULATOR, EmulatorBridge} from './warduino.bridge';
-import {encode, returnParser} from './spec.util';
+import {encode, parseFloat, returnParser} from './spec.util';
 import {createReadStream, readdirSync} from 'fs';
 import * as readline from 'readline';
 import {find} from '../framework/Parsers';
@@ -31,7 +31,7 @@ function createTest(module: string, asserts: string[]) {
 
     for (const assert of asserts) {
         const fidx: string = find(/invoke "([^"]+)"/, assert);
-        const args: number[] = [0, 0];  // todo parse
+        const args: number[] = parseArguments(assert.replace(`(invoke "${fidx} "`, ''));
         const result: number = 0;  // todo parse
 
         steps.push({
@@ -52,6 +52,33 @@ function createTest(module: string, asserts: string[]) {
         dependencies: [],
         steps: steps
     });
+}
+
+function parseArguments(input: string): number[] {
+    const consume = (input: string, cursor: number): number =>
+        / /.exec(input.slice(cursor))?.index ?? input.length;
+    const args: number[] = [];
+
+    let stack: number = 1;
+    let cursor: number = 0;
+    while (cursor < input.length && 0 < stack) {
+        if (input[cursor] !== '(') {
+            break;
+        }
+
+        stack += 1;
+        cursor = consume(input, cursor);
+        args.push(parseFloat(input.slice(cursor)));
+
+        if (input[cursor] !== ')') {
+            break;
+        }
+
+        stack -= 1;
+        cursor = consume(input, cursor);
+    }
+
+    return args;
 }
 
 function parseAsserts(file: string): Promise<string[]> {
