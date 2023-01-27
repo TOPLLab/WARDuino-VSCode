@@ -14,26 +14,19 @@ framework.suite('WebAssembly Spec tests');
 
 const files: string[] = readdirSync('/home/tom/Arduino/libraries/WARDuino/core');
 
-const promises: Promise<void>[] = [];
 for (const file of files) {
     if (!file.endsWith('.asserts.wast')) {
         // only look at assert files
         continue;
     }
 
-    promises.push(new Promise((resolve) => {
-        const module: string = file.replace('.asserts.wast', '.wast');
+    const module: string = file.replace('.asserts.wast', '.wast');
 
-        parseAsserts(file).then((asserts: string[]) => {
-            createTest(module, asserts);
-            resolve();
-        });
-    }));
+    const asserts: string[] = parseAsserts(file);
+    createTest(module, asserts);
 }
-Promise.all([]).then(() => {
-    framework.run();
-});
 
+framework.run();
 
 function createTest(module: string, asserts: string[]) {
     const steps: Step[] = [];
