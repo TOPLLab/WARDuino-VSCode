@@ -107,7 +107,8 @@ function magnitude(n: number) {
 }
 
 export function returnParser(text: string): Object {
-    return JSON.parse(text).stack[0];
+    const object = JSON.parse(text);
+    return object.stack.length > 0 ? object.stack[0] : object;
 }
 
 export async function encode(program: string, name: string, args: number[]): Promise<string> {
