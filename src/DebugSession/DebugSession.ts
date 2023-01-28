@@ -31,6 +31,7 @@ import {EventsProvider} from "../Views/EventsProvider";
 import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
 import { CompileResult } from '../CompilerBridges/CompileBridge';
 import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
+import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBuilder';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -135,6 +136,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 }
             });
         });
+
+        if(this.debuggerConfig.device.isForHardware()){
+            const dc = this.debuggerConfig.device;
+            const path2sdk = vscode.workspace.getConfiguration().get("warduino.WARDuinoToolChainPath") as string;
+            ArduinoTemplateBuilder.setPath2Templates(path2sdk);
+            ArduinoTemplateBuilder.generateWiFiSocketServer(dc);
+        }
 
         this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
 
