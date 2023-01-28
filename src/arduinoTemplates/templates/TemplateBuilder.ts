@@ -11,7 +11,7 @@ export class ArduinoTemplateBuilder {
     }
 
 
-    static generateWiFiSocketServer(deviceConfig: DeviceConfig, outputDir: string = '', outputFilename: string = 'Arduino-socket.ino'): boolean {
+    static buildArduinoWithWifi(deviceConfig: DeviceConfig, outputDir: string = '', outputFilename: string = 'Arduino-socket.ino'): boolean {
         if(!deviceConfig.usesWiFi()){
             throw (new Error(`ArduinoTemplateBuilder: cannot build Wifi based arduino without wifi credentials`));
         }
