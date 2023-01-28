@@ -7,16 +7,22 @@ class InvalidDebuggerConfiguration extends Error {
     }
 };
 
-class OnStartConfig {
+export class OnStartConfig {
     public readonly flash: boolean = true;
     public readonly updateSource: boolean = false;
-    constructor(flash: boolean, updateSource: boolean) {
+    public readonly pause: boolean = true;
+
+    constructor(flash: boolean, updateSource: boolean, pause: boolean) {
         this.flash = flash;
         this.updateSource = updateSource;
+        this.pause = pause;
     }
 
     static defaultConfig(): OnStartConfig {
-        return new OnStartConfig(true, false);
+        const flash = true;
+        const source = false;
+        const pause = true;
+        return new OnStartConfig(flash, source, pause);
     }
 
     static fromAnyObject(obj: any): OnStartConfig {
@@ -24,7 +30,7 @@ class OnStartConfig {
             throw (new InvalidDebuggerConfiguration("`onStart` property expected to be an object"));
         }
 
-        const c = { flash: true, updateSource: false };
+        const c = { flash: true, updateSource: false, pause: false };
 
         if (obj.hasOwnProperty('flash')) {
             c.flash = obj.flash;
@@ -34,7 +40,12 @@ class OnStartConfig {
             c.updateSource = obj.updateSource;
             console.log(`DebuggerConfig: update source not yet activated`);
         }
-        return new OnStartConfig(c.flash, c.updateSource);
+
+        if (obj.hasOwnProperty('pause')) {
+            c.pause = obj.pause;
+        }
+
+        return new OnStartConfig(c.flash, c.updateSource, c.pause);
     }
 
 }
@@ -87,7 +98,8 @@ export class WiFiCredentials {
 }
 
 export class ProxyConfig {
-    public port: number = -1;
+    static defaultPort = 8081;
+    public port: number = ProxyConfig.defaultPort;
     public ip: string = "";
     public serial: string = "";
 
@@ -112,6 +124,9 @@ export class DeviceConfig {
     static readonly allowedModes: Set<string> = new Set<string>([DeviceConfig.emulatedDebugMode, DeviceConfig.embeddedDebugMode]);
     static readonly defaultDebugPort: number = 8300;
 
+
+    public readonly wifiCredentials: WiFiCredentials | undefined;
+
     public name: string = "";
     public ip: string = "";
     public port: number = DeviceConfig.defaultDebugPort;
@@ -120,6 +135,10 @@ export class DeviceConfig {
     public onStartConfig: OnStartConfig;
 
     constructor(obj: any) {
+        if (obj.hasOwnProperty('wifiCredentials')) {
+            const credentials = WiFiCredentials.validate(obj.wifiCredentials);
+            this.wifiCredentials = new WiFiCredentials(credentials.ssid, credentials.pswd);
+        }
         if (obj.hasOwnProperty('ip')) {
             this.ip = obj.ip;
         }
@@ -137,9 +156,6 @@ export class DeviceConfig {
         }
         if (obj.hasOwnProperty("proxy")) {
             this.proxyConfig = new ProxyConfig(obj.proxy);
-            if (this.debugMode === DeviceConfig.embeddedDebugMode) {
-                throw (new InvalidDebuggerConfiguration("Proxying not allowed for MCU"));
-            }
         }
 
         if (obj.hasOwnProperty("onStart")) {
@@ -154,6 +170,14 @@ export class DeviceConfig {
         return !!this.proxyConfig;
     }
 
+    isForHardware(): boolean {
+        return this.debugMode === DeviceConfig.embeddedDebugMode;
+    }
+
+    usesWiFi(): boolean {
+        return !!this.wifiCredentials;
+    }
+
     static defaultDeviceConfig(name: string = "emulated-vm"): DeviceConfig {
         return new DeviceConfig({
             name: name,
@@ -165,21 +189,12 @@ export class DeviceConfig {
 
 export class DebuggerConfig {
 
-    public ssid: string = "";
-    public pswd: string = "";
     public device: DeviceConfig = DeviceConfig.defaultDeviceConfig('emulated-vm');
 
     constructor() {
     }
 
     fillConfig(obj: any) {
-
-        if (obj.hasOwnProperty('wifiCredentials')) {
-            const credentials = WiFiCredentials.validate(obj.wifiCredentials);
-            this.ssid = credentials.ssid;
-            this.pswd = credentials.pswd;
-        }
-
         if (obj.hasOwnProperty('device')) {
             this.device = new DeviceConfig(obj.device);
         }
