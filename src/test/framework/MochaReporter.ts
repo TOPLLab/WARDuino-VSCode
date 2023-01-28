@@ -44,8 +44,13 @@ class MochaReporter extends reporters.Base {
     private readonly indentationSize: number = 2;
     private indentationLevel: number = 0;
 
+    private passed: number = 0;  // number of passed suites
+    private skipped: number = 0;  // number of skipped suites
+
     private failed: number = 0;  // number of failed suites
     public failures = Array<any>();  // array to keep failed tests of suite (temporarily)
+
+    private timeouts: number = 0;  // number of timed out actions
 
     constructor(runner: Runner, options?: MochaOptions) {
         super(runner, options);
@@ -72,17 +77,18 @@ class MochaReporter extends reporters.Base {
         });
 
         runner.on(Runner.constants.EVENT_SUITE_END, (suite: Suite) => {
-            if (this.failures.length > 0) {
+            if (suite.isPending()) {
+                let format = this.indent(this.indentationLevel + 1) + '\u25D7 Skipping test';
+                this.skipped++;
+                console.log(format);
+            } else if (this.failures.length > 0) {
                 this.failed++;
+            } else {
+                this.passed++;
             }
 
             this.reportFailure(this.failures);
             this.failures = Array<any>();
-
-            if (suite.isPending()) {
-                let format = this.indent(this.indentationLevel + 1) + '\u25D7 Skipping test';
-                console.log(format);
-            }
 
             --this.indentationLevel;
             if (this.indentationLevel === 1) {
@@ -108,7 +114,16 @@ class MochaReporter extends reporters.Base {
         runner.on(Runner.constants.EVENT_TEST_FAIL, (test: Test, error: any) => {
             console.log(this.indent(this.indentationLevel + 1) + color('fail', symbols.err + ' %s'), test.title);
             console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(error)}`));
+
+            if (error.message?.toString().includes('failed dependent')) {
+                this.skipped++;
+                this.passed--;
+                return;
+            }
+
             this.failures.push(error);
+            this.timeouts += error.message?.toString().includes('timeout') ? 1 : 0;
+
             this.archiver.extend('fails', test.title);
         });
 
@@ -132,14 +147,11 @@ class MochaReporter extends reporters.Base {
                 color('green', '%d passing') +
                 color('light', ' (%s)');
 
-            console.log(fmt, (stats?.suites ?? this.failed) - this.failed, seconds(stats?.duration ?? 0));
+            console.log(fmt, this.passed, seconds(stats?.duration ?? 0));
 
-            // pending
-            if (stats?.pending) {
-                fmt = color('pending', this.indent()) + color('pending', ' %d skipped');
+            fmt = color('pending', this.indent()) + color('pending', '%d skipped');
 
-                console.log(fmt, stats?.pending);
-            }
+            console.log(fmt, this.skipped);
 
             // failures
             if (stats?.failures) {
@@ -163,7 +175,31 @@ class MochaReporter extends reporters.Base {
 
             // number of passed/failed actions
 
-            // percentage of failures due to timeouts
+            fmt =
+                color('bright pass', this.indent()) +
+                color('green', '%d passing');
+
+            console.log(fmt, stats?.passes || 0);
+
+            // pending
+            if (stats?.pending) {
+                fmt = color('pending', this.indent()) + color('pending', '%d skipped');
+
+                console.log(fmt, stats?.pending);
+            }
+
+            // failures
+            if (stats?.failures) {
+                fmt = color('error', `${this.indent()}%d failing`);
+
+                console.log(fmt, stats.failures);
+
+                // percentage of failures due to timeouts
+                fmt = color('error', `${this.indent()}%d timeouts`) + color('light', ' (%d%)');
+
+                console.log(fmt, this.timeouts, this.timeouts / stats.failures);
+            }
+
 
             console.log();
 
@@ -174,18 +210,6 @@ class MochaReporter extends reporters.Base {
             this.indentationLevel += 1;
 
             // number of passed/failed expectations
-
-            fmt =
-                color('bright pass', this.indent()) +
-                color('green', '%d passing');
-
-            console.log(fmt, stats?.passes || 0);
-
-            if (stats?.failures) {
-                fmt = color('error', `${this.indent()}%d failing`);
-
-                console.log(fmt, stats?.failures);
-            }
 
             this.indentationLevel -= 1;
 
