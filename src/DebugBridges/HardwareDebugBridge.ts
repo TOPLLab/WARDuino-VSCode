@@ -8,6 +8,7 @@ import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
 import { DeviceConfig } from "../DebuggerConfig";
+import * as path from 'path';
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
@@ -164,7 +165,8 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             if (this.deviceConfig.onStartConfig.flash) {
-                const sdkpath: string = this.sdk + "/platforms/Arduino/";
+                const arduinoDir = this.deviceConfig.usesWiFi() ? "/platforms/Arduino-socket/" : "/platforms/Arduino/";
+                const sdkpath: string = path.join(this.sdk, arduinoDir);
                 const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
                 cp.on("error", err => {
                     reject("Could not store upload file to sdk path.");
