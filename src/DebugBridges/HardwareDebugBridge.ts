@@ -49,7 +49,9 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     async connect(): Promise<string> {
         return new Promise(async (resolve, reject) => {
             this.listener.notifyProgress(Messages.compiling);
-            await this.compileAndUpload();
+            if (this.deviceConfig.onStartConfig.flash) {
+                await this.compileAndUpload();
+            }
             this.listener.notifyProgress(Messages.connecting);
             this.openSerialPort(reject, resolve);
             this.installInputStreamListener();
@@ -164,20 +166,15 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            if (this.deviceConfig.onStartConfig.flash) {
-                const arduinoDir = this.deviceConfig.usesWiFi() ? "/platforms/Arduino-socket/" : "/platforms/Arduino/";
-                const sdkpath: string = path.join(this.sdk, arduinoDir);
-                const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
-                cp.on("error", err => {
-                    reject("Could not store upload file to sdk path.");
-                });
-                cp.on("close", (code) => {
-                    this.compileArduino(sdkpath, resolve, reject);
-                });
-            }
-            else {
-                resolve(true);
-            }
+            const arduinoDir = this.deviceConfig.usesWiFi() ? "/platforms/Arduino-socket/" : "/platforms/Arduino/";
+            const sdkpath: string = path.join(this.sdk, arduinoDir);
+            const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
+            cp.on("error", err => {
+                reject("Could not store upload file to sdk path.");
+            });
+            cp.on("close", (code) => {
+                this.compileArduino(sdkpath, resolve, reject);
+            });
         });
     }
 
