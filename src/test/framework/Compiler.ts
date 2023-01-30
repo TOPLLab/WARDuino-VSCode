@@ -4,11 +4,31 @@ import * as os from 'os';
 import * as path from 'path';
 import {exec, ExecException} from 'child_process';
 import {parseExport} from './Parsers';
+import {getFileExtension} from '../../Parsers/ParseUtils';
 
 interface CompileOutput {
     file: string; // the compiled file
     out?: String;
     err?: String;
+}
+
+export class CompilerFactory {
+    private readonly wabt: string;
+
+    constructor(wabt: string) {
+        this.wabt = wabt;
+    }
+
+    public pickCompiler(file: string): Compiler {
+        let fileType = getFileExtension(file);
+        switch (fileType) {
+            case 'wast' :
+                return new WatCompiler(file, this.wabt);
+            case 'ts' :
+                return new AsScriptCompiler(file);
+        }
+        throw new Error('Unsupported file type');
+    }
 }
 
 export abstract class Compiler {

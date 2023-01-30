@@ -8,7 +8,7 @@ import {ReadlineParser} from 'serialport';
 import * as net from 'net';
 import * as fs from 'fs';
 import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
-import {WatCompiler} from '../framework/Compiler';
+import {CompilerFactory, WatCompiler} from '../framework/Compiler';
 import {ArduinoUploader} from '../framework/Uploader';
 
 export const WABT: string = process.env.WABT ?? '';
@@ -115,14 +115,17 @@ export class EmulatorBridge extends WARDuinoBridge {
     protected readonly interpreter: string;
     protected port: number;
 
+    private readonly compilerFactory: CompilerFactory;
+
     constructor(interpreter: string, port: number = 8200) {
         super();
         this.interpreter = interpreter;
         this.port = port;
+        this.compilerFactory = new CompilerFactory(WABT);
     }
 
     connect(program: string, args: string[] = []): Promise<Instance> {
-        return new WatCompiler(program, WABT).compile().then((output) => {
+        return this.compilerFactory.pickCompiler(program).compile().then((output) => {
             return connectSocket(this.interpreter, output.file, this.port++, args);
         });
     }
