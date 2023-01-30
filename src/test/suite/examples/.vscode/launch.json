@@ -9,13 +9,15 @@
             "request": "launch",
             "name": "Debug WARDuino",
             "program": "${workspaceFolder}/blink.wast",
-            "wifiCredentials": "${workspaceFolder}/.wificredentials.json",
             "device": {
-                "name": "VM Fac",
-                "debugMode": "emulated",
+                "name": "Embedded",
+                "debugMode": "embedded",
+                "wifiCredentials": "${workspaceFolder}/.wificredentials.json",
+                "ip": "192.168.189.239",
                 "onStart": {
                     "flash": true,
-                    "updateSource": true
+                    "updateSource": false,
+                    "pause": true
                 },
                 "port": 8080,
                 "proxy":{
