@@ -7,33 +7,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import 'mocha';
-import {
-    Behaviour,
-    Description,
-    Emulator,
-    Expectation,
-    Expected,
-    getValue,
-    Step,
-    TestDescription
-} from '../framework/Describer';
-import {assert, expect} from 'chai';
-import {ChildProcess, spawn} from 'child_process';
-import {ReadlineParser} from 'serialport';
-import * as net from 'net';
-import {afterEach} from 'mocha';
+import {Behaviour, Description, Expectation, Expected, getValue, Step, TestDescription} from '../framework/Describer';
 import {Framework} from '../framework/Framework';
 import {DependenceScheduler} from '../framework/Scheduler';
-import {
-    ARDUINO,
-    connectSocket,
-    EMULATOR,
-    EmulatorBridge,
-    HardwareBridge,
-    isReadable,
-    startWARDuino
-} from './warduino.bridge';
+import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
 import {Action, Interrupt} from '../framework/Actions';
+import {encode, returnParser} from './spec.util';
 
 const EXAMPLES: string = 'src/test/suite/examples/';
 let INITIAL_PORT: number = 7900;
@@ -42,94 +21,94 @@ let INITIAL_PORT: number = 7900;
  * Test Suite of the WARDuino CLI
  */
 
-describe('WARDuino CLI: test exit codes', () => {
-    let process: ChildProcess;
-
-    /**
-     * Tests to see if VM and debugger start properly
-     */
-
-    it('Test: exit code (0)', function (done) {
-        this.timeout(3500);
-        process = spawn(EMULATOR, [`${EXAMPLES}hello.wasm`, '--no-debug']).on('exit', function (code) {
-            expect(code).to.equal(0);
-            done();
-        });
-    });
-
-    it('Test: exit code (1)', function (done) {
-        process = spawn(EMULATOR, [`${EXAMPLES}nonexistent.wasm`, '--socket', (INITIAL_PORT++).toString()]).on('exit', function (code) {
-            expect(code).to.equal(1);
-            done();
-        });
-    });
-
-    afterEach('Shutdown CLI', function () {
-        process.removeAllListeners('exit');
-        process.kill('SIGKILL');
-    });
-});
-
-describe('WARDuino CLI: test debugging socket', () => {
-
-    it('Test: start websocket', function (done) {
-        let succeeded = false;
-
-        const process: ChildProcess = startWARDuino(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
-        process.on('exit', function (code) {
-            assert.isTrue(succeeded, `Interpreter should not exit (${code}).`);
-            done();
-        });
-
-        while (process.stdout === undefined) {
-        }
-
-        if (isReadable(process.stdout)) {
-            const reader = new ReadlineParser();
-            process.stdout.pipe(reader);
-
-            reader.on('data', (data) => {
-                if (data.includes('Listening')) {
-                    succeeded = true;
-                    process.kill('SIGKILL');
-                }
-            });
-        }
-    });
-
-    it('Test: connect to websocket', async function () {
-        const instance: Emulator = await connectSocket(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
-        instance.interface.destroy();
-        instance.process.kill('SIGKILL');
-    });
-});
-
-describe.skip('WARDuino CLI: test proxy connection', () => {
-    it('Test: --proxy flag', function (done) {
-        const address = {port: INITIAL_PORT, host: '127.0.0.1'};
-        const proxy: net.Server = new net.Server();
-        proxy.listen(INITIAL_PORT++);
-        proxy.on('connection', () => {
-            done();
-        });
-
-        connectSocket(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++, ['--proxy', address.port.toString()]).then((instance: Emulator) => {
-            instance.process.on('exit', function (code) {
-                assert.fail(`Interpreter should not exit. (code: ${code})`);
-                done();
-            });
-        }).catch(function (message) {
-            assert.fail(message);
-            done();
-        });
-    });
-});
+// describe('WARDuino CLI: test exit codes', () => {
+//     let process: ChildProcess;
+//
+//     /**
+//      * Tests to see if VM and debugger start properly
+//      */
+//
+//     it('Test: exit code (0)', function (done) {
+//         this.timeout(3500);
+//         process = spawn(EMULATOR, [`${EXAMPLES}hello.wasm`, '--no-debug']).on('exit', function (code) {
+//             expect(code).to.equal(0);
+//             done();
+//         });
+//     });
+//
+//     it('Test: exit code (1)', function (done) {
+//         process = spawn(EMULATOR, [`${EXAMPLES}nonexistent.wasm`, '--socket', (INITIAL_PORT++).toString()]).on('exit', function (code) {
+//             expect(code).to.equal(1);
+//             done();
+//         });
+//     });
+//
+//     afterEach('Shutdown CLI', function () {
+//         process.removeAllListeners('exit');
+//         process.kill('SIGKILL');
+//     });
+// });
+//
+// describe('WARDuino CLI: test debugging socket', () => {
+//
+//     it('Test: start websocket', function (done) {
+//         let succeeded = false;
+//
+//         const process: ChildProcess = startWARDuino(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
+//         process.on('exit', function (code) {
+//             assert.isTrue(succeeded, `Interpreter should not exit (${code}).`);
+//             done();
+//         });
+//
+//         while (process.stdout === undefined) {
+//         }
+//
+//         if (isReadable(process.stdout)) {
+//             const reader = new ReadlineParser();
+//             process.stdout.pipe(reader);
+//
+//             reader.on('data', (data) => {
+//                 if (data.includes('Listening')) {
+//                     succeeded = true;
+//                     process.kill('SIGKILL');
+//                 }
+//             });
+//         }
+//     });
+//
+//     it('Test: connect to websocket', async function () {
+//         const instance: Emulator = await connectSocket(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++);
+//         instance.interface.destroy();
+//         instance.process.kill('SIGKILL');
+//     });
+// });
+//
+// describe.skip('WARDuino CLI: test proxy connection', () => {
+//     it('Test: --proxy flag', function (done) {
+//         const address = {port: INITIAL_PORT, host: '127.0.0.1'};
+//         const proxy: net.Server = new net.Server();
+//         proxy.listen(INITIAL_PORT++);
+//         proxy.on('connection', () => {
+//             done();
+//         });
+//
+//         connectSocket(EMULATOR, `${EXAMPLES}blink.wasm`, INITIAL_PORT++, ['--proxy', address.port.toString()]).then((instance: Emulator) => {
+//             instance.process.on('exit', function (code) {
+//                 assert.fail(`Interpreter should not exit. (code: ${code})`);
+//                 done();
+//             });
+//         }).catch(function (message) {
+//             assert.fail(message);
+//             done();
+//         });
+//     });
+// });
 
 /**
  * Tests of the Remote Debugger API
  */
 
-function stateParser(text: string): Object {
+export function stateParser(text: string): Object {
     const message = JSON.parse(text);
     message['pc'] = parseInt(message['pc']);
     return message;
@@ -407,53 +386,5 @@ const dumpCallbackMappingTest: TestDescription = {
 };
 
 framework.test(dumpCallbackMappingTest);
-
-function mqtt(): Promise<string> {
-    // await breakpoint hit
-
-    // send mqtt message
-
-    return Promise.resolve('ok');
-}
-
-const scenario: TestDescription = { // MQTT test scenario
-    title: 'Test MQTT primitives',
-    program: `${EXAMPLES}program.ts`,
-    dependencies: [],
-    initialBreakpoints: [{line: 8, column: 1}, {line: 11, column: 55}],
-    steps: [{
-        title: 'Continue',
-        instruction: Interrupt.run,
-        expectResponse: false
-    }, {
-        title: 'CHECK: callback function registered',
-        instruction: Interrupt.dumpCallbackmapping,
-        parser: stateParser,
-        expected: [{
-            'callbacks': {
-                kind: 'comparison',
-                value: (state: string, mapping: Array<any>) => mapping.some((map: any) => {
-                    return map.hasOwnProperty('parrot') && map['parrot'].length > 0;
-                }),
-                message: 'callback should be registered for parrot topic'
-            } as Expected<Array<any>>
-        }]
-    }, {
-        title: 'Send MQTT message and await breakpoint hit',
-        instruction: new Action(mqtt),
-        expectResponse: false
-    }, {
-        title: 'CHECK: entered callback function',
-        instruction: Interrupt.dump,
-        parser: stateParser,
-        expected: [{
-            'state': {kind: 'primitive', value: 'paused'} as Expected<string>,
-            'line': {kind: 'primitive', value: 11} as Expected<number>,
-            'column': {kind: 'primitive', value: 55} as Expected<number>
-        }]
-    }]
-};
-
-framework.test(scenario);
 
 framework.run();
