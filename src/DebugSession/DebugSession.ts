@@ -152,6 +152,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         let that = this;
         const debugmode: string = this.debuggerConfig.device.debugMode;
+        const deviceConfig = this.debuggerConfig.device;
         this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap, eventsProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
@@ -160,7 +161,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.stop();
                 },
                 connected(): void {
-                    that.debugBridge?.pause();
+                    if(deviceConfig.onStartConfig.pause){
+                        this.notifyPaused();
+                    }
                 },
                 startMultiverseDebugging(woodState: WOODState) {
                     that.debugBridge?.disconnect();
