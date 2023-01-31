@@ -167,8 +167,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 },
                 startMultiverseDebugging(woodState: WOODState) {
                     that.debugBridge?.disconnect();
-                    // TODO make device config make
-                    const dc = DeviceConfig.defaultDeviceConfig(args.program);
+
+                    const name = `${that.debuggerConfig.device.name} (Emulator)`;
+                    const dc = DeviceConfig.configForProxy(name, that.debuggerConfig.device);
 
                     that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
