@@ -85,7 +85,7 @@ class MochaReporter extends reporters.Base {
             } else if (this.failures.length > 0) {
                 this.failed++;
                 this.archiver.extend('failures', suite.title);
-            } else {
+            } else  if (suite.title.length > 0) {
                 this.passed++;
                 this.archiver.extend('passes', suite.title);
             }
