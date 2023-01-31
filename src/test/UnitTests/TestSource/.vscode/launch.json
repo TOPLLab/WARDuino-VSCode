@@ -13,7 +13,7 @@
                 "name": "Embedded",
                 "debugMode": "embedded",
                 "wifiCredentials": "${workspaceFolder}/.wificredentials.json",
-                "ip": "192.168.189.239",
+                "ip": "192.168.233.239",
                 "onStart": {
                     "flash": true,
                     "updateSource": false,
@@ -22,7 +22,6 @@
                 "port": 8080,
                 "proxy":{
                     "port": 8081,
-                    "ip": "127.0.0.1"
                 }
             },
             "stopOnEntry": true,
