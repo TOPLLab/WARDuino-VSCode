@@ -151,7 +151,9 @@
     "test": "npm run test-vm && npm run test-plugin",
     "test-vm": "node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/debugger.test.ts",
     "spectest": "node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/spec.test.ts",
+    "primtest": "node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/primitives.test.ts",
     "test-plugin": "node ./out/test/runTest.js",
+    "check": "node ./out/test.js",
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
@@ -162,6 +164,7 @@
     "@types/path-browserify": "^1.0.0",
     "@types/uuid": "^9.0.0",
     "@types/vscode": "^1.64.0",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.12.1",
     "@typescript-eslint/parser": "^5.12.1",
     "@vscode/test-electron": "^2.1.2",
