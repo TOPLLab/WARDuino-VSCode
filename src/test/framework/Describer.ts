@@ -108,6 +108,10 @@ export abstract class ProcessBridge {
 
     abstract setProgram(socket: Duplex, program: string): Promise<Object | void>;
 
+    abstract addListener(listener: (data: string) => void): void;
+
+    abstract clearListeners(): void;
+
     abstract disconnect(instance: Instance | void): Promise<void>;
 }
 
@@ -199,7 +203,7 @@ export class Describer {
 
                     let actual: Object | void;
                     if (step.instruction instanceof Action) {
-                        actual = await step.instruction.perform(step.parser ?? (() => Object()));
+                        actual = await step.instruction.perform(describer.bridge, step.parser ?? (() => Object()));
                     } else {
                         let payload: string = '';
                         if (step.payload !== undefined) {

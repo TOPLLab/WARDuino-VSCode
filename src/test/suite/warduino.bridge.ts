@@ -60,6 +60,8 @@ export function connectSocket(interpreter: string, program: string, port: number
 }
 
 abstract class WARDuinoBridge extends ProcessBridge {
+    protected instance?: Instance;
+
     public static convertToLEB128(a: number): string { // TODO can only handle 32 bit
         a |= 0;
         const result = [];
@@ -94,6 +96,14 @@ abstract class WARDuinoBridge extends ProcessBridge {
                 resolve(undefined);
             }
         });
+    }
+
+    addListener(listener: (data: string) => void): void {
+        this.instance?.interface.on('data', listener);
+    }
+
+    clearListeners(): void {
+        this.instance?.interface.removeAllListeners();
     }
 
     setProgram(socket: Duplex, program: string): Promise<Object | void> {

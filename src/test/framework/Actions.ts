@@ -1,3 +1,5 @@
+import {ProcessBridge} from './Describer';
+
 export enum Interrupt {
     run = '01',
     halt = '02',
@@ -28,15 +30,15 @@ export enum Interrupt {
 }
 
 export class Action {
-    private act: () => Promise<string>;
+    private act: (bridge: ProcessBridge) => Promise<string>;
 
-    constructor(act: () => Promise<string>) {
+    constructor(act: (bridge: ProcessBridge) => Promise<string>) {
         this.act = act;
     }
 
-    public perform(parser: (text: string) => Object): Promise<Object> {
+    public perform(bridge: ProcessBridge, parser: (text: string) => Object): Promise<Object> {
         return new Promise<Object>((resolve, reject) => {
-            this.act().then((data: string) => {
+            this.act(bridge).then((data: string) => {
                 resolve(parser(data));
             }).catch((reason) => {
                 reject(reason);

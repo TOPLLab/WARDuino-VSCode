@@ -1,9 +1,10 @@
-import {Expected, TestDescription} from '../framework/Describer';
+import {Expected, ProcessBridge, TestDescription} from '../framework/Describer';
 import {Action, Interrupt} from '../framework/Actions';
 import {encode, returnParser} from './spec.util';
 import {Framework} from '../framework/Framework';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
 import {DependenceScheduler} from '../framework/Scheduler';
+import * as mqtt from 'mqtt';
 
 function stateParser(text: string): Object {
     const message = JSON.parse(text);
@@ -132,12 +133,18 @@ framework.test(interrupts);
 
 framework.suite('Integration tests: Wi-Fi and MQTT primitives');
 
-function mqtt(): Promise<string> {
-    // await breakpoint hit
+function awaitBreakpoint(bridge: ProcessBridge): Promise<string> {
+    return new Promise<string>((resolve) => {
+        // await breakpoint hit
+        bridge.addListener((data: string) => {
+            bridge.clearListeners();
+            resolve(data);
+        });
 
-    // send mqtt message
-
-    return Promise.resolve('ok');
+        // send mqtt message
+        let client : mqtt.MqttClient = mqtt.connect('mqtt://test.mosquitto.org');
+        client.publish('parrot', 'This is an ex-parrot!');
+    });
 }
 
 const scenario: TestDescription = { // MQTT test scenario
@@ -164,8 +171,7 @@ const scenario: TestDescription = { // MQTT test scenario
         }]
     }, {
         title: 'Send MQTT message and await breakpoint hit',
-        instruction: new Action(mqtt),
-        expectResponse: false
+        instruction: new Action(awaitBreakpoint)
     }, {
         title: 'CHECK: entered callback function',
         instruction: Interrupt.dump,
