@@ -4,7 +4,12 @@ import {encode, returnParser} from './spec.util';
 import {Framework} from '../framework/Framework';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
 import {DependenceScheduler} from '../framework/Scheduler';
-import {stateParser} from './debugger.test';
+
+function stateParser(text: string): Object {
+    const message = JSON.parse(text);
+    message['pc'] = parseInt(message['pc']);
+    return message;
+}
 
 const framework = Framework.getImplementation();
 
