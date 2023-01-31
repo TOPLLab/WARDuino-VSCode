@@ -108,7 +108,7 @@ let INITIAL_PORT: number = 7900;
  * Tests of the Remote Debugger API
  */
 
-export function stateParser(text: string): Object {
+function stateParser(text: string): Object {
     const message = JSON.parse(text);
     message['pc'] = parseInt(message['pc']);
     return message;
