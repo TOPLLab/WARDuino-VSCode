@@ -129,7 +129,7 @@ export class DeviceConfig {
 
     public name: string = "";
     public ip: string = "";
-    public port: number = DeviceConfig.defaultDebugPort;
+    public port: number = -1;
     public debugMode: string = DeviceConfig.emulatedDebugMode;
     public proxyConfig: undefined | ProxyConfig;
     public onStartConfig: OnStartConfig;
@@ -182,7 +182,7 @@ export class DeviceConfig {
         return new DeviceConfig({
             name: name,
             port: DeviceConfig.defaultDebugPort,
-            mode: DeviceConfig.emulatedDebugMode
+            debugMode: DeviceConfig.emulatedDebugMode
         });
     }
 
