@@ -64,7 +64,7 @@ function createTest(module: string, asserts: string[]) {
     }
 
     framework.test({
-        title: `Test: ${module}`,
+        title: `Test: ${basename(module)}`,
         program: module,
         dependencies: [],
         steps: steps

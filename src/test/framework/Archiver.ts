@@ -1,7 +1,7 @@
 import {writeFileSync} from 'fs';
 
 export class Archiver {
-    private readonly information: Map<string, string[]>;
+    private readonly information: any;
     private readonly archive: string;
 
     constructor(file: string) {
@@ -9,19 +9,19 @@ export class Archiver {
         this.archive = file;
     }
 
-    public set(key: string, value: string) {
-        this.information.set(key, [value]);
+    public set(key: string, value: string | number) {
+        this.information[key] = value;
     }
 
-    public extend(key: string, value: string) {
-        if (!this.information.has(key)) {
-            this.information.set(key, []);
+    public extend(key: string, value: string | number) {
+        if (!this.information.hasOwnProperty(key)) {
+            this.information[key] = [];
         }
-        this.information.get(key)?.push(value);
+        this.information[key].push(value);
     }
 
     public write() {
-        writeFileSync(this.archive, `${JSON.stringify(Object.fromEntries(this.information))}\n`, {flag: 'w'});
+        writeFileSync(this.archive, `${JSON.stringify(this.information, null, 2)}\n`, {flag: 'w'});
     }
 
     // TODO also add access functions to compare with previous runs

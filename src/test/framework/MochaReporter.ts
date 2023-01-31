@@ -57,7 +57,8 @@ class MochaReporter extends reporters.Base {
 
         this.coreReporter = new Reporter(Framework.getImplementation());
 
-        this.archiver = new Archiver('suite.log');
+        this.archiver = new Archiver(`suite.${Date.now()}.log`);
+        this.archiver.set('date', new Date(Date.now()).toISOString());
 
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
             console.log(color('suite', '%sGeneral Information'), this.indent(this.indentationLevel + 2));
@@ -83,8 +84,10 @@ class MochaReporter extends reporters.Base {
                 console.log(format);
             } else if (this.failures.length > 0) {
                 this.failed++;
+                this.archiver.extend('failures', suite.title);
             } else {
                 this.passed++;
+                this.archiver.extend('passes', suite.title);
             }
 
             this.reportFailure(this.failures);
@@ -94,8 +97,6 @@ class MochaReporter extends reporters.Base {
             if (this.indentationLevel === 1) {
                 console.log();
             }
-
-            this.archiver.write();
         });
 
         runner.on(Runner.constants.EVENT_TEST_PASS, (test) => {
@@ -107,8 +108,6 @@ class MochaReporter extends reporters.Base {
                 format += color(test.speed, ' (%dms)');
                 console.log(format, test.title, test.duration);
             }
-
-            this.archiver.extend('passes', test.title);
         });
 
         runner.on(Runner.constants.EVENT_TEST_FAIL, (test: Test, error: any) => {
@@ -123,15 +122,14 @@ class MochaReporter extends reporters.Base {
 
             this.failures.push(error);
             this.timeouts += error.message?.toString().includes('timeout') ? 1 : 0;
-
-            this.archiver.extend('fails', test.title);
         });
 
         runner.once(Runner.constants.EVENT_RUN_END, () => {
             const stats = runner.stats;
 
-            console.log();
+            this.archiver.set('duration (ms)', stats?.duration ?? NaN);
 
+            console.log();
             this.indentationLevel = 2;
 
             console.log(color('suite', '%sTest Suite Results'), this.indent());
@@ -147,16 +145,19 @@ class MochaReporter extends reporters.Base {
                 color('green', '%d passing') +
                 color('light', ' (%s)');
 
+            this.archiver.set('passed scenarios', this.passed);
             console.log(fmt, this.passed, seconds(stats?.duration ?? 0));
 
             fmt = color('pending', this.indent()) + color('pending', '%d skipped');
 
+            this.archiver.set('skipped scenarios', this.skipped);
             console.log(fmt, this.skipped);
 
             // failures
             if (stats?.failures) {
                 fmt = color('error', `${this.indent()}%d failing`);
 
+                this.archiver.set('failed scenarios', this.failed);
                 console.log(fmt, this.failed);
 
                 this.failures.forEach((failure) => {
@@ -179,12 +180,14 @@ class MochaReporter extends reporters.Base {
                 color('bright pass', this.indent()) +
                 color('green', '%d passing');
 
+            this.archiver.set('passed actions', stats?.passes || 0);
             console.log(fmt, stats?.passes || 0);
 
             // pending
             if (stats?.pending) {
                 fmt = color('pending', this.indent()) + color('pending', '%d skipped');
 
+                this.archiver.set('skipped actions', stats?.pending || 0);
                 console.log(fmt, stats?.pending);
             }
 
@@ -192,11 +195,13 @@ class MochaReporter extends reporters.Base {
             if (stats?.failures) {
                 fmt = color('error', `${this.indent()}%d failing`);
 
+                this.archiver.set('failed actions', stats.failures);
                 console.log(fmt, stats.failures);
 
                 // percentage of failures due to timeouts
                 fmt = color('error', `${this.indent()}%d timeouts`) + color('light', ' (%d%)');
 
+                this.archiver.set('timed out actions', this.timeouts);
                 console.log(fmt, this.timeouts, this.timeouts / stats.failures);
             }
 
@@ -224,6 +229,8 @@ class MochaReporter extends reporters.Base {
             // increases/decreases in flakiness
 
             console.log();
+
+            this.archiver.write();
         });
     }
 
