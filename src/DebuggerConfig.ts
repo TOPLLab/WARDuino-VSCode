@@ -185,6 +185,23 @@ export class DeviceConfig {
             mode: DeviceConfig.emulatedDebugMode
         });
     }
+
+    static configForProxy(deviceName: string, mcuConfig: DeviceConfig) {
+        const pc = mcuConfig.usesWiFi() ? { port: mcuConfig.proxyConfig?.port, ip: mcuConfig.ip } : { serial: "lalal" };
+        const flash = false;
+        const updateSource = false;
+        const pause = true;
+        const os = new OnStartConfig(flash, updateSource, pause);
+
+        return new DeviceConfig({
+            name: deviceName,
+            ip: "127.0.0.1",
+            port: DeviceConfig.defaultDebugPort,
+            debugMode: DeviceConfig.emulatedDebugMode,
+            proxy: pc,
+            onStart: os
+        });
+    }
 }
 
 export class DebuggerConfig {
