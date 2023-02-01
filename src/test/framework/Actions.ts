@@ -49,8 +49,15 @@ export class Action {
 }
 
 export const parserTable: Map<Interrupt | Action, (input: string) => Object> = new Map([
+    [Interrupt.run, stateParser],
+    [Interrupt.pause, stateParser],
+    [Interrupt.step, stateParser],
     [Interrupt.dump, stateParser],
+    [Interrupt.dumpLocals, stateParser],
+    [Interrupt.dumpAll, stateParser],
+    [Interrupt.dumpEvents, stateParser],
     [Interrupt.dumpCallbackmapping, stateParser],
+    [Interrupt.pushEvent, stateParser],
     [Interrupt.invoke, returnParser],
 ]);
 
