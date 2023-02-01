@@ -5,6 +5,7 @@ import {EMULATOR, EmulatorBridge} from './warduino.bridge';
 import {encode, parseArguments, parseAsserts, parseResult, returnParser} from './spec.util';
 import {readdirSync} from 'fs';
 import {find} from '../framework/Parsers';
+import {basename} from 'path';
 
 export const CORESUITE: string = process.env.CORESUITE ?? './';
 
