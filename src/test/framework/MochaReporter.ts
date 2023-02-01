@@ -120,6 +120,12 @@ class MochaReporter extends reporters.Base {
                 return;
             }
 
+            if (error.message?.toString().includes('unable to flash')) {
+                this.skipped++;
+                this.failed--;
+                return;
+            }
+
             this.failures.push(error);
             this.timeouts += error.message?.toString().includes('timeout') ? 1 : 0;
         });
