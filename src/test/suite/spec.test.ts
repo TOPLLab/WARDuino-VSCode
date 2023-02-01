@@ -1,9 +1,9 @@
 import {Description, Expectation, Expected, getValue, Step} from '../framework/Describer';
 import {Interrupt} from '../framework/Actions';
 import {Framework} from '../framework/Framework';
-import {EMULATOR, EmulatorBridge} from './warduino.bridge';
-import {encode, parseArguments, parseAsserts, parseResult, returnParser} from './spec.util';
-import {readdirSync} from 'fs';
+import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
+import {encode, parseArguments, parseAsserts, parseResult} from './spec.util';
+import {readdirSync, writeFileSync} from 'fs';
 import {find} from '../framework/Parsers';
 import {basename} from 'path';
 
@@ -59,7 +59,6 @@ function createTest(module: string, asserts: string[]) {
             title: assert,
             instruction: Interrupt.invoke,
             payload: encode(module, fidx, args),
-            parser: returnParser,
             expected: [expectation]
         });
     }
