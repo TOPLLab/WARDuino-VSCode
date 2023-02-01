@@ -47,3 +47,20 @@ export class Action {
     }
 
 }
+
+export const parserTable: Map<Interrupt | Action, (input: string) => Object> = new Map([
+    [Interrupt.dump, stateParser],
+    [Interrupt.dumpCallbackmapping, stateParser],
+    [Interrupt.invoke, returnParser],
+]);
+
+function returnParser(text: string): Object {
+    const object = JSON.parse(text);
+    return object.stack.length > 0 ? object.stack[0] : object;
+}
+
+function stateParser(text: string): Object {
+    const message = JSON.parse(text);
+    message['pc'] = parseInt(message['pc']);
+    return message;
+}

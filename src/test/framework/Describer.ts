@@ -5,7 +5,7 @@ import 'mocha';
 import {after, describe, PendingSuiteFunction, SuiteFunction} from 'mocha';
 import {SerialPort} from 'serialport';
 import {Framework} from './Framework';
-import {Action, Interrupt} from './Actions';
+import {Action, Interrupt, parserTable} from './Actions';
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
@@ -203,14 +203,14 @@ export class Describer {
 
                     let actual: Object | void;
                     if (step.instruction instanceof Action) {
-                        actual = await step.instruction.perform(describer.bridge, step.parser ?? (() => Object()));
+                        actual = await step.instruction.perform(describer.bridge, step.parser ?? (parserTable.get(step.instruction) ?? (() => Object())));
                     } else {
                         let payload: string = '';
                         if (step.payload !== undefined) {
                             payload = await timeout<string | void>(`encoding payload ${step.instruction}`, describer.bridge.instructionTimeout, step.payload) ?? '';
                         }
                         actual = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
-                            describer.bridge.sendInstruction(instance.interface, `${step.instruction}${payload}`, step.expectResponse ?? true, step.parser ?? JSON.parse));
+                            describer.bridge.sendInstruction(instance.interface, `${step.instruction}${payload}`, step.expectResponse ?? true, step.parser ?? (parserTable.get(step.instruction) ?? JSON.parse)));
                     }
 
                     await new Promise(f => setTimeout(f, step.delay ?? 0));

@@ -1,16 +1,10 @@
 import {Expected, ProcessBridge, TestDescription} from '../framework/Describer';
 import {Action, Interrupt} from '../framework/Actions';
-import {encode, returnParser} from './spec.util';
+import {encode} from './spec.util';
 import {Framework} from '../framework/Framework';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
 import {DependenceScheduler} from '../framework/Scheduler';
 import * as mqtt from 'mqtt';
-
-function stateParser(text: string): Object {
-    const message = JSON.parse(text);
-    message['pc'] = parseInt(message['pc']);
-    return message;
-}
 
 const framework = Framework.getImplementation();
 
@@ -61,13 +55,11 @@ const io: TestDescription = {
         title: 'Check: read LOW sensor value',
         instruction: Interrupt.invoke,
         payload: encode('io.ts', 'digital.read', [12]),
-        parser: returnParser,
         expected: [{'value': {kind: 'comparison', value: (state, value: string) => parseInt(value) === 0}}]
     }, {
         title: 'Drop stack value',
         instruction: Interrupt.invoke,
         payload: encode('io.ts', 'drop', []),
-        parser: returnParser,
         expected: [{
             'stack': {
                 kind: 'comparison', value: (state: Object, value: Array<any>) => {
@@ -79,7 +71,6 @@ const io: TestDescription = {
         title: 'Check: write HIGH to pin',
         instruction: Interrupt.invoke,
         payload: encode('io.ts', 'digital.write', [36]),
-        parser: returnParser,
         expected: [{
             'stack': {
                 kind: 'comparison', value: (state: Object, value: Array<any>) => {
@@ -91,7 +82,6 @@ const io: TestDescription = {
         title: 'Check: read HIGH from pin',
         instruction: Interrupt.invoke,
         payload: encode('io.ts', 'digital.read', [36]),
-        parser: returnParser,
         expected: [{'value': {kind: 'comparison', value: (state, value: string) => parseInt(value) === 1}}]
     }]
 };
@@ -105,7 +95,6 @@ const interrupts: TestDescription = {
         title: 'Subscribe to falling interrupt on pin 36',
         instruction: Interrupt.invoke,
         payload: encode('interrupts.ts', 'interrupts.subscribe', [36, 0, 2]),
-        parser: returnParser,
         expected: [{
             'stack': {
                 kind: 'comparison', value: (state: Object, value: Array<any>) => {
@@ -116,7 +105,6 @@ const interrupts: TestDescription = {
     }, {
         title: 'CHECK: callback function registered for pin 36',
         instruction: Interrupt.dumpCallbackmapping,
-        parser: stateParser,
         expected: [{
             'callbacks': {
                 kind: 'comparison',
@@ -159,7 +147,6 @@ const scenario: TestDescription = { // MQTT test scenario
     }, {
         title: 'CHECK: callback function registered',
         instruction: Interrupt.dumpCallbackmapping,
-        parser: stateParser,
         expected: [{
             'callbacks': {
                 kind: 'comparison',
@@ -175,7 +162,6 @@ const scenario: TestDescription = { // MQTT test scenario
     }, {
         title: 'CHECK: entered callback function',
         instruction: Interrupt.dump,
-        parser: stateParser,
         expected: [{
             'state': {kind: 'primitive', value: 'paused'},
             'line': {kind: 'primitive', value: 11},

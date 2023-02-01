@@ -111,11 +111,6 @@ function magnitude(n: number) {
     return Math.pow(10, Math.ceil(Math.log(n) / Math.LN10));
 }
 
-export function returnParser(text: string): Object {
-    const object = JSON.parse(text);
-    return object.stack.length > 0 ? object.stack[0] : object;
-}
-
 export async function encode(program: string, name: string, args: number[]): Promise<string> {
     const map: SourceMap = await new WatCompiler(program, WABT).map();
 
