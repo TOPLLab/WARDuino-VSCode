@@ -11,8 +11,7 @@ import {Behaviour, Description, Expectation, Expected, getValue, Step, TestDescr
 import {Framework} from '../framework/Framework';
 import {DependenceScheduler} from '../framework/Scheduler';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
-import {Action, Interrupt} from '../framework/Actions';
-import {encode, returnParser} from './spec.util';
+import {Interrupt} from '../framework/Actions';
 
 const EXAMPLES: string = 'src/test/suite/examples/';
 let INITIAL_PORT: number = 7900;
@@ -108,12 +107,6 @@ let INITIAL_PORT: number = 7900;
  * Tests of the Remote Debugger API
  */
 
-function stateParser(text: string): Object {
-    const message = JSON.parse(text);
-    message['pc'] = parseInt(message['pc']);
-    return message;
-}
-
 const framework = Framework.getImplementation();
 
 framework.platform(new EmulatorBridge(EMULATOR));
@@ -146,7 +139,6 @@ const expectDUMPLocals: Expectation[] = [
 const DUMP: Step = {
     title: 'Send DUMP command',
     instruction: Interrupt.dump,
-    parser: stateParser,
     expected: expectDUMP
 };
 
@@ -164,7 +156,6 @@ const dumpLocalsTest: TestDescription = {
     steps: [{
         title: 'Send DUMPLocals command',
         instruction: Interrupt.dumpLocals,
-        parser: stateParser,
         expected: expectDUMPLocals
     }]
 };
@@ -177,7 +168,6 @@ const dumpFullTest: TestDescription = {
     steps: [{
         title: 'Send DUMPFull command',
         instruction: Interrupt.dumpAll,
-        parser: stateParser,
         expected: expectDUMP.concat([{
             'locals.count': {
                 kind: 'comparison', value: (state: Object, value: number) => {
@@ -197,19 +187,16 @@ const pauseTest: TestDescription = {
     steps: [{
         title: 'Send PAUSE command',
         instruction: Interrupt.pause,
-        parser: stateParser,
         expectResponse: false
     }, {
         title: 'Send DUMP command',
         instruction: Interrupt.dump,
-        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }]
     }, {
         title: 'CHECK: execution is stopped',
         instruction: Interrupt.dump,
-        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -227,17 +214,14 @@ const stepTest: TestDescription = {
     steps: [{
         title: 'Send PAUSE command',
         instruction: Interrupt.pause,
-        parser: stateParser,
         expectResponse: false
     }, DUMP, {
         title: 'Send STEP command',
         instruction: Interrupt.step,
-        parser: stateParser,
         expectResponse: false
     }, {
         title: 'CHECK: execution took one step',
         instruction: Interrupt.dump,
-        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -255,12 +239,10 @@ const runTest: TestDescription = {
     steps: [{
         title: 'Send PAUSE command',
         instruction: Interrupt.pause,
-        parser: stateParser,
         expectResponse: false
     }, DUMP, {
         title: 'CHECK: execution is stopped',
         instruction: Interrupt.dump,
-        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -269,13 +251,11 @@ const runTest: TestDescription = {
     }, {
         title: 'Send RUN command',
         instruction: Interrupt.run,
-        parser: stateParser,
         delay: 100,
         expectResponse: false
     }, {
         title: 'CHECK: execution continues',
         instruction: Interrupt.dump,
-        parser: stateParser,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -324,7 +304,6 @@ const dumpEventsTest: TestDescription = {
     steps: [{
         title: 'CHECK: event queue',
         instruction: Interrupt.dumpEvents,
-        parser: stateParser,
         expected: [{
             'events': {
                 kind: 'comparison',
@@ -353,7 +332,6 @@ const receiveEventTest: TestDescription = {
     }, {
         title: 'CHECK: event queue',
         instruction: Interrupt.dumpEvents,
-        parser: stateParser,
         expected: [{
             'events': {
                 kind: 'comparison',
@@ -374,7 +352,6 @@ const dumpCallbackMappingTest: TestDescription = {
     steps: [{
         title: 'CHECK: callbackmapping',
         instruction: Interrupt.dumpCallbackmapping,
-        parser: stateParser,
         expected: [{
             'callbacks': {
                 kind: 'comparison',
