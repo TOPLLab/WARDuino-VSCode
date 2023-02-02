@@ -9,6 +9,21 @@
             "request": "launch",
             "name": "Debug WARDuino",
             "program": "${workspaceFolder}/blink.wast",
+            "device": {
+                "name": "Embedded",
+                "debugMode": "embedded",
+                "wifiCredentials": "${workspaceFolder}/.wificredentials.json",
+                "ip": "192.168.233.239",
+                "onStart": {
+                    "flash": true,
+                    "updateSource": false,
+                    "pause": true
+                },
+                "port": 8080,
+                "proxy":{
+                    "port": 8081,
+                }
+            },
             "stopOnEntry": true,
             "trace": false
         }

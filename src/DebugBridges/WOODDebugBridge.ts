@@ -1,4 +1,4 @@
-import {EmulatedDebugBridge, EMULATOR_PORT} from "./EmulatedDebugBridge";
+import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
 import {WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {ProxyCallItem} from "../Views/ProxyCallsProvider";
@@ -60,7 +60,15 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
         const port: string = vscode.workspace.getConfiguration().get("warduino.Port") ?? "/dev/ttyUSB0";
         const baudrate: string = vscode.workspace.getConfiguration().get("warduino.Baudrate") ?? "115200";
-        return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${EMULATOR_PORT}`, '--baudrate', baudrate]);
+        // return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${this.deviceConfig.port}`, '--baudrate', baudrate]);
         // return spawn(`echo`, ['"Listening"']);
+        const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${this.deviceConfig.port}`];
+        if(this.deviceConfig.needsProxyToAnotherVM()){
+            args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
+        }
+        else {
+            args.push("--proxy", port, "--baudrate", baudrate);
+        }
+        return spawn(`${this.sdk}/build-emu/wdcli`, args);
     }
 }

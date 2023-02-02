@@ -12,6 +12,8 @@ import {ProxyCallItem} from "../Views/ProxyCallsProvider";
 import {RuntimeState} from "../State/RuntimeState";
 import {Breakpoint, UniqueSet} from "../State/Breakpoint";
 import { HexaEncoder } from "../Util/hexaEncoding";
+import { DeviceConfig } from "../DebuggerConfig";
+import { ClientSideSocket } from "../Channels/ClientSideSocket";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -56,18 +58,22 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected listener: DebugBridgeListener;
     protected abstract client: Writable | undefined;
     private eventsProvider: EventsProvider | void;
+    public socketConnection?: ClientSideSocket;
 
     // History (time-travel)
     private history: RuntimeState[] = [];
     private present = -1;
 
-    protected constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
+    public readonly deviceConfig: DeviceConfig;
+
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
             ?? new Set<ProxyCallItem>();
         this.eventsProvider = eventsProvider;
         this.listener = listener;
+        this.deviceConfig = deviceConfig;
     }
 
     // General Bridge functionality
@@ -124,7 +130,12 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
         let command = `${InterruptTypes.interruptBPRem}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
-        this.client?.write(command);
+        if(!!this.client){
+            this.client?.write(command);
+        }
+        else{
+            this.socketConnection?.write(command);
+        }
         this.breakpoints.delete(breakpoint);
     }
 
@@ -133,7 +144,12 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
         let command = `${InterruptTypes.interruptBPAdd}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
-        this.client?.write(command);
+        if(!!this.client){
+            this.client?.write(command);
+        }
+        else {
+            this.socketConnection?.write(command);
+        }
     }
 
     public setBreakPoints(lines: number[]): Breakpoint[] {
@@ -176,9 +192,16 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             console.log(`setting ${name} ${value}`);
             try {
                 let command = this.getVariableCommand(name, value);
-                this.client?.write(command, err => {
-                    resolve("Interrupt send.");
-                });
+                if(!!this.client){
+                    this.client?.write(command, err => {
+                        resolve("Interrupt send.");
+                    });
+                }
+                else{
+                    this.socketConnection?.write(command, () =>{
+                        resolve("Interrupt send.");
+                    });
+                }
             } catch {
                 reject("Local not found.");
             }
@@ -204,7 +227,12 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     // Helper functions
 
     protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
-        return this.client?.write(`${i} \n`, callback);
+        if(!!this.client){
+            return this.client?.write(`${i} \n`, callback);
+        }
+        else{
+            return this.socketConnection?.write(`${i} \n`, callback);
+        }
     }
 
     protected getVariableCommand(name: string, value: number): string {

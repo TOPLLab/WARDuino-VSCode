@@ -7,6 +7,10 @@ import {exec, spawn} from "child_process";
 import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
 import {EventsProvider} from "../Views/EventsProvider";
+import { DeviceConfig } from "../DebuggerConfig";
+import * as path from 'path';
+import { LoggingSerialMonitor } from "../Channels/SerialConnection";
+import { ClientSideSocket } from "../Channels/ClientSideSocket";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser = new DebugInfoParser();
@@ -19,7 +23,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     private woodState?: WOODState;
     private woodDumpDetected: boolean = false;
 
+    private logginSerialConnection?: LoggingSerialMonitor;
+
     constructor(wasmPath: string,
+                deviceConfig: DeviceConfig,
                 sourceMap: SourceMap | void,
                 eventsProvider: EventsProvider | void,
                 tmpdir: string,
@@ -27,7 +34,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
                 portAddress: string,
                 fqbn: string,
                 warduinoSDK: string) {
-        super(sourceMap, eventsProvider, listener);
+        super(deviceConfig, sourceMap, eventsProvider, listener);
 
         this.wasmPath = wasmPath;
         this.sourceMap = sourceMap;
@@ -46,15 +53,45 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     async connect(): Promise<string> {
         return new Promise(async (resolve, reject) => {
             this.listener.notifyProgress(Messages.compiling);
-            await this.compileAndUpload();
+            if (this.deviceConfig.onStartConfig.flash) {
+                await this.compileAndUpload();
+            }
             this.listener.notifyProgress(Messages.connecting);
-            this.openSerialPort(reject, resolve);
-            this.installInputStreamListener();
+            if(this.deviceConfig.usesWiFi()){
+              await this.openSocketPort(reject, resolve);
+              if(!!!this.logginSerialConnection){
+                  const loggername = this.deviceConfig.name;
+                  const port = this.portAddress;
+                  const baudRate = 115200;
+                  this.logginSerialConnection = new LoggingSerialMonitor(loggername,port,baudRate);
+              }
+              this.logginSerialConnection.openConnection().catch((err)=>{
+                  console.log(`Plugin: could not monitor serial port ${this.portAddress} reason: ${err}`);
+              });
+            }
+            else{
+                this.openSerialPort(reject, resolve);
+                this.installInputStreamListener();
+            }
         });
     }
 
     public async upload() {
         await this.compileAndUpload();
+    }
+
+    protected async openSocketPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
+        this.socketConnection = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
+        this.socketConnection.on('data', (data)=>{this.handleLine(data);});
+        const maxConnectionAttempts = 5;
+        if(await this.socketConnection.openConnection(maxConnectionAttempts)){
+            this.listener.notifyProgress(Messages.connected);
+            this.client = undefined;
+            resolve(`${this.deviceConfig.ip}:${this.deviceConfig.port}`);
+        }
+        else{
+            reject(`Could not connect to socket ${this.deviceConfig.ip}:${this.deviceConfig.port}`);
+        }
     }
 
     protected openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
@@ -103,11 +140,19 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     public disconnect(): void {
-        console.error("CLOSED!"), this.client;
-        this.client?.close((e) => {
-            console.log(e);
-        });
+        console.error("CLOSED!");
+        if(!!this.client){
+            this.client?.close((e) => {
+                console.log(e);
+                this.listener.notifyProgress(Messages.disconnected);
+            });
+        }
+        else{
+            // this.socketConnection?.close((e)=>{
+            //     console.log(e);
         this.listener.notifyProgress(Messages.disconnected);
+            // });
+        }
     }
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
@@ -161,7 +206,8 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            const sdkpath: string = this.sdk + "/platforms/Arduino/";
+            const arduinoDir = this.deviceConfig.usesWiFi() ? "/platforms/Arduino-socket/" : "/platforms/Arduino/";
+            const sdkpath: string = path.join(this.sdk, arduinoDir);
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
             cp.on("error", err => {
                 reject("Could not store upload file to sdk path.");

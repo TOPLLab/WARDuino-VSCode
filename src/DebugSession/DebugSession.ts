@@ -30,6 +30,8 @@ import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
 import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
 import { CompileResult } from '../CompilerBridges/CompileBridge';
+import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
+import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBuilder';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -50,6 +52,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private variableHandles = new Handles<'locals' | 'globals'>();
     private compiler?: CompileBridge;
+
+    private debuggerConfig: DebuggerConfig = new DebuggerConfig();
 
     public constructor(notifier: vscode.StatusBarItem, reporter: ErrorReporter) {
         super("debug_log.txt");
@@ -117,6 +121,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.reporter.clear();
         this.program = args.program;
 
+        this.debuggerConfig.fillConfig(args);
+
         const eventsProvider = new EventsProvider();
         vscode.window.registerTreeDataProvider("events", eventsProvider);
 
@@ -131,6 +137,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             });
         });
 
+        if(this.debuggerConfig.device.isForHardware()){
+            const dc = this.debuggerConfig.device;
+            const path2sdk = vscode.workspace.getConfiguration().get("warduino.WARDuinoToolChainPath") as string;
+            ArduinoTemplateBuilder.setPath2Templates(path2sdk);
+            ArduinoTemplateBuilder.buildArduinoWithWifi(dc);
+        }
+
         this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
 
         let compileResult: CompileResult | void = await this.compiler.compile().catch((reason) => this.handleCompileError(reason));
@@ -138,8 +151,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.sourceMap = compileResult.sourceMap;
         }
         let that = this;
-        const debugmode: string = vscode.workspace.getConfiguration().get("warduino.DebugMode") ?? "emulated";
-        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.sourceMap, eventsProvider,
+        const debugmode: string = this.debuggerConfig.device.debugMode;
+        const deviceConfig = this.debuggerConfig.device;
+        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap, eventsProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface
@@ -147,12 +161,17 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.stop();
                 },
                 connected(): void {
-                    that.debugBridge?.pause();
+                    if(deviceConfig.onStartConfig.pause){
+                        this.notifyPaused();
+                    }
                 },
                 startMultiverseDebugging(woodState: WOODState) {
                     that.debugBridge?.disconnect();
 
-                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, that.sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
+                    const name = `${that.debuggerConfig.device.name} (Emulator)`;
+                    const dc = DeviceConfig.configForProxy(name, that.debuggerConfig.device);
+
+                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
                         connected(): void {
