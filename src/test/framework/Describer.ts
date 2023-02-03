@@ -152,7 +152,7 @@ export class Describer {
         this.framework = Framework.getImplementation();
     }
 
-    public describeTest(description: TestScenario) {
+    public describeTest(description: TestScenario, runs: number = 1) {
         const describer = this;
         const call: SuiteFunction | PendingSuiteFunction = description.skip ? describe.skip : this.suiteFunction;
 
@@ -191,38 +191,40 @@ export class Describer {
             /** Each test is made of one or more steps */
 
             let previous: any = undefined;
-            for (const step of description.steps ?? []) {
+            for (let i = 0; i < runs; i++) {
+                for (const step of description.steps ?? []) {
 
-                /** Perform the step and check if expectations were met */
+                    /** Perform the step and check if expectations were met */
 
-                it(step.title, async function () {
-                    if (instance === undefined) {
-                        assert.fail('Cannot run test: no debugger connection.');
-                        return;
-                    }
-
-                    let actual: Object | void;
-                    if (step.instruction instanceof Action) {
-                        actual = await step.instruction.perform(describer.bridge, step.parser ?? (parserTable.get(step.instruction) ?? (() => Object())));
-                    } else {
-                        let payload: string = '';
-                        if (step.payload !== undefined) {
-                            payload = await timeout<string | void>(`encoding payload ${step.instruction}`, describer.bridge.instructionTimeout, step.payload) ?? '';
+                    it(step.title, async function () {
+                        if (instance === undefined) {
+                            assert.fail('Cannot run test: no debugger connection.');
+                            return;
                         }
-                        actual = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
-                            describer.bridge.sendInstruction(instance.interface, `${step.instruction}${payload}`, step.expectResponse ?? true, step.parser ?? (parserTable.get(step.instruction) ?? JSON.parse)));
-                    }
 
-                    await new Promise(f => setTimeout(f, step.delay ?? 0));
+                        let actual: Object | void;
+                        if (step.instruction instanceof Action) {
+                            actual = await step.instruction.perform(describer.bridge, step.parser ?? (parserTable.get(step.instruction) ?? (() => Object())));
+                        } else {
+                            let payload: string = '';
+                            if (step.payload !== undefined) {
+                                payload = await timeout<string | void>(`encoding payload ${step.instruction}`, describer.bridge.instructionTimeout, step.payload) ?? '';
+                            }
+                            actual = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
+                                describer.bridge.sendInstruction(instance.interface, `${step.instruction}${payload}`, step.expectResponse ?? true, step.parser ?? (parserTable.get(step.instruction) ?? JSON.parse)));
+                        }
 
-                    for (const expectation of step.expected ?? []) {
-                        describer.expect(expectation, actual, previous);
-                    }
+                        await new Promise(f => setTimeout(f, step.delay ?? 0));
 
-                    if (actual !== undefined) {
-                        previous = actual;
-                    }
-                });
+                        for (const expectation of step.expected ?? []) {
+                            describer.expect(expectation, actual, previous);
+                        }
+
+                        if (actual !== undefined) {
+                            previous = actual;
+                        }
+                    });
+                }
             }
         });
     }
