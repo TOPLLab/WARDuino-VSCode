@@ -11,7 +11,7 @@ import {Behaviour, Description, Expectation, Expected, getValue, Step, TestDescr
 import {Framework} from '../framework/Framework';
 import {DependenceScheduler} from '../framework/Scheduler';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
-import {Interrupt} from '../framework/Actions';
+import {Instruction} from '../framework/Actions';
 
 const EXAMPLES: string = 'src/test/suite/examples/';
 let INITIAL_PORT: number = 7900;
@@ -138,7 +138,7 @@ const expectDUMPLocals: Expectation[] = [
 
 const DUMP: Step = {
     title: 'Send DUMP command',
-    instruction: Interrupt.dump,
+    instruction: Instruction.dump,
     expected: expectDUMP
 };
 
@@ -155,7 +155,7 @@ const dumpLocalsTest: TestDescription = {
     program: `${EXAMPLES}blink.wast`,
     steps: [{
         title: 'Send DUMPLocals command',
-        instruction: Interrupt.dumpLocals,
+        instruction: Instruction.dumpLocals,
         expected: expectDUMPLocals
     }]
 };
@@ -167,7 +167,7 @@ const dumpFullTest: TestDescription = {
     program: `${EXAMPLES}blink.wast`,
     steps: [{
         title: 'Send DUMPFull command',
-        instruction: Interrupt.dumpAll,
+        instruction: Instruction.dumpAll,
         expected: expectDUMP.concat([{
             'locals.count': {
                 kind: 'comparison', value: (state: Object, value: number) => {
@@ -186,17 +186,17 @@ const pauseTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
-        instruction: Interrupt.pause,
+        instruction: Instruction.pause,
         expectResponse: false
     }, {
         title: 'Send DUMP command',
-        instruction: Interrupt.dump,
+        instruction: Instruction.dump,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }]
     }, {
         title: 'CHECK: execution is stopped',
-        instruction: Interrupt.dump,
+        instruction: Instruction.dump,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -213,15 +213,15 @@ const stepTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
-        instruction: Interrupt.pause,
+        instruction: Instruction.pause,
         expectResponse: false
     }, DUMP, {
         title: 'Send STEP command',
-        instruction: Interrupt.step,
+        instruction: Instruction.step,
         expectResponse: false
     }, {
         title: 'CHECK: execution took one step',
-        instruction: Interrupt.dump,
+        instruction: Instruction.dump,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -238,11 +238,11 @@ const runTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
-        instruction: Interrupt.pause,
+        instruction: Instruction.pause,
         expectResponse: false
     }, DUMP, {
         title: 'CHECK: execution is stopped',
-        instruction: Interrupt.dump,
+        instruction: Instruction.dump,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -250,12 +250,12 @@ const runTest: TestDescription = {
         }]
     }, {
         title: 'Send RUN command',
-        instruction: Interrupt.run,
+        instruction: Instruction.run,
         delay: 100,
         expectResponse: false
     }, {
         title: 'CHECK: execution continues',
-        instruction: Interrupt.dump,
+        instruction: Instruction.dump,
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
@@ -282,7 +282,7 @@ const eventNotificationTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Push mock event',
-        instruction: Interrupt.pushEvent,
+        instruction: Instruction.pushEvent,
         payload: encodeEvent('interrupt', ''),
         parser: ackParser,
         expected: [{
@@ -303,7 +303,7 @@ const dumpEventsTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: event queue',
-        instruction: Interrupt.dumpEvents,
+        instruction: Instruction.dumpEvents,
         expected: [{
             'events': {
                 kind: 'comparison',
@@ -322,16 +322,16 @@ const receiveEventTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'Send PAUSE command',
-        instruction: Interrupt.pause,
+        instruction: Instruction.pause,
         expectResponse: false
     }, {
         title: 'Push mock event',
-        instruction: Interrupt.pushEvent,
+        instruction: Instruction.pushEvent,
         payload: encodeEvent('interrupt', ''),
         expectResponse: false
     }, {
         title: 'CHECK: event queue',
-        instruction: Interrupt.dumpEvents,
+        instruction: Instruction.dumpEvents,
         expected: [{
             'events': {
                 kind: 'comparison',
@@ -351,7 +351,7 @@ const dumpCallbackMappingTest: TestDescription = {
     dependencies: [dumpTest],
     steps: [{
         title: 'CHECK: callbackmapping',
-        instruction: Interrupt.dumpCallbackmapping,
+        instruction: Instruction.dumpCallbackmapping,
         expected: [{
             'callbacks': {
                 kind: 'comparison',

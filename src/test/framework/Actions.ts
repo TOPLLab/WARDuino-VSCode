@@ -1,6 +1,6 @@
 import {ProcessBridge} from './Describer';
 
-export enum Interrupt {
+export enum Instruction {
     run = '01',
     halt = '02',
     pause = '03',
@@ -48,17 +48,17 @@ export class Action {
 
 }
 
-export const parserTable: Map<Interrupt | Action, (input: string) => Object> = new Map([
-    [Interrupt.run, stateParser],
-    [Interrupt.pause, stateParser],
-    [Interrupt.step, stateParser],
-    [Interrupt.dump, stateParser],
-    [Interrupt.dumpLocals, stateParser],
-    [Interrupt.dumpAll, stateParser],
-    [Interrupt.dumpEvents, stateParser],
-    [Interrupt.dumpCallbackmapping, stateParser],
-    [Interrupt.pushEvent, stateParser],
-    [Interrupt.invoke, returnParser],
+export const parserTable: Map<Instruction | Action, (input: string) => Object> = new Map([
+    [Instruction.run, stateParser],
+    [Instruction.pause, stateParser],
+    [Instruction.step, stateParser],
+    [Instruction.dump, stateParser],
+    [Instruction.dumpLocals, stateParser],
+    [Instruction.dumpAll, stateParser],
+    [Instruction.dumpEvents, stateParser],
+    [Instruction.dumpCallbackmapping, stateParser],
+    [Instruction.pushEvent, stateParser],
+    [Instruction.invoke, returnParser],
 ]);
 
 function returnParser(text: string): Object {

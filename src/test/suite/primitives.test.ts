@@ -1,5 +1,5 @@
 import {Expected, ProcessBridge, TestDescription} from '../framework/Describer';
-import {Action, Interrupt} from '../framework/Actions';
+import {Action, Instruction} from '../framework/Actions';
 import {encode} from './spec.util';
 import {Framework} from '../framework/Framework';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
@@ -23,21 +23,21 @@ const serial: TestDescription = {
     dependencies: [],
     steps: [{
         title: 'Check: print_int primitive',
-        instruction: Interrupt.invoke,
+        instruction: Instruction.invoke,
         parser: identity,
         expected: [{
             'output': {kind: 'primitive', value: '42\n'},
         }]
     }, {
         title: 'Check: print_string primitive with constant string',
-        instruction: Interrupt.invoke,
+        instruction: Instruction.invoke,
         parser: identity,
         expected: [{
             'output': {kind: 'primitive', value: 'What is the answer to life, the universe, and everything?\n'},
         }]
     }, {
         title: 'Check: print_string primitive with formatted string',
-        instruction: Interrupt.invoke,
+        instruction: Instruction.invoke,
         parser: identity,
         expected: [{
             'output': {kind: 'primitive', value: 'What do you get if you multiply six by nine? 42\n'},
@@ -53,12 +53,12 @@ const io: TestDescription = {
     dependencies: [],
     steps: [{
         title: 'Check: read LOW sensor value',
-        instruction: Interrupt.invoke,
+        instruction: Instruction.invoke,
         payload: encode('io.ts', 'digital.read', [12]),
         expected: [{'value': {kind: 'comparison', value: (state, value: string) => parseInt(value) === 0}}]
     }, {
         title: 'Drop stack value',
-        instruction: Interrupt.invoke,
+        instruction: Instruction.invoke,
         payload: encode('io.ts', 'drop', []),
         expected: [{
             'stack': {
@@ -69,7 +69,7 @@ const io: TestDescription = {
         }]
     }, {
         title: 'Check: write HIGH to pin',
-        instruction: Interrupt.invoke,
+        instruction: Instruction.invoke,
         payload: encode('io.ts', 'digital.write', [36]),
         expected: [{
             'stack': {
@@ -80,7 +80,7 @@ const io: TestDescription = {
         }]
     }, {
         title: 'Check: read HIGH from pin',
-        instruction: Interrupt.invoke,
+        instruction: Instruction.invoke,
         payload: encode('io.ts', 'digital.read', [36]),
         expected: [{'value': {kind: 'comparison', value: (state, value: string) => parseInt(value) === 1}}]
     }]
@@ -93,7 +93,7 @@ const interrupts: TestDescription = {
     program: 'interrupts.ts',
     steps: [{
         title: 'Subscribe to falling interrupt on pin 36',
-        instruction: Interrupt.invoke,
+        instruction: Instruction.invoke,
         payload: encode('interrupts.ts', 'interrupts.subscribe', [36, 0, 2]),
         expected: [{
             'stack': {
@@ -104,7 +104,7 @@ const interrupts: TestDescription = {
         }]
     }, {
         title: 'CHECK: callback function registered for pin 36',
-        instruction: Interrupt.dumpCallbackmapping,
+        instruction: Instruction.dumpCallbackmapping,
         expected: [{
             'callbacks': {
                 kind: 'comparison',
@@ -142,11 +142,11 @@ const scenario: TestDescription = { // MQTT test scenario
     initialBreakpoints: [{line: 8, column: 1}, {line: 11, column: 55}],
     steps: [{
         title: 'Continue',
-        instruction: Interrupt.run,
+        instruction: Instruction.run,
         expectResponse: false
     }, {
         title: 'CHECK: callback function registered',
-        instruction: Interrupt.dumpCallbackmapping,
+        instruction: Instruction.dumpCallbackmapping,
         expected: [{
             'callbacks': {
                 kind: 'comparison',
@@ -161,7 +161,7 @@ const scenario: TestDescription = { // MQTT test scenario
         instruction: new Action(awaitBreakpoint)
     }, {
         title: 'CHECK: entered callback function',
-        instruction: Interrupt.dump,
+        instruction: Instruction.dump,
         expected: [{
             'state': {kind: 'primitive', value: 'paused'},
             'line': {kind: 'primitive', value: 11},
