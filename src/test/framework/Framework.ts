@@ -27,6 +27,8 @@ export class Framework {
     private bases: Platform[] = [];
     private suites: Suite[] = [];
 
+    public runs: number = 1;
+
     private constructor() {
     }
 
@@ -70,10 +72,18 @@ export class Framework {
             this.bases.forEach((base: Platform) => {
                 const order: TestScenario[] = base.scheduler.schedule(suite);
                 order.forEach((test: TestScenario) => {
-                    base.describer.describeTest(test);
+                    for (let i = 0; i < this.runs; i++) {
+                        base.describer.describeTest(test);
+                    }
                 });
             });
         });
+    }
+
+    // Analyse flakiness
+    public analyse(runs: number = 3, cores: number = 1) {
+        this.runs = runs;
+        this.run(cores);
     }
 
     public static getImplementation() {

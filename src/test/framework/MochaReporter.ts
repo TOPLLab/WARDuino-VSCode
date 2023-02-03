@@ -37,6 +37,7 @@ declare global {
 }
 
 class MochaReporter extends reporters.Base {
+    private framework: Framework;
     private coreReporter: Reporter;
 
     private archiver: Archiver;
@@ -55,9 +56,10 @@ class MochaReporter extends reporters.Base {
     constructor(runner: Runner, options?: MochaOptions) {
         super(runner, options);
 
-        this.coreReporter = new Reporter(Framework.getImplementation());
+        this.framework = Framework.getImplementation();
+        this.coreReporter = new Reporter(this.framework);
 
-        this.archiver = new Archiver(`suite.${Date.now()}.log`);
+        this.archiver = new Archiver(`${process.env.TESTFILE?.replace('.asserts.wast', '.wast') ?? 'suite'}.${Date.now()}.log`);
         this.archiver.set('date', new Date(Date.now()).toISOString());
 
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
