@@ -5,7 +5,7 @@ import 'mocha';
 import {after, describe, PendingSuiteFunction, SuiteFunction} from 'mocha';
 import {SerialPort} from 'serialport';
 import {Framework} from './Framework';
-import {Action, Interrupt, parserTable} from './Actions';
+import {Action, Instruction, parserTable} from './Actions';
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
@@ -42,7 +42,7 @@ export interface Step {
     title: string;
 
     /** Type of the instruction */
-    instruction: Interrupt | Action;
+    instruction: Instruction | Action;
 
     /* Optional payload of the instruction */
     payload?: Promise<string>;

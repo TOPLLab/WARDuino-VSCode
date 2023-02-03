@@ -1,5 +1,5 @@
 import {Description, Expectation, Expected, getValue, Step} from '../framework/Describer';
-import {Interrupt} from '../framework/Actions';
+import {Instruction} from '../framework/Actions';
 import {Framework} from '../framework/Framework';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
 import {encode, parseArguments, parseAsserts, parseResult} from './spec.util';
@@ -57,7 +57,7 @@ function createTest(module: string, asserts: string[]) {
         steps.push({
             // (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)
             title: assert,
-            instruction: Interrupt.invoke,
+            instruction: Instruction.invoke,
             payload: encode(module, fidx, args),
             expected: [expectation]
         });
