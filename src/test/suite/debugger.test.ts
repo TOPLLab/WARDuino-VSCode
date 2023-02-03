@@ -7,7 +7,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import 'mocha';
-import {Behaviour, Description, Expectation, Expected, getValue, Step, TestDescription} from '../framework/Describer';
+import {Behaviour, Description, Expectation, Expected, getValue, Step, TestScenario} from '../framework/Describer';
 import {Framework} from '../framework/Framework';
 import {DependenceScheduler} from '../framework/Scheduler';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
@@ -142,7 +142,7 @@ const DUMP: Step = {
     expected: expectDUMP
 };
 
-const dumpTest: TestDescription = {
+const dumpTest: TestScenario = {
     title: 'Test DUMP',
     program: `${EXAMPLES}blink.wast`,
     steps: [DUMP]
@@ -150,7 +150,7 @@ const dumpTest: TestDescription = {
 
 framework.test(dumpTest);
 
-const dumpLocalsTest: TestDescription = {
+const dumpLocalsTest: TestScenario = {
     title: 'Test DUMPLocals',
     program: `${EXAMPLES}blink.wast`,
     steps: [{
@@ -162,7 +162,7 @@ const dumpLocalsTest: TestDescription = {
 
 framework.test(dumpLocalsTest);
 
-const dumpFullTest: TestDescription = {
+const dumpFullTest: TestScenario = {
     title: 'Test DUMPFull',
     program: `${EXAMPLES}blink.wast`,
     steps: [{
@@ -180,7 +180,7 @@ const dumpFullTest: TestDescription = {
 
 framework.test(dumpFullTest);
 
-const pauseTest: TestDescription = {
+const pauseTest: TestScenario = {
     title: 'Test PAUSE',
     program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
@@ -207,7 +207,7 @@ const pauseTest: TestDescription = {
 
 framework.test(pauseTest);
 
-const stepTest: TestDescription = {
+const stepTest: TestScenario = {
     title: 'Test STEP',
     program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
@@ -232,7 +232,7 @@ const stepTest: TestDescription = {
 
 framework.test(stepTest);
 
-const runTest: TestDescription = {
+const runTest: TestScenario = {
     title: 'Test RUN',
     program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
@@ -276,7 +276,7 @@ function ackParser(text: string): Object {
     return {'ack': text};
 }
 
-const eventNotificationTest: TestDescription = {
+const eventNotificationTest: TestScenario = {
     title: 'Test "pushed event" Notification',
     program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
@@ -297,7 +297,7 @@ const eventNotificationTest: TestDescription = {
 
 framework.test(eventNotificationTest);
 
-const dumpEventsTest: TestDescription = {
+const dumpEventsTest: TestScenario = {
     title: 'Test DUMPEvents',
     program: `${EXAMPLES}button.wast`,
     dependencies: [dumpTest],
@@ -316,7 +316,7 @@ const dumpEventsTest: TestDescription = {
 
 framework.test(dumpEventsTest);
 
-const receiveEventTest: TestDescription = {
+const receiveEventTest: TestScenario = {
     title: 'Test Event Transfer (supervisor side)',
     program: `${EXAMPLES}button.wast`,
     dependencies: [dumpTest],
@@ -345,7 +345,7 @@ const receiveEventTest: TestDescription = {
 
 framework.test(receiveEventTest);
 
-const dumpCallbackMappingTest: TestDescription = {
+const dumpCallbackMappingTest: TestScenario = {
     title: 'Test DUMPCallbackmapping',
     program: `${EXAMPLES}button.wast`,
     dependencies: [dumpTest],

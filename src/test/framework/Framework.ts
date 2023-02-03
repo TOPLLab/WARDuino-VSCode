@@ -1,4 +1,4 @@
-import {Describer, ProcessBridge, TestDescription} from './Describer';
+import {Describer, ProcessBridge, TestScenario} from './Describer';
 import {HybridScheduler, Scheduler} from './Scheduler';
 
 export interface Platform {
@@ -13,11 +13,11 @@ export interface Platform {
 
 export interface Suite {
     title: string;
-    tests: TestDescription[];
+    tests: TestScenario[];
 }
 
 interface DependenceTree {
-    test: TestDescription;
+    test: TestScenario;
     children: DependenceTree[];
 }
 
@@ -57,19 +57,19 @@ export class Framework {
         this.suites.push({title: title, tests: []});
     }
 
-    public test(test: TestDescription) {
+    public test(test: TestScenario) {
         this.currentSuite().tests.push(test);
     }
 
-    public tests(tests: TestDescription[]) {
+    public tests(tests: TestScenario[]) {
         tests.forEach(test => this.currentSuite().tests.push(test));
     }
 
     public run(cores: number = 1) {
         this.suites.forEach((suite: Suite) => {
             this.bases.forEach((base: Platform) => {
-                const order: TestDescription[] = base.scheduler.schedule(suite);
-                order.forEach((test: TestDescription) => {
+                const order: TestScenario[] = base.scheduler.schedule(suite);
+                order.forEach((test: TestScenario) => {
                     base.describer.describeTest(test);
                 });
             });

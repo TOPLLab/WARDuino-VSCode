@@ -1,4 +1,4 @@
-import {Expected, ProcessBridge, TestDescription} from '../framework/Describer';
+import {Expected, ProcessBridge, TestScenario} from '../framework/Describer';
 import {Action, Instruction} from '../framework/Actions';
 import {encode} from './spec.util';
 import {Framework} from '../framework/Framework';
@@ -17,7 +17,7 @@ function identity(text: string): Object {
     return {output: text};
 }
 
-const serial: TestDescription = {
+const serial: TestScenario = {
     title: 'Test serial bus primitives',
     program: 'serial.ts',
     dependencies: [],
@@ -47,7 +47,7 @@ const serial: TestDescription = {
 
 framework.test(serial);
 
-const io: TestDescription = {
+const io: TestScenario = {
     title: 'Test digital I/O primitives',
     program: 'io.ts',
     dependencies: [],
@@ -88,7 +88,7 @@ const io: TestDescription = {
 
 framework.test(io);
 
-const interrupts: TestDescription = {
+const interrupts: TestScenario = {
     title: 'Test hardware interrupt primitives',
     program: 'interrupts.ts',
     steps: [{
@@ -135,7 +135,7 @@ function awaitBreakpoint(bridge: ProcessBridge): Promise<string> {
     });
 }
 
-const scenario: TestDescription = { // MQTT test scenario
+const scenario: TestScenario = { // MQTT test scenario
     title: 'Test MQTT primitives',
     program: 'program.ts',
     dependencies: [],

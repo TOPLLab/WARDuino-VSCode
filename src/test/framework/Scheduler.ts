@@ -1,23 +1,23 @@
-import {TestDescription} from './Describer';
+import {TestScenario} from './Describer';
 import {Suite} from './Framework';
 
 export abstract class Scheduler {
     // sort the tests into an efficient schedule
-    abstract schedule(suite: Suite): TestDescription[];
+    abstract schedule(suite: Suite): TestScenario[];
 }
 
 class NoScheduler implements Scheduler {
-    public schedule(suite: Suite): TestDescription[] {
+    public schedule(suite: Suite): TestScenario[] {
         return suite.tests;
     }
 }
 
 class SimpleScheduler implements Scheduler {
-    public schedule(suite: Suite): TestDescription[] {
+    public schedule(suite: Suite): TestScenario[] {
         // get trees
         const forest = trees(suite.tests);
         // sort trees by program
-        forest.forEach(tree => tree.sort((a: TestDescription, b: TestDescription) => a.program.localeCompare(b.program)));
+        forest.forEach(tree => tree.sort((a: TestScenario, b: TestScenario) => a.program.localeCompare(b.program)));
         // flatten forest
         return forest.flat(2);
     }
@@ -30,9 +30,9 @@ class SimpleScheduler implements Scheduler {
  * at each depth the tests are sorted alphabetically according to their program.
  */
 export class HybridScheduler implements Scheduler {
-    public schedule(suite: Suite): TestDescription[] {
-        let scheme: TestDescription[] = [];
-        const forest: TestDescription[][] = trees(suite.tests);
+    public schedule(suite: Suite): TestScenario[] {
+        let scheme: TestScenario[] = [];
+        const forest: TestScenario[][] = trees(suite.tests);
         for (const tree of forest) {
             const split = levels(tree);
             split.forEach(level => level.sort(sortOnProgram));
@@ -43,8 +43,8 @@ export class HybridScheduler implements Scheduler {
 }
 
 export class DependenceScheduler implements Scheduler {
-    public schedule(suite: Suite): TestDescription[] {
-        const schedule: TestDescription[][] = levels(suite.tests);
+    public schedule(suite: Suite): TestScenario[] {
+        const schedule: TestScenario[][] = levels(suite.tests);
         schedule.forEach(level => level.sort(sortOnProgram));
         return schedule.flat(2);  // we flatten since we don't support parallelism yet (otherwise tests in the same level can be run in parallel)
     }
@@ -52,36 +52,36 @@ export class DependenceScheduler implements Scheduler {
 
 /* util functions */
 
-function sortOnProgram(a: TestDescription, b: TestDescription) {
+function sortOnProgram(a: TestScenario, b: TestScenario) {
     // aggregate tests with the same program
     return a.program.localeCompare(b.program);
 }
 
 // aggregate dependence forest into trees
-function trees(input: TestDescription[]): TestDescription[][] {
+function trees(input: TestScenario[]): TestScenario[][] {
     // sort input
     input.sort(comparator);
 
     // output
-    const forest: TestDescription[][] = [];
+    const forest: TestScenario[][] = [];
 
     // tests that have already been seen
-    const seen = new Set<TestDescription>();
+    const seen = new Set<TestScenario>();
 
     // loop over all tests of the input
     for (const test of input) {
         if (seen.has(test)) {
-            // when seen includes test: test already in forest, nothing to do
+            // test already in forest, nothing to do
             break;
         }
         // start a new tree
-        let tree: TestDescription[] = [test];
+        let tree: TestScenario[] = [test];
 
         // add test to seen
         seen.add(test);
 
         // depth first descent over dependencies
-        let lifo: TestDescription[] = [...test.dependencies ?? []];
+        let lifo: TestScenario[] = [...test.dependencies ?? []];
         while (lifo.length > 0) {
             const dep = lifo.shift();
 
@@ -123,7 +123,7 @@ function trees(input: TestDescription[]): TestDescription[][] {
     return forest;
 }
 
-function comparator(a: TestDescription, b: TestDescription): number {
+function comparator(a: TestScenario, b: TestScenario): number {
     let comparison: number = (b.dependencies ?? []).length - (a.dependencies ?? []).length; // decreasing amount of dependencies
     if (comparison === 0) {
         comparison = sortOnProgram(a, b);
@@ -135,19 +135,19 @@ function comparator(a: TestDescription, b: TestDescription): number {
 }
 
 // aggregate dependence forest into levels
-function levels(input: TestDescription[]): TestDescription[][] {
+function levels(input: TestScenario[]): TestScenario[][] {
     // input
-    input.sort((a: TestDescription, b: TestDescription) => (a.dependencies ?? []).length - (b.dependencies ?? []).length);
+    input.sort((a: TestScenario, b: TestScenario) => (a.dependencies ?? []).length - (b.dependencies ?? []).length);
     // output
-    const levels: TestDescription[][] = [];
+    const levels: TestScenario[][] = [];
 
     // while more input remains
     while (input.length > 0) {
         // @ts-ignore
-        const test: TestDescription = input.shift();
+        const test: TestScenario = input.shift();
 
         // skip any test with unresolved dependencies
-        let skip: boolean = (test.dependencies ?? []).some((dependence: TestDescription) => input.includes(dependence));
+        let skip: boolean = (test.dependencies ?? []).some((dependence: TestScenario) => input.includes(dependence));
 
         if (skip) {
             input.push(test);
@@ -166,7 +166,7 @@ function levels(input: TestDescription[]): TestDescription[][] {
 }
 
 // get the lowest level of dependencies for a test
-function lowest(test: TestDescription, levels: TestDescription[][]): number {
+function lowest(test: TestScenario, levels: TestScenario[][]): number {
     for (let i = levels.length - 1; i >= 0; i--) {
         for (const level of levels[i] ?? []) {
             if (test.dependencies?.includes(level)) {

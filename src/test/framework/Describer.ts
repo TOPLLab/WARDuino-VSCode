@@ -116,7 +116,7 @@ export abstract class ProcessBridge {
 }
 
 /** A series of tests to perform on a single instance of the vm */
-export interface TestDescription {
+export interface TestScenario {
     title: string;
 
     /** File to load into the interpreter */
@@ -132,7 +132,7 @@ export interface TestDescription {
 
     skip?: boolean;
 
-    dependencies?: TestDescription[];
+    dependencies?: TestScenario[];
 }
 
 export class Describer {
@@ -152,7 +152,7 @@ export class Describer {
         this.framework = Framework.getImplementation();
     }
 
-    public describeTest(description: TestDescription) {
+    public describeTest(description: TestScenario) {
         const describer = this;
         const call: SuiteFunction | PendingSuiteFunction = description.skip ? describe.skip : this.suiteFunction;
 
@@ -166,7 +166,7 @@ export class Describer {
             before('Connect to debugger', async function () {
                 this.timeout(describer.bridge.connectionTimeout * 1.1);
 
-                const failedDependencies: TestDescription[] = describer.failedDependencies(description);
+                const failedDependencies: TestScenario[] = describer.failedDependencies(description);
                 if (failedDependencies.length > 0) {
                     instance = undefined;
                     throw new Error(`Skipped: failed dependent tests: ${failedDependencies.map(dependence => dependence.title)}`);
@@ -236,7 +236,7 @@ export class Describer {
         return `${this.bridge.name}: ${title}`;
     }
 
-    private failedDependencies(description: TestDescription): TestDescription[] {
+    private failedDependencies(description: TestScenario): TestScenario[] {
         return (description?.dependencies ?? []).filter(dependence => this.states.get(dependence.title) !== 'passed');
     }
 
