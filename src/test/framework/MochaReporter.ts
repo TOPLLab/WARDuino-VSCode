@@ -45,6 +45,8 @@ class MochaReporter extends reporters.Base {
     private readonly indentationSize: number = 2;
     private indentationLevel: number = 0;
 
+    private runs: number = 0;
+
     private passed: number = 0;  // number of passed suites
     private skipped: number = 0;  // number of skipped suites
 
@@ -58,6 +60,7 @@ class MochaReporter extends reporters.Base {
 
         this.framework = Framework.getImplementation();
         this.coreReporter = new Reporter(this.framework);
+        this.runs = this.framework.runs;
 
         this.archiver = new Archiver(`${process.env.TESTFILE?.replace('.asserts.wast', '.wast') ?? 'suite'}.${Date.now()}.log`);
         this.archiver.set('date', new Date(Date.now()).toISOString());
@@ -75,6 +78,7 @@ class MochaReporter extends reporters.Base {
         });
 
         runner.on(Runner.constants.EVENT_SUITE_BEGIN, (suite: Suite) => {
+            this.runs = this.framework.runs;
             ++this.indentationLevel;
             console.log(color('suite', '%s%s'), this.indent(), suite.title);
         });
@@ -102,6 +106,15 @@ class MochaReporter extends reporters.Base {
         });
 
         runner.on(Runner.constants.EVENT_TEST_PASS, (test) => {
+            if (test.title.includes('resetting before retry')) {
+                this.runs--;
+                return;
+            } else if (this.runs > 1) {
+                // todo save results
+                return;
+            }
+
+            // todo report aggregate results
             let format = this.indent() + color('checkmark', '  ' + symbols.ok) + ' %s';
 
             if (test.speed === 'fast' || test.speed === undefined) {
@@ -113,6 +126,15 @@ class MochaReporter extends reporters.Base {
         });
 
         runner.on(Runner.constants.EVENT_TEST_FAIL, (test: Test, error: any) => {
+            if (test.title.includes('resetting before retry')) {
+                this.runs--;
+                return;
+            } else if (this.runs > 1) {
+                // todo save results
+                return;
+            }
+
+            // todo report aggregate results
             console.log(this.indent(this.indentationLevel + 1) + color('fail', symbols.err + ' %s'), test.title);
             console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(error)}`));
 
