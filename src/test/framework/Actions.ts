@@ -10,6 +10,7 @@ export enum Instruction {
     dump = '10',
     dumpLocals = '11',
     dumpAll = '12',
+    reset = '13',
     updateFunction = '20',
     updateModule = '22',
     invoke = '40',
@@ -59,7 +60,16 @@ export const parserTable: Map<Instruction | Action, (input: string) => Object> =
     [Instruction.dumpCallbackmapping, stateParser],
     [Instruction.pushEvent, stateParser],
     [Instruction.invoke, returnParser],
+    [Instruction.reset, resetParser],
 ]);
+
+function resetParser(text: string): Object {
+    if (!text.toLowerCase().includes('reset')) {
+        throw new Error();
+    }
+
+    return {'ack': text};
+}
 
 function returnParser(text: string): Object {
     const object = JSON.parse(text);

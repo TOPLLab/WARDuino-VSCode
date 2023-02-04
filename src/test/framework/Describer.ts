@@ -192,8 +192,13 @@ export class Describer {
 
             let previous: any = undefined;
             for (let i = 0; i < runs; i++) {
-                for (const step of description.steps ?? []) {
+                if (0 < i) {
+                    it('resetting before retry', async function () {
+                        await describer.reset(instance);
+                    });
+                }
 
+                for (const step of description.steps ?? []) {
                     /** Perform the step and check if expectations were met */
 
                     it(step.title, async function () {
@@ -227,6 +232,16 @@ export class Describer {
                 }
             }
         });
+    }
+
+    private async reset(instance: Instance | void) {
+        if (instance === undefined) {
+            assert.fail('Cannot run test: no debugger connection.');
+            return;
+        }
+
+        await timeout<Object | void>('resetting vm', this.bridge.instructionTimeout,
+            this.bridge.sendInstruction(instance.interface, Instruction.reset, true, parserTable.get(Instruction.reset) ?? (() => new Object())));
     }
 
     public skipall(): Describer {
