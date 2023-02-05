@@ -120,15 +120,19 @@ class MochaReporter extends reporters.Base {
             if (this.framework.runs > 1) {
                 this.aggregate({test, passed: true});
             } else {
+                this.indentationLevel += 1;
                 this.reportResult({test, passed: true});
+                this.indentationLevel -= 1;
             }
         });
 
         runner.on(Runner.constants.EVENT_TEST_FAIL, (test: Test, error: any) => {
             if (this.framework.runs > 1) {
-                this.aggregate({test, passed: false});
+                this.aggregate({test, passed: false, error});
             } else {
+                this.indentationLevel += 1;
                 this.reportResult({test, passed: false, error});
+                this.indentationLevel -= 1;
             }
 
             if (error.message?.toString().includes('failed dependent')) {
@@ -281,11 +285,14 @@ class MochaReporter extends reporters.Base {
             const base: Result = this.results[i][0];
             this.reportResult({test: base.test, passed: success});
 
-            console.log(this.indent(this.indentationLevel + 1) + `Flakiness: ${this.results[i].filter((result: Result) => result.passed).length}/${this.results[i].length} passed`);
+            const flakiness: number = this.results[i].filter((result: Result) => result.passed).length / this.results[i].length;
+            if (0 < flakiness && flakiness < 1) {
+                console.log(this.indent(this.indentationLevel + 1) + `Flakiness: ${(flakiness * 100).toFixed(0)}% passed [${this.results[i].length} runs]`);
+            }
 
             for (const result of this.results[i]) {
                 if (result?.error) {
-                    console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(result.error)}`));
+                    console.log(color('error', `${this.indent(this.indentationLevel + 2)}${this.reportFailure(result.error)}`));
                 }
             }
         }
@@ -302,7 +309,7 @@ class MochaReporter extends reporters.Base {
         console.log(title, result.test.title);
 
         if (result?.error) {
-            console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(result.error)}`));
+            console.log(color('error', `${this.indent(this.indentationLevel + 2)}${this.reportFailure(result.error)}`));
         }
     }
 
