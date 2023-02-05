@@ -41,8 +41,8 @@ function createTest(module: string, asserts: string[]) {
     for (const assert of asserts) {
         const cursor = {value: 0};
         const fidx: string = find(/invoke "([^"]+)"/, assert);
-        const args: number[] = parseArguments(assert.replace(`(invoke "${fidx} "`, ''), cursor);
-        const result: number | undefined = parseResult(assert.slice(cursor.value));
+        const args: Value[] = parseArguments(assert.replace(`(invoke "${fidx} "`, ''), cursor);
+        const result: Value | undefined = parseResult(assert.slice(cursor.value));
 
         let expectation: Expectation = (result === undefined) ?
             {
@@ -52,7 +52,7 @@ function createTest(module: string, asserts: string[]) {
                     }, message: 'stack should be empty'
                 } as Expected<Array<any>>
             } :
-            {'value': {kind: 'primitive', value: result} as Expected<number>};
+            {'value': {kind: 'primitive', value: result.value} as Expected<number>};
 
         steps.push({
             // (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)
