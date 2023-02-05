@@ -59,6 +59,7 @@ class MochaReporter extends reporters.Base {
 
     private failed: number = 0;  // number of failed suites
     public failures = Array<any>();  // array to keep failed tests of suite (temporarily)
+    private ignore: number = 0;
 
     private timeouts: number = 0;  // number of timed out actions
 
@@ -148,7 +149,6 @@ class MochaReporter extends reporters.Base {
             }
 
             this.failures.push(error);
-            this.timeouts += error.message?.toString().includes('timeout') ? 1 : 0;
         });
 
         runner.once(Runner.constants.EVENT_RUN_END, () => {
@@ -223,13 +223,13 @@ class MochaReporter extends reporters.Base {
                 fmt = color('error', `${this.indent()}%d failing`);
 
                 this.archiver.set('failed actions', stats.failures);
-                console.log(fmt, stats.failures);
+                console.log(fmt, stats.failures - this.ignore);
 
                 // percentage of failures due to timeouts
                 fmt = color('error', `${this.indent()}%d timeouts`) + color('light', ' (%d%)');
 
                 this.archiver.set('timed out actions', this.timeouts);
-                console.log(fmt, this.timeouts, ((this.timeouts / stats.failures) * 100).toFixed(0));
+                console.log(fmt, this.timeouts, ((this.timeouts / (stats.failures - this.ignore)) * 100).toFixed(0));
             }
 
 
@@ -268,6 +268,7 @@ class MochaReporter extends reporters.Base {
     private aggregate(result: Result) {
         if (result.test.title.includes('resetting before retry')) {
             this.currentStep = 0;
+            this.ignore += result.passed ? 0 : 1;
         } else {
             if (this.results[this.currentStep] === undefined) {
                 this.results[this.currentStep] = [];
@@ -314,6 +315,8 @@ class MochaReporter extends reporters.Base {
     }
 
     private reportFailure(failure: any): string | undefined {
+        this.timeouts += failure.message?.toString().includes('timeout') ? 1 : 0;
+
         const message = failure.message?.toString();
 
         let prologue = 'Failure: ';
