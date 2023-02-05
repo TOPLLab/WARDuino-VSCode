@@ -364,4 +364,4 @@ const dumpCallbackMappingTest: TestScenario = {
 
 framework.test(dumpCallbackMappingTest);
 
-framework.analyse();
+framework.run();
