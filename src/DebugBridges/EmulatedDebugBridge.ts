@@ -169,6 +169,10 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         if(this.deviceConfig.needsProxyToAnotherVM()){
             args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
         }
+        if(this.deviceConfig.onStartConfig.pause){
+            args.push("--paused");
+        }
+
         return spawn(`${this.sdk}/build-emu/wdcli`, args);
         //return spawn(`echo`, ['"Listening"']);
     }
