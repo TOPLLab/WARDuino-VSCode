@@ -40,7 +40,7 @@ export function parseResult(input: string): Value | undefined {
     if (type === Type.float) {
         value = parseFloat(input.slice(cursor));
     } else {
-
+        value = parseInteger(input.slice(cursor));
     }
 
     if (value === undefined) {
@@ -69,7 +69,7 @@ export function parseArguments(input: string, index: Cursor): Value[] {
         if (type === Type.float) {
             maybe = parseFloat(input.slice(cursor));
         } else {
-
+            maybe = parseInteger(input.slice(cursor));
         }
 
         if (maybe !== undefined) {
@@ -128,6 +128,11 @@ export function parseAsserts(file: string): string[] {
 //         expect(parseResult(') (f64.const 1.0))')).to.eql({type: Type.float, value: 1});
 //     });
 // });
+
+function parseInteger(hex: string): number {
+    const radix: number = hex.includes('0x') ? 16 : 10;
+    return parseInt(hex, radix);
+}
 
 export function parseFloat(hex: string): number | undefined {
     if (hex === undefined) {
