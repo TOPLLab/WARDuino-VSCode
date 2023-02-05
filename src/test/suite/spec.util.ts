@@ -166,6 +166,15 @@ function magnitude(n: number) {
     return Math.pow(10, Math.ceil(Math.log(n) / Math.LN10));
 }
 
+function convertNumberToBinary(num: number): string {
+    let str = '';
+    const c = new Uint8Array(new Float64Array([num]).buffer, 0, 8);
+    for (const element of c.reverse()) {
+        str += element.toString(2).padStart(8, '0');
+    }
+    return str;
+}
+
 export async function encode(program: string, name: string, args: Value[]): Promise<string> {
     const map: SourceMap = await new WatCompiler(program, WABT).map();
 
@@ -182,7 +191,7 @@ export async function encode(program: string, name: string, args: Value[]): Prom
             if (arg.type === Type.integer) {
                 result += EmulatorBridge.convertToLEB128(arg.value);
             } else {
-                // todo encode float
+                result += parseInt(convertNumberToBinary(arg.value), 2).toString(16);
             }
         });
         resolve(result);
