@@ -9,7 +9,7 @@ import {readFileSync} from 'fs';
 
 // import {expect} from 'chai';
 
-enum Type {
+export enum Type {
     float,
     integer
 }
