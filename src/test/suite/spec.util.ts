@@ -9,35 +9,71 @@ import {readFileSync} from 'fs';
 
 // import {expect} from 'chai';
 
+enum Type {
+    float,
+    integer
+}
+
+export interface Value {
+    type: Type;
+    value: number;
+}
+
 interface Cursor {
     value: number;
 }
 
-export function parseResult(input: string): number | undefined {
+export function parseResult(input: string): Value | undefined {
     let cursor = 0;
-    const delta: number = consume(input, cursor, /\(/d);
+    let delta: number = consume(input, cursor, /\(/d);
     if (delta === 0) {
         return undefined;
     }
+    cursor += delta;
+
+    delta = consume(input, cursor, /^[^.)]*/d);
+    const type: Type = input.slice(cursor, cursor + delta).includes('f') ? Type.float : Type.integer;
 
     cursor += delta + consume(input, cursor + delta);
-    return parseFloat(input.slice(cursor));
+
+    let value;
+    if (type === Type.float) {
+        value = parseFloat(input.slice(cursor));
+    } else {
+
+    }
+
+    if (value === undefined) {
+        return value;
+    }
+
+    return {type, value};
 }
 
-export function parseArguments(input: string, index: Cursor): number[] {
-    const args: number[] = [];
+export function parseArguments(input: string, index: Cursor): Value[] {
+    const args: Value[] = [];
 
     let cursor: number = consume(input, 0, /invoke "[^"]+"/d);
     while (cursor < input.length) {
-        const delta: number = consume(input, cursor, /^[^)]*\(/d);
+        let delta: number = consume(input, cursor, /^[^)]*\(/d);
         if (delta === 0) {
             break;
         }
+        cursor += delta;
+
+        delta = consume(input, cursor, /^[^.)]*/d);
+        const type: Type = input.slice(cursor, cursor + delta).includes('f') ? Type.float : Type.integer;
 
         cursor += delta + consume(input, cursor + delta, /^[^)]*const /d);
-        const maybe: number | undefined = parseFloat(input.slice(cursor));
+        let maybe: number | undefined;
+        if (type === Type.float) {
+            maybe = parseFloat(input.slice(cursor));
+        } else {
+
+        }
+
         if (maybe !== undefined) {
-            args.push(maybe);
+            args.push({type, value: maybe});
         }
 
         cursor += consume(input, cursor, /\)/d);
@@ -77,15 +113,19 @@ export function parseAsserts(file: string): string[] {
 //     });
 //
 //     it('Parse arguments', async () => {
-//         expect(parseArguments('(invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', {value: 0})).to.eql([0, 0]);
+//         expect(parseArguments('(invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', {value: 0})).to.eql([
+//             {type: Type.float, value: 0}, {type: Type.float, value: 0}]);
+//         expect(parseArguments('(invoke "add" (f32.const 0x74p+0) (f32.const 0x5467p-3)) (f32.const 0x0p+0)', {value: 0})).to.eql([
+//             {type: Type.float, value: 116}, {type: Type.float, value: 21.607}]);
 //         expect(parseArguments('(((((invoke "none" ( )))))))))))))) (f32.const 0x0p+0)', {value: 0})).to.eql([]);
 //         expect(parseArguments('((invoke "as-br-value") (i32.const 1))', {value: 0})).to.eql([]);
 //         expect(parseArguments('( (invoke "as-unary-operand") (f64.const 1.0))', {value: 0})).to.eql([]);
 //     });
 //
 //     it('Parse result', async () => {
-//         expect(parseResult(') (f32.const 0x0p+0)')).to.equal(0);
-//         expect(parseResult(') (f64.const 1.0))')).to.equal(0);
+//         expect(parseResult(') (f32.const 0x0p+0)')).to.eql({type: Type.float, value: 0});
+//         expect(parseResult(') (f32.const 0xff4p+1)')).to.eql({type: Type.float, value: 40840});
+//         expect(parseResult(') (f64.const 1.0))')).to.eql({type: Type.float, value: 1});
 //     });
 // });
 
@@ -93,14 +133,29 @@ export function parseFloat(hex: string): number | undefined {
     if (hex === undefined) {
         return undefined;
     }
+
+    if (hex.includes('nan')) {
+        return NaN;
+    }
+
+    if (hex.includes('-inf')) {
+        return -Infinity;
+    }
+
+    if (hex.includes('inf')) {
+        return Infinity;
+    }
+
     const radix: number = hex.includes('0x') ? 16 : 10;
-    let result: number = parseInt(hex.split('.')[0], radix);
-    const decimals = parseInt(hex.split('.')[1], radix);
+    const input = hex.split(radix === 16 ? 'p' : 'e');
+
+    let result: number = parseInt(input[0], radix);
+    const decimals = parseInt(input[0].split('.')[1], radix);
     result = Math.sign(result) * (Math.abs(result) + (isNaN(decimals) ? 0 : (decimals / magnitude(decimals))));
-    if (isNaN(result) && !hex.includes('nan')) {
+    if (isNaN(result)) {
         return undefined;
     }
-    const exponent: number | undefined = parseFloat(hex.split(radix === 16 ? 'p' : 'e')[1]);
+    const exponent: number | undefined = parseInt(input[1], radix);
     return result * Math.pow(10, exponent === undefined || isNaN(exponent) ? 0 : exponent);
 }
 
@@ -111,7 +166,7 @@ function magnitude(n: number) {
     return Math.pow(10, Math.ceil(Math.log(n) / Math.LN10));
 }
 
-export async function encode(program: string, name: string, args: number[]): Promise<string> {
+export async function encode(program: string, name: string, args: Value[]): Promise<string> {
     const map: SourceMap = await new WatCompiler(program, WABT).map();
 
     return new Promise((resolve, reject) => {
@@ -119,13 +174,18 @@ export async function encode(program: string, name: string, args: number[]): Pro
 
         if (func === undefined) {
             reject('cannot find fidx');
-        } else {
-            let result: string = EmulatorBridge.convertToLEB128(func.index);
-            args.forEach((arg: number) => {
-                result += EmulatorBridge.convertToLEB128(arg);
-            });
-            resolve(result);
+            return;
         }
+
+        let result: string = EmulatorBridge.convertToLEB128(func.index);
+        args.forEach((arg: Value) => {
+            if (arg.type === Type.integer) {
+                result += EmulatorBridge.convertToLEB128(arg.value);
+            } else {
+                // todo encode float
+            }
+        });
+        resolve(result);
     });
 }
 
@@ -140,7 +200,10 @@ export async function encode(program: string, name: string, args: number[]): Pro
 //         expect(parseFloat('0x4')).to.equal(4);
 //         expect(parseFloat('0x445')).to.equal(1093);
 //         expect(parseFloat('0x1p-149')).to.equal(1e-149);
-//         expect(Math.round(parseFloat('-0x1.921fb6p+2') * 10000) / 10000).to.equal(-195.7637);
+//         expect(Math.round((parseFloat('-0x1.921fb6p+2') ?? NaN) * 10000) / 10000).to.equal(-195.7637);
+//         expect(parseFloat('-0x1.fffffffffffffp+1023')).to.equal(-Infinity);
+//         expect(parseFloat('-0x1.8330077d90a07p+476')).to.equal(-Infinity);
+//         expect(parseFloat('-0x1.e251d762163ccp+825')).to.equal(-Infinity);
+//         expect(parseFloat('0x1.3ee63581e1796p+349')).to.equal(-Infinity);
 //     });
 // });
-
