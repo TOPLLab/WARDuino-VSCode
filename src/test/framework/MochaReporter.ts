@@ -36,16 +36,23 @@ function formatTimout(message: string): string {
 declare global {
 }
 
+interface Result {
+    test: Test;
+    passed: boolean;
+    error?: any;
+}
+
 class MochaReporter extends reporters.Base {
     private framework: Framework;
     private coreReporter: Reporter;
 
     private archiver: Archiver;
 
+    private results: Result[][];
+    private currentStep: number = 0;
+
     private readonly indentationSize: number = 2;
     private indentationLevel: number = 0;
-
-    private runs: number = 0;
 
     private passed: number = 0;  // number of passed suites
     private skipped: number = 0;  // number of skipped suites
@@ -60,10 +67,11 @@ class MochaReporter extends reporters.Base {
 
         this.framework = Framework.getImplementation();
         this.coreReporter = new Reporter(this.framework);
-        this.runs = this.framework.runs;
 
         this.archiver = new Archiver(`${process.env.TESTFILE?.replace('.asserts.wast', '.wast') ?? 'suite'}.${Date.now()}.log`);
         this.archiver.set('date', new Date(Date.now()).toISOString());
+
+        this.results = [];
 
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
             console.log(color('suite', '%sGeneral Information'), this.indent(this.indentationLevel + 2));
@@ -78,12 +86,15 @@ class MochaReporter extends reporters.Base {
         });
 
         runner.on(Runner.constants.EVENT_SUITE_BEGIN, (suite: Suite) => {
-            this.runs = this.framework.runs;
             ++this.indentationLevel;
             console.log(color('suite', '%s%s'), this.indent(), suite.title);
         });
 
         runner.on(Runner.constants.EVENT_SUITE_END, (suite: Suite) => {
+            this.report();
+            this.results = [];
+            this.currentStep = 0;
+
             if (suite.isPending()) {
                 let format = this.indent(this.indentationLevel + 1) + '\u25D7 Skipping test';
                 this.skipped++;
@@ -106,37 +117,19 @@ class MochaReporter extends reporters.Base {
         });
 
         runner.on(Runner.constants.EVENT_TEST_PASS, (test) => {
-            if (test.title.includes('resetting before retry')) {
-                this.runs--;
-                return;
-            } else if (this.runs > 1) {
-                // todo save results
-                return;
-            }
-
-            // todo report aggregate results
-            let format = this.indent() + color('checkmark', '  ' + symbols.ok) + ' %s';
-
-            if (test.speed === 'fast' || test.speed === undefined) {
-                console.log(format, test.title);
+            if (this.framework.runs > 1) {
+                this.aggregate({test, passed: true});
             } else {
-                format += color(test.speed, ' (%dms)');
-                console.log(format, test.title, test.duration);
+                this.reportResult({test, passed: true});
             }
         });
 
         runner.on(Runner.constants.EVENT_TEST_FAIL, (test: Test, error: any) => {
-            if (test.title.includes('resetting before retry')) {
-                this.runs--;
-                return;
-            } else if (this.runs > 1) {
-                // todo save results
-                return;
+            if (this.framework.runs > 1) {
+                this.aggregate({test, passed: false});
+            } else {
+                this.reportResult({test, passed: false, error});
             }
-
-            // todo report aggregate results
-            console.log(this.indent(this.indentationLevel + 1) + color('fail', symbols.err + ' %s'), test.title);
-            console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(error)}`));
 
             if (error.message?.toString().includes('failed dependent')) {
                 this.skipped++;
@@ -232,7 +225,7 @@ class MochaReporter extends reporters.Base {
                 fmt = color('error', `${this.indent()}%d timeouts`) + color('light', ' (%d%)');
 
                 this.archiver.set('timed out actions', this.timeouts);
-                console.log(fmt, this.timeouts, this.timeouts / stats.failures);
+                console.log(fmt, this.timeouts, ((this.timeouts / stats.failures) * 100).toFixed(0));
             }
 
 
@@ -266,6 +259,48 @@ class MochaReporter extends reporters.Base {
 
     private indent(override?: number): string {
         return ' '.repeat((override ?? this.indentationLevel) * this.indentationSize);
+    }
+
+    private aggregate(result: Result) {
+        if (result.test.title.includes('resetting before retry')) {
+            this.currentStep = 0;
+        } else {
+            if (this.results[this.currentStep] === undefined) {
+                this.results[this.currentStep] = [];
+            }
+
+            this.results[this.currentStep++].push(result);
+        }
+    }
+
+    private report() {
+        this.indentationLevel += 1;
+        for (let i = 0; i < this.currentStep; i++) {
+            const success = this.results[i].every((result: Result) => result.passed);
+            const base: Result = this.results[i][0];
+            this.reportResult({test: base.test, passed: success});
+
+            for (const result of this.results[i]) {
+                if (result?.error) {
+                    console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(result.error)}`));
+                }
+            }
+        }
+        this.indentationLevel -= 1;
+    }
+
+    private reportResult(result: Result) {
+        let title = this.indent() + color((result.passed ? 'checkmark' : 'fail'), '  ' + (result.passed ? symbols.ok : symbols.err)) + ' %s';
+
+        if (this.results.length === 1 && result.test.speed !== 'fast' && result.test.speed !== undefined) {
+            title += color(result.test.speed, ` (${result.test.duration}ms)`);
+        }
+
+        console.log(title, result.test.title);
+
+        if (result?.error) {
+            console.log(color('error', `${this.indent(this.indentationLevel + 2)} ${this.reportFailure(result.error)}`));
+        }
     }
 
     private reportFailure(failure: any): string | undefined {
