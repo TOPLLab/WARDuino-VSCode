@@ -130,11 +130,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.woodDumpDetected = line.includes('DUMP!');
         console.log(`hardware: ${line}`);
         this.parser.parse(this, line);
-
-        this.woodDumpDetected = line.includes('DUMP!');
-        console.log(`hardware: ${line}`);
-
-        this.parser.parse(this, line);
     }
 
     public disconnect(): void {
@@ -224,6 +219,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     pullSession(): void {
+        this.outOfPlaceActive = true;
         this.listener.notifyProgress(Messages.transfering);
         this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
             console.log('Plugin: WOOD Dump');
