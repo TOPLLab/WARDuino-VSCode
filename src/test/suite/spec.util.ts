@@ -38,7 +38,7 @@ export function parseResult(input: string): Value | undefined {
 
     let value;
     if (type === Type.float) {
-        value = parseFloat(input.slice(cursor));
+        value = parseFloatNumber(input.slice(cursor));
     } else {
         value = parseInteger(input.slice(cursor));
     }
@@ -67,7 +67,7 @@ export function parseArguments(input: string, index: Cursor): Value[] {
         cursor += delta + consume(input, cursor + delta, /^[^)]*const /d);
         let maybe: number | undefined;
         if (type === Type.float) {
-            maybe = parseFloat(input.slice(cursor));
+            maybe = parseFloatNumber(input.slice(cursor));
         } else {
             maybe = parseInteger(input.slice(cursor));
         }
@@ -107,9 +107,9 @@ export function parseAsserts(file: string): string[] {
 // describe('Test Spec test generation', () => {
 //     it('Consume token', async () => {
 //         expect(consume('(f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', 0)).to.equal(11);
-//         expect(consume('(f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', 11, /\)/)).to.equal(7);
-//         expect(consume('(f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', 18, /\(/)).to.equal(2);
-//         expect(consume('(f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', 30, /\)/)).to.equal(7);
+//         expect(consume('(f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', 11, /\)/d)).to.equal(7);
+//         expect(consume('(f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', 18, /\(/d)).to.equal(2);
+//         expect(consume('(f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', 30, /\)/d)).to.equal(7);
 //     });
 //
 //     it('Parse arguments', async () => {
@@ -117,6 +117,8 @@ export function parseAsserts(file: string): string[] {
 //             {type: Type.float, value: 0}, {type: Type.float, value: 0}]);
 //         expect(parseArguments('(invoke "add" (f32.const 0x74p+0) (f32.const 0x5467p-3)) (f32.const 0x0p+0)', {value: 0})).to.eql([
 //             {type: Type.float, value: 116}, {type: Type.float, value: 21.607}]);
+//         expect(parseArguments('( (invoke "add" (f32.const -0x0p+0) (f32.const -0x1p-1)) (f32.const -0x1p-1))', {value: 0})).to.eql([
+//             {type: Type.float, value: 0}, {type: Type.float, value: -0.1}]);
 //         expect(parseArguments('(((((invoke "none" ( )))))))))))))) (f32.const 0x0p+0)', {value: 0})).to.eql([]);
 //         expect(parseArguments('((invoke "as-br-value") (i32.const 1))', {value: 0})).to.eql([]);
 //         expect(parseArguments('( (invoke "as-unary-operand") (f64.const 1.0))', {value: 0})).to.eql([]);
@@ -134,7 +136,7 @@ function parseInteger(hex: string): number {
     return parseInt(hex, radix);
 }
 
-export function parseFloat(hex: string): number | undefined {
+export function parseFloatNumber(hex: string): number | undefined {
     if (hex === undefined) {
         return undefined;
     }
@@ -154,14 +156,15 @@ export function parseFloat(hex: string): number | undefined {
     const radix: number = hex.includes('0x') ? 16 : 10;
     const input = hex.split(radix === 16 ? 'p' : 'e');
 
-    let result: number = parseInt(input[0], radix);
-    const decimals = parseInt(input[0].split('.')[1], radix);
-    result = Math.sign(result) * (Math.abs(result) + (isNaN(decimals) ? 0 : (decimals / magnitude(decimals))));
-    if (isNaN(result)) {
+    const base: number = parseInt(input[0], radix);
+    const decimals = parseFloat(`0.${parseInt(input[0].split('.')[1], radix)}`);
+    const exponent = parseInt(input[1], radix);
+
+    const result = parseFloat(`${base}.${decimals}e${exponent}`);
+    if (result === undefined || isNaN(result)) {
         return undefined;
     }
-    const exponent: number | undefined = parseInt(input[1], radix);
-    return result * Math.pow(10, exponent === undefined || isNaN(exponent) ? 0 : exponent);
+    return result;
 }
 
 function magnitude(n: number) {
