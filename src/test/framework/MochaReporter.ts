@@ -273,12 +273,15 @@ class MochaReporter extends reporters.Base {
         }
     }
 
+    // Report aggregate results of analysis run
     private report() {
         this.indentationLevel += 1;
         for (let i = 0; i < this.currentStep; i++) {
             const success = this.results[i].every((result: Result) => result.passed);
             const base: Result = this.results[i][0];
             this.reportResult({test: base.test, passed: success});
+
+            console.log(this.indent(this.indentationLevel + 1) + `Flakiness: ${this.results[i].filter((result: Result) => result.passed).length}/${this.results[i].length} passed`);
 
             for (const result of this.results[i]) {
                 if (result?.error) {
@@ -290,7 +293,7 @@ class MochaReporter extends reporters.Base {
     }
 
     private reportResult(result: Result) {
-        let title = this.indent() + color((result.passed ? 'checkmark' : 'fail'), '  ' + (result.passed ? symbols.ok : symbols.err)) + ' %s';
+        let title = this.indent() + color((result.passed ? 'checkmark' : 'fail'), (result.passed ? symbols.ok : symbols.err)) + ' %s';
 
         if (this.results.length === 1 && result.test.speed !== 'fast' && result.test.speed !== undefined) {
             title += color(result.test.speed, ` (${result.test.duration}ms)`);
