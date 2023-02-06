@@ -6,13 +6,23 @@ import {WatCompiler} from '../framework/Compiler';
 import {SourceMap} from '../../State/SourceMap';
 import {FunctionInfo} from '../../State/FunctionInfo';
 import {readFileSync} from 'fs';
+import * as ieee754 from 'ieee754';
 
 // import {expect} from 'chai';
 
 export enum Type {
-    float,
-    integer
+    f32,
+    f64,
+    i32,
+    i64
 }
+
+const typing = new Map<string, Type>([
+    ['f32', Type.f32],
+    ['f64', Type.f64],
+    ['i32', Type.i32],
+    ['i64', Type.i64]
+]);
 
 export interface Value {
     type: Type;
@@ -32,12 +42,12 @@ export function parseResult(input: string): Value | undefined {
     cursor += delta;
 
     delta = consume(input, cursor, /^[^.)]*/d);
-    const type: Type = input.slice(cursor, cursor + delta).includes('f') ? Type.float : Type.integer;
+    const type: Type = typing.get(input.slice(delta - 3, delta)) ?? Type.i64;
 
     cursor += delta + consume(input, cursor + delta);
 
     let value;
-    if (type === Type.float) {
+    if (type === Type.f32) {
         value = parseFloatNumber(input.slice(cursor));
     } else {
         value = parseInteger(input.slice(cursor));
@@ -62,11 +72,11 @@ export function parseArguments(input: string, index: Cursor): Value[] {
         cursor += delta;
 
         delta = consume(input, cursor, /^[^.)]*/d);
-        const type: Type = input.slice(cursor, cursor + delta).includes('f') ? Type.float : Type.integer;
+        const type: Type = typing.get(input.slice(delta - 3, delta)) ?? Type.i64;
 
         cursor += delta + consume(input, cursor + delta, /^[^)]*const /d);
         let maybe: number | undefined;
-        if (type === Type.float) {
+        if (type === Type.f32 || type === Type.f64) {
             maybe = parseFloatNumber(input.slice(cursor));
         } else {
             maybe = parseInteger(input.slice(cursor));
@@ -184,7 +194,7 @@ function convertNumberToBinary(num: number): string {
 }
 
 export async function encode(program: string, name: string, args: Value[]): Promise<string> {
-    const map: SourceMap = await new WatCompiler(program, WABT).map();
+    const map: SourceMap = await new WatCompiler(program, WABT).map();  // todo only do this once (same compiler that saves it in a dict)
 
     return new Promise((resolve, reject) => {
         const func = map.functionInfos.find((func: FunctionInfo) => func.name === name);
@@ -196,10 +206,12 @@ export async function encode(program: string, name: string, args: Value[]): Prom
 
         let result: string = EmulatorBridge.convertToLEB128(func.index);
         args.forEach((arg: Value) => {
-            if (arg.type === Type.integer) {
-                result += EmulatorBridge.convertToLEB128(arg.value);
+            if (arg.type === Type.i32 || arg.type === Type.i64) {
+                result += EmulatorBridge.convertToLEB128(arg.value);  // todo support i64
             } else {
-                result += parseInt(convertNumberToBinary(arg.value), 2).toString(16);
+                const buff = Buffer.alloc(arg.type === Type.f32 ? 4 : 8);
+                ieee754.write(buff, arg.value, 0, false, 23, buff.length);
+                result += buff.toString('hex');
             }
         });
         resolve(result);
