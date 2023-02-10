@@ -141,9 +141,22 @@ export function parseAsserts(file: string): string[] {
 //     });
 // });
 
-function parseInteger(hex: string): number {
-    const radix: number = hex.includes('0x') ? 16 : 10;
-    return parseInt(hex, radix);
+// describe('Test Spec test generation', () => {
+//     it('Parse integer', async () => {
+//         expect(parseInteger('0xffffffef', 4)).to.equal(-17);
+//     });
+// });
+
+function parseInteger(hex: string, bytes: number = 4): number {
+    if (!hex.includes('0x')) {
+        return parseInt(hex);
+    }
+    const mask = parseInt('0x80' + '00'.repeat(bytes - 1), 16);
+    let integer = parseInt(hex, 16);
+    if (integer >= mask) {
+        integer = integer - mask * 2;
+    }
+    return integer;
 }
 
 export function parseFloatNumber(hex: string): number | undefined {
