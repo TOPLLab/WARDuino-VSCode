@@ -54,7 +54,7 @@ const io: TestScenario = {
     steps: [{
         title: 'Check: read LOW sensor value',
         instruction: Instruction.invoke,
-        payload: encode('io.ts', 'digital.read', [{type: Type.integer, value: 12}]),
+        payload: encode('io.ts', 'digital.read', [{type: Type.i32, value: 12}]),
         expected: [{'value': {kind: 'comparison', value: (state, value: string) => parseInt(value) === 0}}]
     }, {
         title: 'Drop stack value',
@@ -70,7 +70,7 @@ const io: TestScenario = {
     }, {
         title: 'Check: write HIGH to pin',
         instruction: Instruction.invoke,
-        payload: encode('io.ts', 'digital.write', [{type: Type.integer, value: 36}]),
+        payload: encode('io.ts', 'digital.write', [{type: Type.i32, value: 36}]),
         expected: [{
             'stack': {
                 kind: 'comparison', value: (state: Object, value: Array<any>) => {
@@ -81,7 +81,7 @@ const io: TestScenario = {
     }, {
         title: 'Check: read HIGH from pin',
         instruction: Instruction.invoke,
-        payload: encode('io.ts', 'digital.read', [{type: Type.integer, value: 36}]),
+        payload: encode('io.ts', 'digital.read', [{type: Type.i32, value: 36}]),
         expected: [{'value': {kind: 'comparison', value: (state, value: string) => parseInt(value) === 1}}]
     }]
 };
@@ -95,9 +95,9 @@ const interrupts: TestScenario = {
         title: 'Subscribe to falling interrupt on pin 36',
         instruction: Instruction.invoke,
         payload: encode('interrupts.ts', 'interrupts.subscribe', [
-            {type: Type.integer, value: 36},
-            {type: Type.integer, value: 0},
-            {type: Type.integer, value: 2}]),
+            {type: Type.i32, value: 36},
+            {type: Type.i32, value: 0},
+            {type: Type.i32, value: 2}]),
         expected: [{
             'stack': {
                 kind: 'comparison', value: (state: Object, value: Array<any>) => {
