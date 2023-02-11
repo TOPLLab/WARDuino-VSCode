@@ -1,8 +1,8 @@
-import {Description, Expectation, Expected, getValue, Step} from '../framework/Describer';
+import {Expectation, Expected, Step} from '../framework/Describer';
 import {Instruction} from '../framework/Actions';
 import {Framework} from '../framework/Framework';
-import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
-import {encode, parseArguments, parseAsserts, parseResult, Value} from './spec.util';
+import {EMULATOR, EmulatorBridge} from './warduino.bridge';
+import {parseArguments, parseAsserts, parseResult, Value} from './spec.util';
 import {readdirSync, writeFileSync} from 'fs';
 import {find} from '../framework/Parsers';
 import {basename} from 'path';
@@ -27,7 +27,9 @@ for (const file of files) {
     const asserts: string[] = parseAsserts(CORESUITE + file);
     createTest(CORESUITE + module, asserts);
 
-    process.stdout.moveCursor(-tally.length, 0);
+    if (process.stdout.moveCursor !== undefined) {
+        process.stdout.moveCursor(-tally.length, 0);
+    }
     tally = ` [${count++}/${files.length}]`;
     process.stdout.write(tally);
 }
