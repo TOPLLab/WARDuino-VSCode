@@ -2,10 +2,13 @@ import {ChildProcess} from 'child_process';
 import {Duplex} from 'stream';
 import {assert, expect} from 'chai';
 import 'mocha';
-import {after, describe, PendingSuiteFunction, SuiteFunction} from 'mocha';
+import {after, beforeEach, describe, PendingSuiteFunction, SuiteFunction} from 'mocha';
 import {SerialPort} from 'serialport';
 import {Framework} from './Framework';
-import {Action, Instruction, parserTable} from './Actions';
+import {Action, encoderTable, Instruction, parserTable} from './Actions';
+import {CompilerFactory} from './Compiler';
+import {WABT} from '../suite/warduino.bridge';
+import {SourceMap} from '../../State/SourceMap';
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
@@ -45,13 +48,13 @@ export interface Step {
     instruction: Instruction | Action;
 
     /* Optional payload of the instruction */
-    payload?: Promise<string>;
+    payload?: any;
 
     /** Whether the instruction is expected to return data */
-    expectResponse?: boolean;
+    expectResponse?: boolean;  // todo remove
 
     /** Optional delay after sending instruction */
-    delay?: number;
+    delay?: number;  // todo remove (can be done with an Action)
 
     /** Parser to use on the result. */
     parser?: (input: string) => Object;
@@ -160,6 +163,7 @@ export class Describer {
             this.timeout(describer.bridge.instructionTimeout * 1.1);  // must be larger than own timeout
 
             let instance: Instance | void;
+            let map: SourceMap = {lineInfoPairs: [], functionInfos: [], globalInfos: [], importInfos: []};
 
             /** Each test requires some housekeeping before and after */
 
@@ -174,6 +178,11 @@ export class Describer {
 
                 instance = await timeout<Instance>(`connecting with ${describer.bridge.name}`, describer.bridge.connectionTimeout,
                     describer.bridge.connect(description.program, description.args ?? []));
+            });
+
+            beforeEach('Compile', async function () {
+                map = await timeout<SourceMap>(`compiling ${description.program}`, describer.bridge.instructionTimeout,
+                    new CompilerFactory(WABT).pickCompiler(description.program).map(description.program));
             });
 
             afterEach('Clear listeners on interface', function () {
@@ -211,10 +220,7 @@ export class Describer {
                         if (step.instruction instanceof Action) {
                             actual = await step.instruction.perform(describer.bridge, step.parser ?? (parserTable.get(step.instruction) ?? (() => Object())));
                         } else {
-                            let payload: string = '';
-                            if (step.payload !== undefined) {
-                                payload = await timeout<string | void>(`encoding payload ${step.instruction}`, describer.bridge.instructionTimeout, step.payload) ?? '';
-                            }
+                            const payload: string = (encoderTable.get(step.instruction) ?? (() => Object()))(map, step.payload) ?? '';
                             actual = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
                                 describer.bridge.sendInstruction(instance.interface, `${step.instruction}${payload}`, step.expectResponse ?? true, step.parser ?? (parserTable.get(step.instruction) ?? JSON.parse)));
                         }
