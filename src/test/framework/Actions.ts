@@ -1,9 +1,25 @@
 import {ProcessBridge} from './Describer';
 import {SourceMap} from '../../State/SourceMap';
 import {FunctionInfo} from '../../State/FunctionInfo';
-import {EmulatorBridge} from '../suite/warduino.bridge';
 import * as ieee754 from 'ieee754';
 import {Type, Value} from '../suite/spec.util';
+
+function convertToLEB128(a: number): string { // TODO can only handle 32 bit
+    a |= 0;
+    const result = [];
+    while (true) {
+        const byte_ = a & 0x7f;
+        a >>= 7;
+        if (
+            (a === 0 && (byte_ & 0x40) === 0) ||
+            (a === -1 && (byte_ & 0x40) !== 0)
+        ) {
+            result.push(byte_.toString(16).padStart(2, '0'));
+            return result.join('').toUpperCase();
+        }
+        result.push((byte_ | 0x80).toString(16).padStart(2, '0'));
+    }
+}
 
 export enum Instruction {
     run = '01',
@@ -104,10 +120,10 @@ function encode(map: SourceMap, input: any): string | undefined {
         return;
     }
 
-    let result: string = EmulatorBridge.convertToLEB128(func.index);
+    let result: string = convertToLEB128(func.index);
     args.forEach((arg: Value) => {
         if (arg.type === Type.i32 || arg.type === Type.i64) {
-            result += EmulatorBridge.convertToLEB128(arg.value);  // todo support i64
+            result += convertToLEB128(arg.value);  // todo support i64
         } else {
             const buff = Buffer.alloc(arg.type === Type.f32 ? 4 : 8);
             ieee754.write(buff, arg.value, 0, false, 23, buff.length);
