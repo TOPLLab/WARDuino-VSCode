@@ -1,4 +1,9 @@
 import {ProcessBridge} from './Describer';
+import {SourceMap} from '../../State/SourceMap';
+import {FunctionInfo} from '../../State/FunctionInfo';
+import {EmulatorBridge} from '../suite/warduino.bridge';
+import * as ieee754 from 'ieee754';
+import {Type, Value} from '../suite/spec.util';
 
 export enum Instruction {
     run = '01',
@@ -63,21 +68,51 @@ export const parserTable: Map<Instruction | Action, (input: string) => Object> =
     [Instruction.reset, resetParser],
 ]);
 
+export const encoderTable: Map<Instruction | Action, (map: SourceMap, input: any) => string | undefined> = new Map([
+    [Instruction.invoke, encode]
+]);
+
 function resetParser(text: string): Object {
     if (!text.toLowerCase().includes('reset')) {
         throw new Error();
     }
 
+    return ackParser(text);
+}
+
+function ackParser(text: string): Object {
     return {'ack': text};
 }
 
 function returnParser(text: string): Object {
     const object = JSON.parse(text);
-    return object.stack.length > 0 ? object.stack[0] : object;
+    return object.stack.length > 0 ? object.stack[0] : object;  // todo parse stack value
 }
 
 function stateParser(text: string): Object {
     const message = JSON.parse(text);
     message['pc'] = parseInt(message['pc']);
     return message;
+}
+
+function encode(map: SourceMap, input: any): string | undefined {
+    const name: string = input.name;
+    const args: Value[] = input.args;
+    const func = map.functionInfos.find((func: FunctionInfo) => func.name === name);
+
+    if (func === undefined) {
+        return;
+    }
+
+    let result: string = EmulatorBridge.convertToLEB128(func.index);
+    args.forEach((arg: Value) => {
+        if (arg.type === Type.i32 || arg.type === Type.i64) {
+            result += EmulatorBridge.convertToLEB128(arg.value);  // todo support i64
+        } else {
+            const buff = Buffer.alloc(arg.type === Type.f32 ? 4 : 8);
+            ieee754.write(buff, arg.value, 0, false, 23, buff.length);
+            result += buff.toString('hex');
+        }
+    });
+    return result;
 }

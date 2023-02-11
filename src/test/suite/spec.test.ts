@@ -58,7 +58,7 @@ function createTest(module: string, asserts: string[]) {
             // (invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)
             title: assert,
             instruction: Instruction.invoke,
-            payload: encode(module, fidx, args),
+            payload: {name: fidx, args: args},
             expected: [expectation]
         });
     }

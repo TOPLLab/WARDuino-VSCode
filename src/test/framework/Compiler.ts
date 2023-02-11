@@ -13,32 +13,30 @@ interface CompileOutput {
 }
 
 export class CompilerFactory {
-    private readonly wabt: string;
+    private readonly wat: WatCompiler;
 
     constructor(wabt: string) {
-        this.wabt = wabt;
+        this.wat = new WatCompiler(wabt);
     }
 
     public pickCompiler(file: string): Compiler {
         let fileType = getFileExtension(file);
         switch (fileType) {
             case 'wast' :
-                return new WatCompiler(file, this.wabt);
+                return this.wat;
             case 'ts' :
-                return new AsScriptCompiler(file);
+                return new AsScriptCompiler();
         }
         throw new Error('Unsupported file type');
     }
 }
 
 export abstract class Compiler {
-    protected abstract readonly program: string;
-
     // compiles program to WAT
-    abstract compile(): Promise<CompileOutput>;
+    abstract compile(program: string): Promise<CompileOutput>;
 
     // generates a sourceMap
-    abstract map(): Promise<SourceMap>;
+    abstract map(program: string): Promise<SourceMap>;
 
     protected makeTmpDir(): Promise<string> {
         return new Promise((resolve, reject) => {
@@ -54,26 +52,37 @@ export abstract class Compiler {
 }
 
 export class WatCompiler extends Compiler {
-    protected readonly program: string;
-
     private readonly wabt: string;
 
-    constructor(program: string, wabt: string) {
+    private tmpdir?: string;
+
+    private compiled: Map<string, CompileOutput> = new Map<string, CompileOutput>();
+
+    constructor(wabt: string) {
         super();
-        this.program = program;
         this.wabt = wabt;
     }
 
-    public async compile(): Promise<CompileOutput> {
+    public async compile(program: string): Promise<CompileOutput> {
+        if (this.tmpdir !== undefined) {
+            return this.wasm(program);
+        }
+
         return this.makeTmpDir().then((dir) => {
-            return this.wasm(dir);
+            this.tmpdir = dir;
+            return this.wasm(program);
         });
     }
 
-    private wasm(tmpdir: string): Promise<CompileOutput> {
+    private wasm(program: string): Promise<CompileOutput> {
+        // do not recompiled previous compilations
+        if (this.compiled.has(program)) {
+            return Promise.resolve(this.compiled.get(program)!);
+        }
+
         // compile WAT to Wasm
         return new Promise<CompileOutput>((resolve, reject) => {
-            const command = `${this.wabt}/wat2wasm --debug-names -v -o ${tmpdir}/upload.wasm ${this.program}`;
+            const command = `${this.wabt}/wat2wasm --debug-names -v -o ${this.tmpdir}/upload.wasm ${program}`;
             let out: String = '';
             let err: String = '';
 
@@ -89,7 +98,8 @@ export class WatCompiler extends Compiler {
                     reject(`wat2wasm exited with code ${code}`);
                     return;
                 }
-                resolve({file: `${tmpdir}/upload.wasm`, out: out, err: err});
+                this.compiled.set(program, {file: `${this.tmpdir}/upload.wasm`, out: out, err: err});
+                resolve({file: `${this.tmpdir}/upload.wasm`, out: out, err: err});
             });
         });
 
@@ -113,8 +123,8 @@ export class WatCompiler extends Compiler {
         });
     }
 
-    public async map(): Promise<SourceMap> {
-        return this.compile().then((output) => {
+    public async map(program: string): Promise<SourceMap> {
+        return this.compile(program).then((output) => {
             return this.dump(output);
         });
     }
@@ -126,28 +136,25 @@ export class WatCompiler extends Compiler {
 }
 
 export class AsScriptCompiler extends Compiler {
-    protected readonly program: string;
-
     private compiled?: string;
 
-    constructor(program: string) {
+    constructor() {
         super();
-        this.program = program;
     }
 
-    public async compile(): Promise<CompileOutput> {
+    public async compile(program: string): Promise<CompileOutput> {
         if (this.compiled) {
             return {file: this.compiled};
         }
 
         // TODO compile to wat and return file location
-        this.compiled = this.program;
+        this.compiled = program;
         return {file: this.compiled};
     }
 
-    public async map(): Promise<SourceMap> {
+    public async map(program: string): Promise<SourceMap> {
         // TODO implement
-        await this.compile();
+        await this.compile(program);
         // ...
         return Promise.resolve({lineInfoPairs: [], functionInfos: [], globalInfos: [], importInfos: []});
     }

@@ -1,12 +1,7 @@
 /**
  * Specification test suite for WebAssembly.
  */
-import {EmulatorBridge, WABT} from './warduino.bridge';
-import {WatCompiler} from '../framework/Compiler';
-import {SourceMap} from '../../State/SourceMap';
-import {FunctionInfo} from '../../State/FunctionInfo';
 import {readFileSync} from 'fs';
-import * as ieee754 from 'ieee754';
 
 // import {expect} from 'chai';
 
@@ -72,7 +67,7 @@ export function parseArguments(input: string, index: Cursor): Value[] {
         cursor += delta;
 
         delta = consume(input, cursor, /^[^.)]*/d);
-        const type: Type = typing.get(input.slice(delta - 3, delta)) ?? Type.i64;
+        const type: Type = typing.get(input.slice(cursor + delta - 3, cursor + delta)) ?? Type.i64;
 
         cursor += delta + consume(input, cursor + delta, /^[^)]*const /d);
         let maybe: number | undefined;
@@ -204,31 +199,6 @@ function convertNumberToBinary(num: number): string {
         str += element.toString(2).padStart(8, '0');
     }
     return str;
-}
-
-export async function encode(program: string, name: string, args: Value[]): Promise<string> {
-    const map: SourceMap = await new WatCompiler(program, WABT).map();  // todo only do this once (same compiler that saves it in a dict)
-
-    return new Promise((resolve, reject) => {
-        const func = map.functionInfos.find((func: FunctionInfo) => func.name === name);
-
-        if (func === undefined) {
-            reject('cannot find fidx');
-            return;
-        }
-
-        let result: string = EmulatorBridge.convertToLEB128(func.index);
-        args.forEach((arg: Value) => {
-            if (arg.type === Type.i32 || arg.type === Type.i64) {
-                result += EmulatorBridge.convertToLEB128(arg.value);  // todo support i64
-            } else {
-                const buff = Buffer.alloc(arg.type === Type.f32 ? 4 : 8);
-                ieee754.write(buff, arg.value, 0, false, 23, buff.length);
-                result += buff.toString('hex');
-            }
-        });
-        resolve(result);
-    });
 }
 
 // describe('Test Parse Float', () => {

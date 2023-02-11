@@ -135,7 +135,7 @@ export class EmulatorBridge extends WARDuinoBridge {
     }
 
     connect(program: string, args: string[] = []): Promise<Instance> {
-        return this.compilerFactory.pickCompiler(program).compile().then((output) => {
+        return this.compilerFactory.pickCompiler(program).compile(program).then((output) => {
             return connectSocket(this.interpreter, output.file, this.port++, args);
         });
     }
@@ -155,17 +155,20 @@ export class HardwareBridge extends WARDuinoBridge {
     protected readonly interpreter: string;
     protected readonly port: string;
 
+    private compiler: WatCompiler;
+
     constructor(interpreter: string, port: string = '/dev/ttyUSB0') {
         super();
         this.interpreter = interpreter;
         this.port = port;
+        this.compiler = new WatCompiler(WABT);
     }
 
     connect(program: string, args: string[] = []): Promise<Instance> {
         const bridge = this;
 
         // TODO wabt + sdkpath
-        return new WatCompiler(program, WABT).compile().then((output) => {
+        return this.compiler.compile(program).then((output) => {
             return new ArduinoUploader(output.file, this.interpreter, {path: bridge.port}).upload();
         }).then((connection) => Promise.resolve({interface: connection, program: program}));
     }
