@@ -7,7 +7,6 @@ import {SerialPort} from 'serialport';
 import {Framework} from './Framework';
 import {Action, encoderTable, Instruction, parserTable} from './Actions';
 import {CompilerFactory} from './Compiler';
-import {WABT} from '../suite/warduino.bridge';
 import {SourceMap} from '../../State/SourceMap';
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
@@ -182,7 +181,7 @@ export class Describer {
 
             beforeEach('Compile', async function () {
                 map = await timeout<SourceMap>(`compiling ${description.program}`, describer.bridge.instructionTimeout,
-                    new CompilerFactory(WABT).pickCompiler(description.program).map(description.program));
+                    new CompilerFactory(process.env.WABT ?? '').pickCompiler(description.program).map(description.program));
             });
 
             afterEach('Clear listeners on interface', function () {

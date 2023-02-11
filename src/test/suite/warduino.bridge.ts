@@ -59,25 +59,27 @@ export function connectSocket(interpreter: string, program: string, port: number
     });
 }
 
-abstract class WARDuinoBridge extends ProcessBridge {
-    protected instance?: Instance;
-
-    public static convertToLEB128(a: number): string { // TODO can only handle 32 bit
-        a |= 0;
-        const result = [];
-        while (true) {
-            const byte_ = a & 0x7f;
-            a >>= 7;
-            if (
-                (a === 0 && (byte_ & 0x40) === 0) ||
-                (a === -1 && (byte_ & 0x40) !== 0)
-            ) {
-                result.push(byte_.toString(16).padStart(2, '0'));
-                return result.join('').toUpperCase();
-            }
-            result.push((byte_ | 0x80).toString(16).padStart(2, '0'));
+function convertToLEB128(a: number): string { // TODO can only handle 32 bit
+    a |= 0;
+    const result = [];
+    while (true) {
+        const byte_ = a & 0x7f;
+        a >>= 7;
+        if (
+            (a === 0 && (byte_ & 0x40) === 0) ||
+            (a === -1 && (byte_ & 0x40) !== 0)
+        ) {
+            result.push(byte_.toString(16).padStart(2, '0'));
+            return result.join('').toUpperCase();
         }
+        result.push((byte_ | 0x80).toString(16).padStart(2, '0'));
     }
+}
+
+export abstract class WARDuinoBridge extends ProcessBridge {
+    public readonly instructionTimeout: number = 2000;
+
+    protected instance?: Instance;
 
     sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void> {
         const stack: MessageStack = new MessageStack('\n');
@@ -108,7 +110,7 @@ abstract class WARDuinoBridge extends ProcessBridge {
 
     setProgram(socket: Duplex, program: string): Promise<Object | void> {
         const binary = fs.readFileSync(program, 'binary');
-        const size: string = WARDuinoBridge.convertToLEB128(binary.length);
+        const size: string = convertToLEB128(binary.length);
         return this.sendInstruction(socket, `${InterruptTypes.interruptUPDATEMod}${size}${binary}`, true, (text: string) => text.includes('CHANGE Module'));
     }
 
