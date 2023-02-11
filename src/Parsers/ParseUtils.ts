@@ -18,7 +18,7 @@ export function extractAddressInformation(addressLine: string): string {
 
 export function getFileExtension(file: string): string {
     let splitted = file.split('.');
-    if (splitted.length === 2) {
+    if (splitted.length > 1) {
         return splitted.pop()!;
     }
     throw Error('Could not determine file type');
