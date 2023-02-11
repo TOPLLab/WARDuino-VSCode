@@ -1,6 +1,6 @@
 import {Expected, ProcessBridge, TestScenario} from '../framework/Describer';
 import {Action, Instruction} from '../framework/Actions';
-import {encode, Type} from './spec.util';
+import {Type} from './spec.util';
 import {Framework} from '../framework/Framework';
 import {ARDUINO, EMULATOR, EmulatorBridge, HardwareBridge} from './warduino.bridge';
 import {DependenceScheduler} from '../framework/Scheduler';
@@ -54,12 +54,12 @@ const io: TestScenario = {
     steps: [{
         title: 'Check: read LOW sensor value',
         instruction: Instruction.invoke,
-        payload: encode('io.ts', 'digital.read', [{type: Type.i32, value: 12}]),
+        payload: {name: 'digital.read', args: [{type: Type.i32, value: 12}]},
         expected: [{'value': {kind: 'comparison', value: (state, value: string) => parseInt(value) === 0}}]
     }, {
         title: 'Drop stack value',
         instruction: Instruction.invoke,
-        payload: encode('io.ts', 'drop', []),
+        payload: {name: 'drop', args: []},
         expected: [{
             'stack': {
                 kind: 'comparison', value: (state: Object, value: Array<any>) => {
@@ -70,7 +70,7 @@ const io: TestScenario = {
     }, {
         title: 'Check: write HIGH to pin',
         instruction: Instruction.invoke,
-        payload: encode('io.ts', 'digital.write', [{type: Type.i32, value: 36}]),
+        payload: {name: 'digital.write', args: [{type: Type.i32, value: 36}]},
         expected: [{
             'stack': {
                 kind: 'comparison', value: (state: Object, value: Array<any>) => {
@@ -81,7 +81,7 @@ const io: TestScenario = {
     }, {
         title: 'Check: read HIGH from pin',
         instruction: Instruction.invoke,
-        payload: encode('io.ts', 'digital.read', [{type: Type.i32, value: 36}]),
+        payload: {name: 'digital.read', args: [{type: Type.i32, value: 36}]},
         expected: [{'value': {kind: 'comparison', value: (state, value: string) => parseInt(value) === 1}}]
     }]
 };
@@ -94,10 +94,10 @@ const interrupts: TestScenario = {
     steps: [{
         title: 'Subscribe to falling interrupt on pin 36',
         instruction: Instruction.invoke,
-        payload: encode('interrupts.ts', 'interrupts.subscribe', [
+        payload: {name: 'interrupts.subscribe', args: [
             {type: Type.i32, value: 36},
             {type: Type.i32, value: 0},
-            {type: Type.i32, value: 2}]),
+            {type: Type.i32, value: 2}]},
         expected: [{
             'stack': {
                 kind: 'comparison', value: (state: Object, value: Array<any>) => {
