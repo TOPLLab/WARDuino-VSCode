@@ -2,17 +2,23 @@ import {TestScenario} from './Describer';
 import {Suite} from './Framework';
 
 export abstract class Scheduler {
+    public abstract readonly identifier: string;
+
     // sort the tests into an efficient schedule
     abstract schedule(suite: Suite): TestScenario[];
 }
 
 class NoScheduler implements Scheduler {
+    identifier = 'no schedule';
+
     public schedule(suite: Suite): TestScenario[] {
         return suite.tests;
     }
 }
 
 class SimpleScheduler implements Scheduler {
+    identifier = 'sort on program';
+
     public schedule(suite: Suite): TestScenario[] {
         // get trees
         const forest = trees(suite.tests);
@@ -30,6 +36,8 @@ class SimpleScheduler implements Scheduler {
  * at each depth the tests are sorted alphabetically according to their program.
  */
 export class HybridScheduler implements Scheduler {
+    identifier = 'hybrid schedule';
+
     public schedule(suite: Suite): TestScenario[] {
         let scheme: TestScenario[] = [];
         const forest: TestScenario[][] = trees(suite.tests);
@@ -43,6 +51,8 @@ export class HybridScheduler implements Scheduler {
 }
 
 export class DependenceScheduler implements Scheduler {
+    identifier = 'dependence-prioritizing schedule';
+
     public schedule(suite: Suite): TestScenario[] {
         const schedule: TestScenario[][] = levels(suite.tests);
         schedule.forEach(level => level.sort(sortOnProgram));
