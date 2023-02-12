@@ -75,15 +75,18 @@ class MochaReporter extends reporters.Base {
         this.results = [];
 
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
-            console.log(color('suite', '%sGeneral Information'), this.indent(this.indentationLevel + 2));
-            console.log(color('suite', '%s==================='), this.indent(this.indentationLevel + 2));
+            this.indentationLevel += 2;
+            console.log(color('suite', '%sGeneral Information'), this.indent());
+            console.log(color('suite', '%s==================='), this.indent());
 
             const names: string[] = [];
-            Framework.getImplementation().platforms().forEach((platform: Platform) => names.push(platform.name + (platform.disabled ? ' (disabled)' : '')));
+            Framework.getImplementation().platforms().forEach((platform: Platform) => names.push(platform.name + (platform.disabled ? ' (disabled)' : ` (${platform.scheduler.identifier})`)));
             names.forEach((name: string) => this.archiver.extend('platforms', name));
-            console.log(color('suite', '%sPlatforms  %s'), this.indent(this.indentationLevel + 2), names.join(', '));
+            console.log(color('suite', '%sPlatforms  %s'), this.indent(), names.join(', '));
 
-            console.log(color('suite', '%sVM commit  %s'), this.indent(this.indentationLevel + 2), 'eee5468'); // TODO get actual vm commit
+            console.log(color('suite', '%sVM commit  %s'), this.indent(), 'eee5468'); // TODO get actual vm commit
+
+            this.indentationLevel -= 2;
         });
 
         runner.on(Runner.constants.EVENT_SUITE_BEGIN, (suite: Suite) => {
