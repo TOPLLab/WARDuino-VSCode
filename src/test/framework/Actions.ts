@@ -2,7 +2,7 @@ import {ProcessBridge} from './Describer';
 import {SourceMap} from '../../State/SourceMap';
 import {FunctionInfo} from '../../State/FunctionInfo';
 import * as ieee754 from 'ieee754';
-import {Type, Value} from '../suite/spec.util';
+import {Type, typing, Value} from '../suite/spec.util';
 
 function convertToLEB128(a: number): string { // TODO can only handle 32 bit
     a |= 0;
@@ -102,7 +102,18 @@ function ackParser(text: string): Object {
 
 function returnParser(text: string): Object {
     const object = JSON.parse(text);
-    return object.stack.length > 0 ? object.stack[0] : object;  // todo parse stack value
+    if (object.stack.length === 0) {
+        return object;
+    }
+
+    const result = object.stack[0];
+    const type: Type = typing.get(result.type.toLowerCase()) ?? Type.unknown;
+    if (type === Type.f32 || type === Type.f64) {
+        const buff = Buffer.from(result.value, 'hex');
+        result.value = ieee754.read(buff, 0, false, 23, buff.length);
+    }
+
+    return result;
 }
 
 function stateParser(text: string): Object {
