@@ -103,7 +103,7 @@ export function parseAsserts(file: string): string[] {
     const asserts: string[] = [];
     readFileSync(file).toString().split('\n').forEach((line) => {
         if (line.includes('(assert_return')) {
-            asserts.push(line.replace(/.*\(assert_return/, '('));
+            asserts.push(line.replace(/.*\(assert_return\s*/, '('));
         }
     });
     return asserts;
