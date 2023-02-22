@@ -177,9 +177,9 @@ export function parseFloatNumber(hex: string): number | undefined {
 
     const base: number = parseInt(input[0], radix);
     const decimals = parseFloat(`0.${parseInt(input[0].split('.')[1], radix)}`);
-    const exponent = parseInt(input[1], radix);
+    const exponent = parseInt(input[1]);
 
-    const result = parseFloat(`${base}.${decimals}e${exponent}`);
+    const result = Math.sign(base) * (Math.abs(base) + decimals) * (2 ** exponent);
     if (result === undefined || isNaN(result)) {
         return undefined;
     }
