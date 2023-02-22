@@ -126,7 +126,7 @@ function encode(map: SourceMap, input: any): string | undefined {
             result += convertToLEB128(arg.value);  // todo support i64
         } else {
             const buff = Buffer.alloc(arg.type === Type.f32 ? 4 : 8);
-            ieee754.write(buff, arg.value, 0, false, 23, buff.length);
+            ieee754.write(buff, arg.value, 0, true, 23, buff.length);
             result += buff.toString('hex');
         }
     });
