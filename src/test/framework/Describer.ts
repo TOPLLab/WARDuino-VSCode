@@ -8,6 +8,7 @@ import {Framework} from './Framework';
 import {Action, encoderTable, Instruction, parserTable} from './Actions';
 import {CompilerFactory} from './Compiler';
 import {SourceMap} from '../../State/SourceMap';
+import {retry} from 'ts-retry-promise';
 
 function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
@@ -149,6 +150,8 @@ export class Describer {
 
     private suiteFunction: SuiteFunction | PendingSuiteFunction = describe;
 
+    private readonly maximumConnectAttempts = 5;
+
     constructor(bridge: ProcessBridge) {
         this.bridge = bridge;
         this.framework = Framework.getImplementation();
@@ -175,8 +178,7 @@ export class Describer {
                     throw new Error(`Skipped: failed dependent tests: ${failedDependencies.map(dependence => dependence.title)}`);
                 }
 
-                instance = await timeout<Instance>(`connecting with ${describer.bridge.name}`, describer.bridge.connectionTimeout,
-                    describer.bridge.connect(description.program, description.args ?? []));
+                instance = await describer.createInstance(description);
             });
 
             beforeEach('Compile', async function () {
@@ -237,6 +239,13 @@ export class Describer {
                 }
             }
         });
+    }
+
+    private async createInstance(description: TestScenario): Promise<Instance> {
+        return Promise.resolve(await retry(
+            () => timeout<Instance>(`connecting with ${this.bridge.name}`, this.bridge.connectionTimeout,
+                this.bridge.connect(description.program, description.args ?? [])),
+            {retries: this.maximumConnectAttempts}));
     }
 
     private async reset(instance: Instance | void) {
