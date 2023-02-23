@@ -38,12 +38,12 @@ export function parseResult(input: string): Value | undefined {
     cursor += delta;
 
     delta = consume(input, cursor, /^[^.)]*/d);
-    const type: Type = typing.get(input.slice(delta - 3, delta)) ?? Type.i64;
+    const type: Type = typing.get(input.slice(cursor, cursor + delta)) ?? Type.i64;
 
     cursor += delta + consume(input, cursor + delta);
 
     let value;
-    if (type === Type.f32) {
+    if (type === Type.f32 || type === Type.f64) {
         value = parseFloatNumber(input.slice(cursor));
     } else {
         value = parseInteger(input.slice(cursor));
@@ -120,20 +120,20 @@ export function parseAsserts(file: string): string[] {
 //
 //     it('Parse arguments', async () => {
 //         expect(parseArguments('(invoke "add" (f32.const 0x0p+0) (f32.const 0x0p+0)) (f32.const 0x0p+0)', {value: 0})).to.eql([
-//             {type: Type.float, value: 0}, {type: Type.float, value: 0}]);
+//             {type: Type.f32, value: 0}, {type: Type.f32, value: 0}]);
 //         expect(parseArguments('(invoke "add" (f32.const 0x74p+0) (f32.const 0x5467p-3)) (f32.const 0x0p+0)', {value: 0})).to.eql([
-//             {type: Type.float, value: 116}, {type: Type.float, value: 21.607}]);
+//             {type: Type.f32, value: 116}, {type: Type.f32, value: 2700.875}]);
 //         expect(parseArguments('( (invoke "add" (f32.const -0x0p+0) (f32.const -0x1p-1)) (f32.const -0x1p-1))', {value: 0})).to.eql([
-//             {type: Type.float, value: 0}, {type: Type.float, value: -0.1}]);
+//             {type: Type.f32, value: -0}, {type: Type.f32, value: -0.5}]);
 //         expect(parseArguments('(((((invoke "none" ( )))))))))))))) (f32.const 0x0p+0)', {value: 0})).to.eql([]);
 //         expect(parseArguments('((invoke "as-br-value") (i32.const 1))', {value: 0})).to.eql([]);
 //         expect(parseArguments('( (invoke "as-unary-operand") (f64.const 1.0))', {value: 0})).to.eql([]);
 //     });
 //
 //     it('Parse result', async () => {
-//         expect(parseResult(') (f32.const 0x0p+0)')).to.eql({type: Type.float, value: 0});
-//         expect(parseResult(') (f32.const 0xff4p+1)')).to.eql({type: Type.float, value: 40840});
-//         expect(parseResult(') (f64.const 1.0))')).to.eql({type: Type.float, value: 1});
+//         expect(parseResult(') (f32.const 0x0p+0)')).to.eql({type: Type.f32, value: 0});
+//         expect(parseResult(') (f32.const 0xff4p+1)')).to.eql({type: Type.f32, value: 8168});
+//         expect(parseResult(') (f64.const 1.0))')).to.eql({type: Type.f64, value: 1});
 //     });
 // });
 
