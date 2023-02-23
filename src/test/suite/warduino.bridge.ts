@@ -38,6 +38,8 @@ export function connectSocket(interpreter: string, program: string, port: number
         }
 
         if (isReadable(process.stdout)) {
+            let error: string = '';
+
             const reader = new ReadlineParser();
             process.stdout.pipe(reader);
 
@@ -47,11 +49,17 @@ export function connectSocket(interpreter: string, program: string, port: number
                     client.connect(address, () => {
                         resolve({process: process, interface: client});
                     });
+                } else {
+                    error = data.toString();
                 }
             });
 
+            reader.on('error', (err: Error) => {
+                error = err.message;
+            });
+
             reader.on('close', () => {
-                reject('Could not connect. Emulator closed down immediately.');
+                reject(`Could not connect. Error:  ${error}`);
             });
         } else {
             reject();

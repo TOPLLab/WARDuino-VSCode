@@ -184,6 +184,7 @@
   "dependencies": {
     "chai": "^4.3.6",
     "ieee754": "^1.2.1",
-    "mqtt": "^4.3.7"
+    "mqtt": "^4.3.7",
+    "ts-retry-promise": "^0.7.0"
   }
 }
