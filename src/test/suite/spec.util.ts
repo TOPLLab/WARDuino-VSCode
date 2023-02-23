@@ -44,7 +44,7 @@ export function parseResult(input: string): Value | undefined {
 
     let value;
     if (type === Type.f32 || type === Type.f64) {
-        value = parseFloatNumber(input.slice(cursor));
+        value = parseHexFloat(input.slice(cursor));
     } else {
         value = parseInteger(input.slice(cursor));
     }
@@ -73,7 +73,7 @@ export function parseArguments(input: string, index: Cursor): Value[] {
         cursor += delta + consume(input, cursor + delta, /^[^)]*const /d);
         let maybe: number | undefined;
         if (type === Type.f32 || type === Type.f64) {
-            maybe = parseFloatNumber(input.slice(cursor));
+            maybe = parseHexFloat(input.slice(cursor));
         } else {
             maybe = parseInteger(input.slice(cursor));
         }
@@ -143,6 +143,27 @@ export function parseAsserts(file: string): string[] {
 //     });
 // });
 
+function parseHexFloat(input: string): number {
+    let base: string = input, mantissa, exponent = 0;
+
+    const splitIndex = input.indexOf('p');
+    if (splitIndex !== -1) {
+        base = input.slice(0, splitIndex);
+        exponent = parseInt(input.slice(splitIndex + 1));
+    }
+
+    const dotIndex = base.indexOf('.');
+    if (dotIndex !== -1) {
+        const [integerPart, fractionalPart] = base.split('.').map(hexStr => parseInt(hexStr, 16));
+        const fraction = fractionalPart / Math.pow(16, base.length - dotIndex - 1);
+        mantissa = Math.sign(integerPart) * (Math.abs(integerPart) + fraction);
+    } else {
+        mantissa = parseInt(base, 16);
+    }
+
+    return mantissa * Math.pow(2, exponent);
+}
+
 function parseInteger(hex: string, bytes: number = 4): number {
     if (!hex.includes('0x')) {
         return parseInt(hex);
@@ -153,37 +174,6 @@ function parseInteger(hex: string, bytes: number = 4): number {
         integer = integer - mask * 2;
     }
     return integer;
-}
-
-export function parseFloatNumber(hex: string): number | undefined {
-    if (hex === undefined) {
-        return undefined;
-    }
-
-    if (hex.includes('nan')) {
-        return NaN;
-    }
-
-    if (hex.includes('-inf')) {
-        return -Infinity;
-    }
-
-    if (hex.includes('inf')) {
-        return Infinity;
-    }
-
-    const radix: number = hex.includes('0x') ? 16 : 10;
-    const input = hex.split(radix === 16 ? 'p' : 'e');
-
-    const base: number = parseInt(input[0], radix);
-    const decimals = parseFloat(`0.${parseInt(input[0].split('.')[1], radix)}`);
-    const exponent = parseInt(input[1]);
-
-    const result = Math.sign(base) * (Math.abs(base) + decimals) * (2 ** exponent);
-    if (result === undefined || isNaN(result)) {
-        return undefined;
-    }
-    return result;
 }
 
 function magnitude(n: number) {
@@ -203,20 +193,16 @@ function convertNumberToBinary(num: number): string {
 }
 
 // describe('Test Parse Float', () => {
-//     it('Radix 10', async () => {
-//         expect(parseFloat('4')).to.equal(4);
-//         expect(parseFloat('445')).to.equal(445);
-//     });
-//
 //     it('Radix 16', async () => {
-//         expect(parseFloat('-0x0p+0\n')).to.equal(0);
-//         expect(parseFloat('0x4')).to.equal(4);
-//         expect(parseFloat('0x445')).to.equal(1093);
-//         expect(parseFloat('0x1p-149')).to.equal(1e-149);
-//         expect(Math.round((parseFloat('-0x1.921fb6p+2') ?? NaN) * 10000) / 10000).to.equal(-195.7637);
-//         expect(parseFloat('-0x1.fffffffffffffp+1023')).to.equal(-Infinity);
-//         expect(parseFloat('-0x1.8330077d90a07p+476')).to.equal(-Infinity);
-//         expect(parseFloat('-0x1.e251d762163ccp+825')).to.equal(-Infinity);
-//         expect(parseFloat('0x1.3ee63581e1796p+349')).to.equal(-Infinity);
+//         expect(parseHexFloat('-0x0p+0\n')).to.equal(0);
+//         expect(parseHexFloat('0x1.000002p-3\n')).to.equal(0.1250000149011612);
+//         expect(parseHexFloat('0x4')).to.equal(4);
+//         expect(parseHexFloat('0x445')).to.equal(1093);
+//         expect(parseHexFloat('0x1p-149')).to.equal(1.401298464324817e-45);
+//         expect(Math.round((parseHexFloat('-0x1.921fb6p+2') ?? NaN) * 10000) / 10000).to.equal(-6.2832);
+//         expect(parseHexFloat('-0x1.fffffffffffffp+1023')).to.equal(-1.7976931348623157e+308);
+//         expect(parseHexFloat('-0x1.8330077d90a07p+476')).to.equal(-2.9509335293656034e+143);
+//         expect(parseHexFloat('-0x1.e251d762163ccp+825')).to.equal(-4.215425823442686e+248);
+//         expect(parseHexFloat('0x1.3ee63581e1796p+349')).to.equal(1.4285058546706491e+105);
 //     });
 // });
