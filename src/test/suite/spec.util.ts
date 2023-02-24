@@ -157,6 +157,15 @@ function sign(integer: number): number {
 }
 
 function parseHexFloat(input: string): number {
+    if (input.includes('-inf')) {
+        return -Infinity;
+    }
+
+    if (input.includes('inf')) {
+        return Infinity;
+    }
+
+
     const radix: number = input.includes('0x') ? 16 : 10;
     let base: string = input, mantissa, exponent = 0;
 
