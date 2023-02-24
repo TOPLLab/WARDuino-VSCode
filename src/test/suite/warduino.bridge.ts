@@ -87,8 +87,6 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
 export abstract class WARDuinoBridge extends ProcessBridge {
     public readonly instructionTimeout: number = 2000;
 
-    protected instance?: Instance;
-
     sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void> {
         const stack: MessageStack = new MessageStack('\n');
 
@@ -108,12 +106,12 @@ export abstract class WARDuinoBridge extends ProcessBridge {
         });
     }
 
-    addListener(listener: (data: string) => void): void {
-        this.instance?.interface.on('data', listener);
+    addListener(instance: Instance, listener: (data: string) => void): void {
+        instance.interface.on('data', listener);
     }
 
-    clearListeners(): void {
-        this.instance?.interface.removeAllListeners();
+    clearListeners(instance: Instance): void {
+        instance.interface.removeAllListeners();
     }
 
     setProgram(socket: Duplex, program: string): Promise<Object | void> {

@@ -1,4 +1,4 @@
-import {Expected, ProcessBridge, TestScenario} from '../framework/Describer';
+import {Expected, Instance, ProcessBridge, TestScenario} from '../framework/Describer';
 import {Action, Instruction} from '../framework/Actions';
 import {Type} from './spec.util';
 import {Framework} from '../framework/Framework';
@@ -124,11 +124,11 @@ framework.test(interrupts);
 
 framework.suite('Integration tests: Wi-Fi and MQTT primitives');
 
-function awaitBreakpoint(bridge: ProcessBridge): Promise<string> {
+function awaitBreakpoint(bridge: ProcessBridge, instance: Instance): Promise<string> {
     return new Promise<string>((resolve) => {
         // await breakpoint hit
-        bridge.addListener((data: string) => {
-            bridge.clearListeners();
+        bridge.addListener(instance, (data: string) => {
+            bridge.clearListeners(instance);
             resolve(data);
         });
 
