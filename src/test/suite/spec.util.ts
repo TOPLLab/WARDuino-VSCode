@@ -43,10 +43,11 @@ export function parseResult(input: string): Value | undefined {
     cursor += delta + consume(input, cursor + delta);
 
     let value;
+    delta = consume(input, cursor, /^[^)]*/d);
     if (type === Type.f32 || type === Type.f64) {
-        value = parseHexFloat(input.slice(cursor));
+        value = parseHexFloat(input.slice(cursor, cursor + delta));
     } else {
-        value = parseInteger(input.slice(cursor));
+        value = parseInteger(input.slice(cursor, cursor + delta));
     }
 
     if (value === undefined) {
@@ -71,11 +72,12 @@ export function parseArguments(input: string, index: Cursor): Value[] {
         const type: Type = typing.get(input.slice(cursor + delta - 3, cursor + delta)) ?? Type.i64;
 
         cursor += delta + consume(input, cursor + delta, /^[^)]*const /d);
+        delta = consume(input, cursor, /^[^)]*/d);
         let maybe: number | undefined;
         if (type === Type.f32 || type === Type.f64) {
-            maybe = parseHexFloat(input.slice(cursor));
+            maybe = parseHexFloat(input.slice(cursor, cursor + delta));
         } else {
-            maybe = parseInteger(input.slice(cursor));
+            maybe = parseInteger(input.slice(cursor, cursor + delta));
         }
 
         if (maybe !== undefined) {
@@ -134,6 +136,7 @@ export function parseAsserts(file: string): string[] {
 //         expect(parseResult(') (f32.const 0x0p+0)')).to.eql({type: Type.f32, value: 0});
 //         expect(parseResult(') (f32.const 0xff4p+1)')).to.eql({type: Type.f32, value: 8168});
 //         expect(parseResult(') (f64.const 1.0))')).to.eql({type: Type.f64, value: 1});
+//         expect(parseResult(') (f32.const 1.32))')).to.eql({type: Type.f32, value: 1.32});
 //     });
 // });
 
@@ -144,6 +147,7 @@ export function parseAsserts(file: string): string[] {
 // });
 
 function parseHexFloat(input: string): number {
+    const radix: number = input.includes('0x') ? 16 : 10;
     let base: string = input, mantissa, exponent = 0;
 
     const splitIndex = input.indexOf('p');
@@ -154,11 +158,11 @@ function parseHexFloat(input: string): number {
 
     const dotIndex = base.indexOf('.');
     if (dotIndex !== -1) {
-        const [integerPart, fractionalPart] = base.split('.').map(hexStr => parseInt(hexStr, 16));
-        const fraction = fractionalPart / Math.pow(16, base.length - dotIndex - 1);
-        mantissa = Math.sign(integerPart) * (Math.abs(integerPart) + fraction);
+        const [integer, fractional] = base.split('.').map(hexStr => parseInt(hexStr, radix));
+        const fraction = fractional / Math.pow(radix, base.length - dotIndex - 1);
+        mantissa = Math.sign(integer) * (Math.abs(integer) + fraction);
     } else {
-        mantissa = parseInt(base, 16);
+        mantissa = parseInt(base, radix);
     }
 
     return mantissa * Math.pow(2, exponent);
