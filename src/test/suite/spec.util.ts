@@ -176,22 +176,6 @@ function parseInteger(hex: string, bytes: number = 4): number {
     return integer;
 }
 
-function magnitude(n: number) {
-    if (n === 0) {
-        return 1;
-    }
-    return Math.pow(10, Math.ceil(Math.log(n) / Math.LN10));
-}
-
-function convertNumberToBinary(num: number): string {
-    let str = '';
-    const c = new Uint8Array(new Float64Array([num]).buffer, 0, 8);
-    for (const element of c.reverse()) {
-        str += element.toString(2).padStart(8, '0');
-    }
-    return str;
-}
-
 // describe('Test Parse Float', () => {
 //     it('Radix 16', async () => {
 //         expect(parseHexFloat('-0x0p+0\n')).to.equal(0);

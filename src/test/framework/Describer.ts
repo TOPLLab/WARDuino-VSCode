@@ -111,9 +111,9 @@ export abstract class ProcessBridge {
 
     abstract setProgram(socket: Duplex, program: string): Promise<Object | void>;
 
-    abstract addListener(listener: (data: string) => void): void;
+    abstract addListener(instance: Instance, listener: (data: string) => void): void;
 
-    abstract clearListeners(): void;
+    abstract clearListeners(instance: Instance): void;
 
     abstract disconnect(instance: Instance | void): Promise<void>;
 }
@@ -219,7 +219,7 @@ export class Describer {
 
                         let actual: Object | void;
                         if (step.instruction instanceof Action) {
-                            actual = await step.instruction.perform(describer.bridge, step.parser ?? (parserTable.get(step.instruction) ?? (() => Object())));
+                            actual = await step.instruction.perform(describer.bridge, instance, step.parser ?? (parserTable.get(step.instruction) ?? (() => Object())));
                         } else {
                             const payload: string = (encoderTable.get(step.instruction) ?? (() => Object()))(map, step.payload) ?? '';
                             actual = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,

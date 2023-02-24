@@ -1,4 +1,4 @@
-import {ProcessBridge} from './Describer';
+import {Instance, ProcessBridge} from './Describer';
 import {SourceMap} from '../../State/SourceMap';
 import {FunctionInfo} from '../../State/FunctionInfo';
 import * as ieee754 from 'ieee754';
@@ -52,15 +52,15 @@ export enum Instruction {
 }
 
 export class Action {
-    private act: (bridge: ProcessBridge) => Promise<string>;
+    private act: (bridge: ProcessBridge, instance: Instance) => Promise<string>;
 
-    constructor(act: (bridge: ProcessBridge) => Promise<string>) {
+    constructor(act: (bridge: ProcessBridge, instance: Instance) => Promise<string>) {
         this.act = act;
     }
 
-    public perform(bridge: ProcessBridge, parser: (text: string) => Object): Promise<Object> {
+    public perform(bridge: ProcessBridge, instance: Instance, parser: (text: string) => Object): Promise<Object> {
         return new Promise<Object>((resolve, reject) => {
-            this.act(bridge).then((data: string) => {
+            this.act(bridge, instance).then((data: string) => {
                 resolve(parser(data));
             }).catch((reason) => {
                 reject(reason);
