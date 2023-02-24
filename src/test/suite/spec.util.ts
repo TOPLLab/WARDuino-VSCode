@@ -127,7 +127,8 @@ export function parseAsserts(file: string): string[] {
 //             {type: Type.f32, value: 116}, {type: Type.f32, value: 2700.875}]);
 //         expect(parseArguments('( (invoke "add" (f32.const -0x0p+0) (f32.const -0x1p-1)) (f32.const -0x1p-1))', {value: 0})).to.eql([
 //             {type: Type.f32, value: -0}, {type: Type.f32, value: -0.5}]);
-//         expect(parseArguments('(((((invoke "none" ( )))))))))))))) (f32.const 0x0p+0)', {value: 0})).to.eql([]);
+//         // expect(parseArguments('(((((invoke "none" ( )))))))))))))) (f32.const 0x0p+0)', {value: 0})).to.eql([]);
+//         expect(parseArguments('((invoke "f") (f64.const +0x0.0000000000001p-1022))', {value: 0})).to.eql([]);
 //         expect(parseArguments('((invoke "as-br-value") (i32.const 1))', {value: 0})).to.eql([]);
 //         expect(parseArguments('( (invoke "as-unary-operand") (f64.const 1.0))', {value: 0})).to.eql([]);
 //     });
@@ -135,6 +136,7 @@ export function parseAsserts(file: string): string[] {
 //     it('Parse result', async () => {
 //         expect(parseResult(') (f32.const 0x0p+0)')).to.eql({type: Type.f32, value: 0});
 //         expect(parseResult(') (f32.const 0xff4p+1)')).to.eql({type: Type.f32, value: 8168});
+//         expect(parseResult(') (f64.const +0x0.0000000000001p-1022))')).to.eql({type: Type.f64, value: 5e-324});
 //         expect(parseResult(') (f64.const 1.0))')).to.eql({type: Type.f64, value: 1});
 //         expect(parseResult(') (f32.const 1.32))')).to.eql({type: Type.f32, value: 1.32});
 //     });
@@ -145,6 +147,14 @@ export function parseAsserts(file: string): string[] {
 //         expect(parseInteger('0xffffffef', 4)).to.equal(-17);
 //     });
 // });
+
+// Sign function that returns non-zero values
+function sign(integer: number): number {
+    if (Object.is(integer, -0)) {
+        return -1;
+    }
+    return Math.sign(integer) || 1;
+}
 
 function parseHexFloat(input: string): number {
     const radix: number = input.includes('0x') ? 16 : 10;
@@ -160,7 +170,7 @@ function parseHexFloat(input: string): number {
     if (dotIndex !== -1) {
         const [integer, fractional] = base.split('.').map(hexStr => parseInt(hexStr, radix));
         const fraction = fractional / Math.pow(radix, base.length - dotIndex - 1);
-        mantissa = Math.sign(integer) * (Math.abs(integer) + fraction);
+        mantissa = sign(integer) * (Math.abs(integer) + fraction);
     } else {
         mantissa = parseInt(base, radix);
     }
