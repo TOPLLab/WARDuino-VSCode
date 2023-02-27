@@ -93,12 +93,10 @@ function trees(input: TestScenario[]): TestScenario[][] {
         // depth first descent over dependencies
         let lifo: TestScenario[] = [...test.dependencies ?? []];
         while (lifo.length > 0) {
-            const dep = lifo.shift();
+            const dep: TestScenario = lifo.shift()!;
 
-            // @ts-ignore
             if (seen.has(dep)) {
                 // dependency has been seen: merge the old tree holding the dependency with the new tree
-                // @ts-ignore
                 const index = forest.findIndex(t => t.includes(dep));
                 if (index < 0) {
                     // already merged the tree
@@ -113,15 +111,12 @@ function trees(input: TestScenario[]): TestScenario[][] {
                 forest.splice(index, 1);
             } else {
                 // dependency has not been seen: add dependency
-                // @ts-ignore
                 tree.push(dep);
 
                 // traverse its dependencies recursively
-                // @ts-ignore
                 lifo = lifo.concat(dep.dependencies ?? []);
 
                 // add dependency to seen collection
-                // @ts-ignore
                 seen.add(dep);
             }
         }
@@ -153,8 +148,7 @@ function levels(input: TestScenario[]): TestScenario[][] {
 
     // while more input remains
     while (input.length > 0) {
-        // @ts-ignore
-        const test: TestScenario = input.shift();
+        const test: TestScenario = input.shift()!;
 
         // skip any test with unresolved dependencies
         let skip: boolean = (test.dependencies ?? []).some((dependence: TestScenario) => input.includes(dependence));
