@@ -179,9 +179,7 @@ export class Describer {
                 }
 
                 instance = await describer.createInstance(description);
-            });
 
-            beforeEach('Compile', async function () {
                 map = await timeout<SourceMap>(`compiling ${description.program}`, describer.bridge.instructionTimeout,
                     new CompilerFactory(process.env.WABT ?? '').pickCompiler(description.program).map(description.program));
             });
