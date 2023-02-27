@@ -165,7 +165,6 @@ function parseHexFloat(input: string): number {
         return Infinity;
     }
 
-
     const radix: number = input.includes('0x') ? 16 : 10;
     let base: string = input, mantissa, exponent = 0;
 
