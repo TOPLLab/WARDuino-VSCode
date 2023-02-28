@@ -20,6 +20,12 @@ To run the vm tests run:
 env WABT='path to wabt commands' npm run test-vm
 ```
 
+To run the spec tests with Latch:
+
+```bash
+env WABT='dir with WABT commands' CORESUITE='dir with original spec test suite' npm run spectest
+```
+
 ## Development Notes
 
 Before first time use make sure you have:
