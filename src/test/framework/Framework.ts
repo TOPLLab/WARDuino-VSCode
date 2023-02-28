@@ -1,5 +1,6 @@
 import {Describer, ProcessBridge, TestScenario} from './Describer';
 import {HybridScheduler, Scheduler} from './Scheduler';
+import {after} from 'mocha';
 
 export interface Platform {
     name: string;
@@ -67,11 +68,23 @@ export class Framework {
         tests.forEach(test => this.currentSuite().tests.push(test));
     }
 
-    public run(cores: number = 1) {
+    public run(cores: number = 1) {   // todo remove cores
         this.suites.forEach((suite: Suite) => {
             this.bases.forEach((base: Platform) => {
                 describe('', () => {
+                    // todo add parallelism
                     const order: TestScenario[] = base.scheduler.schedule(suite);
+
+                    before('Connect to debugger', async function () {
+                        this.timeout(base.describer.bridge.connectionTimeout * 1.1);
+
+                        base.describer.instance = await base.describer.createInstance(order[0]);  // todo move createInstance to Framework?
+                    });
+
+                    after('Shutdown debugger', async function () {
+                        await base.describer.bridge.disconnect(base.describer.instance);
+                    });
+
                     order.forEach((test: TestScenario) => {
                         base.describer.describeTest(test, this.runs);
                     });
