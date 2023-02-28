@@ -52,7 +52,7 @@ class MochaReporter extends reporters.Base {
     private currentStep: number = 0;
 
     private readonly indentationSize: number = 2;
-    private indentationLevel: number = 0;
+    private indentationLevel: number = 2;
 
     private passed: number = 0;  // number of passed suites
     private skipped: number = 0;  // number of skipped suites
@@ -75,7 +75,6 @@ class MochaReporter extends reporters.Base {
         this.results = [];
 
         runner.on(Runner.constants.EVENT_RUN_BEGIN, () => {
-            this.indentationLevel += 2;
             console.log(color('suite', '%sGeneral Information'), this.indent());
             console.log(color('suite', '%s==================='), this.indent());
 
@@ -85,12 +84,9 @@ class MochaReporter extends reporters.Base {
             console.log(color('suite', '%sPlatforms  %s'), this.indent(), names.join(', '));
 
             console.log(color('suite', '%sVM commit  %s'), this.indent(), 'eee5468'); // TODO get actual vm commit
-
-            this.indentationLevel -= 2;
         });
 
         runner.on(Runner.constants.EVENT_SUITE_BEGIN, (suite: Suite) => {
-            ++this.indentationLevel;
             console.log(color('suite', '%s%s'), this.indent(), suite.title);
         });
 
@@ -114,8 +110,7 @@ class MochaReporter extends reporters.Base {
             this.reportFailure(this.failures);
             this.failures = Array<any>();
 
-            --this.indentationLevel;
-            if (this.indentationLevel === 1) {
+            if (this.indentationLevel === 2) {
                 console.log();
             }
         });

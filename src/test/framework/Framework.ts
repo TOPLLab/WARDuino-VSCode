@@ -70,9 +70,11 @@ export class Framework {
     public run(cores: number = 1) {
         this.suites.forEach((suite: Suite) => {
             this.bases.forEach((base: Platform) => {
-                const order: TestScenario[] = base.scheduler.schedule(suite);
-                order.forEach((test: TestScenario) => {
-                    base.describer.describeTest(test, this.runs);
+                describe('', () => {
+                    const order: TestScenario[] = base.scheduler.schedule(suite);
+                    order.forEach((test: TestScenario) => {
+                        base.describer.describeTest(test, this.runs);
+                    });
                 });
             });
         });
