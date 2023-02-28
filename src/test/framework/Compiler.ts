@@ -6,7 +6,7 @@ import {exec, ExecException} from 'child_process';
 import {parseExport} from './Parsers';
 import {getFileExtension} from '../../Parsers/ParseUtils';
 
-interface CompileOutput {
+export interface CompileOutput {
     file: string; // the compiled file
     out?: String;
     err?: String;

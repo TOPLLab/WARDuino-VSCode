@@ -6,7 +6,7 @@ import {after, beforeEach, describe, PendingSuiteFunction, SuiteFunction} from '
 import {SerialPort} from 'serialport';
 import {Framework} from './Framework';
 import {Action, encoderTable, Instruction, parserTable} from './Actions';
-import {CompilerFactory} from './Compiler';
+import {CompileOutput, Compiler, CompilerFactory} from './Compiler';
 import {SourceMap} from '../../State/SourceMap';
 import {retry} from 'ts-retry-promise';
 
@@ -105,11 +105,25 @@ export abstract class ProcessBridge {
 
     abstract readonly name: string;
 
+    protected abstract connections: Instance[];
+
     abstract connect(program: string, args: string[]): Promise<Instance>;
 
     abstract sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void>;
 
     abstract setProgram(socket: Duplex, program: string): Promise<Object | void>;
+
+    checkConnections(): void {
+        this.connections.forEach((instance: Instance) => {
+            this.check(instance);
+        });
+    }
+
+    protected abstract check(instance: Instance): void;
+
+    getConnections(): Instance[] {
+        return this.connections;
+    }
 
     abstract addListener(instance: Instance, listener: (data: string) => void): void;
 
@@ -152,6 +166,8 @@ export class Describer {
 
     private readonly maximumConnectAttempts = 5;
 
+    public instance?: Instance;
+
     constructor(bridge: ProcessBridge) {
         this.bridge = bridge;
         this.framework = Framework.getImplementation();
@@ -164,7 +180,6 @@ export class Describer {
         call(this.formatTitle(description.title), function () {
             this.timeout(describer.bridge.instructionTimeout * 1.1);  // must be larger than own timeout
 
-            let instance: Instance | void;
             let map: SourceMap = {lineInfoPairs: [], functionInfos: [], globalInfos: [], importInfos: []};
 
             /** Each test requires some housekeeping before and after */
@@ -174,26 +189,27 @@ export class Describer {
 
                 const failedDependencies: TestScenario[] = describer.failedDependencies(description);
                 if (failedDependencies.length > 0) {
-                    instance = undefined;
                     throw new Error(`Skipped: failed dependent tests: ${failedDependencies.map(dependence => dependence.title)}`);
                 }
 
-                instance = await describer.createInstance(description);
+                // todo check instance (bridge.check())
 
-                map = await timeout<SourceMap>(`compiling ${description.program}`, describer.bridge.instructionTimeout,
-                    new CompilerFactory(process.env.WABT ?? '').pickCompiler(description.program).map(description.program));
+                const compiler: Compiler = new CompilerFactory(process.env.WABT ?? '').pickCompiler(description.program);
+
+                const output: CompileOutput = await timeout<CompileOutput>(`compiling ${description.program}`, describer.bridge.instructionTimeout, compiler.compile(description.program));
+                const result = await timeout<Object | void>(`uploading ${description.program}`, describer.bridge.instructionTimeout, describer.bridge.setProgram(describer.instance?.interface!, output.file));
+
+                map = await timeout<SourceMap>(`fetching source map of ${description.program}`, describer.bridge.instructionTimeout,
+                    compiler.map(description.program));
             });
 
             afterEach('Clear listeners on interface', function () {
                 // after each step: remove the installed listeners
-                instance?.interface.removeAllListeners('data');
+                describer.instance?.interface.removeAllListeners('data');
             });
 
-            after('Shutdown debugger', async function () {
+            after('Update state of test scenario', async function () {
                 describer.states.set(description.title, this.currentTest?.state ?? 'unknown');
-                if (instance) {
-                    await describer.bridge.disconnect(instance);
-                }
             });
 
             /** Each test is made of one or more steps */
@@ -202,7 +218,7 @@ export class Describer {
             for (let i = 0; i < runs; i++) {
                 if (0 < i) {
                     it('resetting before retry', async function () {
-                        await describer.reset(instance);
+                        await describer.reset(describer.instance);
                     });
                 }
 
@@ -210,18 +226,18 @@ export class Describer {
                     /** Perform the step and check if expectations were met */
 
                     it(step.title, async function () {
-                        if (instance === undefined) {
+                        if (describer.instance === undefined) {
                             assert.fail('Cannot run test: no debugger connection.');
                             return;
                         }
 
                         let actual: Object | void;
                         if (step.instruction instanceof Action) {
-                            actual = await step.instruction.perform(describer.bridge, instance, step.parser ?? (parserTable.get(step.instruction) ?? (() => Object())));
+                            actual = await step.instruction.perform(describer.bridge, describer.instance, step.parser ?? (parserTable.get(step.instruction) ?? (() => Object())));
                         } else {
                             const payload: string = (encoderTable.get(step.instruction) ?? (() => Object()))(map, step.payload) ?? '';
                             actual = await timeout<Object | void>(`sending instruction ${step.instruction}`, describer.bridge.instructionTimeout,
-                                describer.bridge.sendInstruction(instance.interface, `${step.instruction}${payload}`, step.expectResponse ?? true, step.parser ?? (parserTable.get(step.instruction) ?? JSON.parse)));
+                                describer.bridge.sendInstruction(describer.instance.interface, `${step.instruction}${payload}`, step.expectResponse ?? true, step.parser ?? (parserTable.get(step.instruction) ?? JSON.parse)));
                         }
 
                         await new Promise(f => setTimeout(f, step.delay ?? 0));
@@ -239,7 +255,7 @@ export class Describer {
         });
     }
 
-    private async createInstance(description: TestScenario): Promise<Instance> {
+    public async createInstance(description: TestScenario): Promise<Instance> {
         return Promise.resolve(await retry(
             () => timeout<Instance>(`connecting with ${this.bridge.name}`, this.bridge.connectionTimeout,
                 this.bridge.connect(description.program, description.args ?? [])),

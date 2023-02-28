@@ -87,6 +87,8 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
 export abstract class WARDuinoBridge extends ProcessBridge {
     public readonly instructionTimeout: number = 2000;
 
+    protected connections: Instance[] = [];
+
     sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void> {
         const stack: MessageStack = new MessageStack('\n');
 
@@ -106,6 +108,11 @@ export abstract class WARDuinoBridge extends ProcessBridge {
         });
     }
 
+    protected check(instance: Instance): void {
+        // todo implement
+    }
+
+
     addListener(instance: Instance, listener: (data: string) => void): void {
         instance.interface.on('data', listener);
     }
@@ -117,7 +124,13 @@ export abstract class WARDuinoBridge extends ProcessBridge {
     setProgram(socket: Duplex, program: string): Promise<Object | void> {
         const binary = fs.readFileSync(program, 'binary');
         const size: string = convertToLEB128(binary.length);
-        return this.sendInstruction(socket, `${InterruptTypes.interruptUPDATEMod}${size}${binary}`, true, (text: string) => text.includes('CHANGE Module'));
+        return this.sendInstruction(socket, `${InterruptTypes.interruptUPDATEMod}${size}${binary}`, true, (text: string) => {
+            if(!text.includes('CHANGE Module')) {
+                throw Error('No acknowledgment found.');
+            }
+            return true;
+        });
+        // todo all instructions time out after successful module change!
     }
 
     disconnect(instance: Instance | void): Promise<void> {
