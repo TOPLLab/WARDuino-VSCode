@@ -122,9 +122,9 @@ export abstract class WARDuinoBridge extends ProcessBridge {
     }
 
     setProgram(socket: Duplex, program: string): Promise<Object | void> {
-        const binary = fs.readFileSync(program, 'binary');
+        const binary: Buffer = fs.readFileSync(program);
         const size: string = convertToLEB128(binary.length);
-        return this.sendInstruction(socket, `${InterruptTypes.interruptUPDATEMod}${size}${binary}`, true, (text: string) => {
+        return this.sendInstruction(socket, `${InterruptTypes.interruptUPDATEMod}${size}${binary.toString('hex')}`, true, (text: string) => {
             if(!text.includes('CHANGE Module')) {
                 throw Error('No acknowledgment found.');
             }
