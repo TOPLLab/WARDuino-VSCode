@@ -3,7 +3,7 @@
  */
 import {Duplex, Readable} from 'stream';
 import {ChildProcess, spawn} from 'child_process';
-import {Emulator, Instance, ProcessBridge, SerialInstance} from '../framework/Describer';
+import {Emulator, Instance, ProcessBridge, SerialInstance, timeout} from '../framework/Describer';
 import {ReadlineParser} from 'serialport';
 import * as net from 'net';
 import * as fs from 'fs';
@@ -121,14 +121,24 @@ export abstract class WARDuinoBridge extends ProcessBridge {
         instance.interface.removeAllListeners();
     }
 
-    setProgram(socket: Duplex, program: string): Promise<Object | void> {
+    setProgram(socket: Duplex, program: string): Promise<boolean> {
         const binary: Buffer = fs.readFileSync(program);
         const size: string = convertToLEB128(binary.length);
-        return this.sendInstruction(socket, `${InterruptTypes.interruptUPDATEMod}${size}${binary.toString('hex')}`, true, (text: string) => {
-            if(!text.includes('CHANGE Module')) {
-                throw Error('No acknowledgment found.');
-            }
-            return true;
+        return timeout<Object | void>(`uploading ${program}`, this.instructionTimeout,
+            this.sendInstruction(
+                socket,
+                `${InterruptTypes.interruptUPDATEMod}${size}${binary.toString('hex')}`,
+                true,
+                (text: string) => {
+                    if (!text.includes('CHANGE Module')) {
+                        throw Error('No acknowledgment found.');
+                    }
+                    return true;
+                })
+        ).then((value: Object | void) => {
+            return Promise.resolve(true);
+        }).catch((reason: any) => {
+            return Promise.resolve(false);
         });
         // todo all instructions time out after successful module change!
     }

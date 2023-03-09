@@ -10,7 +10,7 @@ import {CompileOutput, Compiler, CompilerFactory} from './Compiler';
 import {SourceMap} from '../../State/SourceMap';
 import {retry} from 'ts-retry-promise';
 
-function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
+export function timeout<T>(label: string, time: number, promise: Promise<T>): Promise<T> {
     return Promise.race([promise, new Promise<T>((resolve, reject) => setTimeout(() => reject(`timeout when ${label}`), time))]);
 }
 
@@ -111,7 +111,7 @@ export abstract class ProcessBridge {
 
     abstract sendInstruction(socket: Duplex, chunk: any, expectResponse: boolean, parser: (text: string) => Object): Promise<Object | void>;
 
-    abstract setProgram(socket: Duplex, program: string): Promise<Object | void>;
+    abstract setProgram(socket: Duplex, program: string): Promise<boolean>;
 
     checkConnections(): void {
         this.connections.forEach((instance: Instance) => {
@@ -197,7 +197,11 @@ export class Describer {
                 const compiler: Compiler = new CompilerFactory(process.env.WABT ?? '').pickCompiler(description.program);
 
                 const output: CompileOutput = await timeout<CompileOutput>(`compiling ${description.program}`, describer.bridge.instructionTimeout, compiler.compile(description.program));
-                const result = await timeout<Object | void>(`uploading ${description.program}`, describer.bridge.instructionTimeout, describer.bridge.setProgram(describer.instance?.interface!, output.file));
+                const uploaded: boolean = await describer.bridge.setProgram(describer.instance?.interface!, output.file);
+
+                if (!uploaded) {
+                    describer.instance = await describer.createInstance(description);
+                }
 
                 map = await timeout<SourceMap>(`fetching source map of ${description.program}`, describer.bridge.instructionTimeout,
                     compiler.map(description.program));
