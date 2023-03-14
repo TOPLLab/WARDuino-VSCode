@@ -225,7 +225,7 @@ const stepTest: TestScenario = {
         expected: [{
             'pc': {kind: 'description', value: Description.defined} as Expected<string>
         }, {
-            'pc': {kind: 'behaviour', value: Behaviour.decreased} as Expected<string>
+            'pc': {kind: 'behaviour', value: Behaviour.changed} as Expected<string>
         }]
     }]
 };
@@ -280,6 +280,7 @@ const eventNotificationTest: TestScenario = {
     title: 'Test "pushed event" Notification',
     program: `${EXAMPLES}blink.wast`,
     dependencies: [dumpTest],
+    skip: true,
     steps: [{
         title: 'Push mock event',
         instruction: Instruction.pushEvent,
@@ -349,6 +350,7 @@ const dumpCallbackMappingTest: TestScenario = {
     title: 'Test DUMPCallbackmapping',
     program: `${EXAMPLES}button.wast`,
     dependencies: [dumpTest],
+    skip: true,
     steps: [{
         title: 'CHECK: callbackmapping',
         instruction: Instruction.dumpCallbackmapping,

@@ -95,7 +95,7 @@ export class WatCompiler extends Compiler {
 
             compile.on('close', (code) => {
                 if (code !== 0) {
-                    reject(`wat2wasm exited with code ${code}`);
+                    reject(`Compilation to wasm failed: wat2wasm exited with code ${code}`);
                     return;
                 }
                 this.compiled.set(program, {file: `${this.tmpdir}/upload.wasm`, out: out, err: err});

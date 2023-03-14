@@ -75,15 +75,17 @@ export class Framework {
                     // todo add parallelism
                     const order: TestScenario[] = base.scheduler.schedule(suite);
 
-                    before('Connect to debugger', async function () {
-                        this.timeout(base.describer.bridge.connectionTimeout * 1.1);
+                    if (!base.disabled) {
+                        before('Connect to debugger', async function () {
+                            this.timeout(base.describer.bridge.connectionTimeout * 1.1);
 
-                        base.describer.instance = await base.describer.createInstance(order[0]);  // todo move createInstance to Framework?
-                    });
+                            base.describer.instance = await base.describer.createInstance(order[0]);  // todo move createInstance to Framework?
+                        });
 
-                    after('Shutdown debugger', async function () {
-                        await base.describer.bridge.disconnect(base.describer.instance);
-                    });
+                        after('Shutdown debugger', async function () {
+                            await base.describer.bridge.disconnect(base.describer.instance);
+                        });
+                    }
 
                     order.forEach((test: TestScenario) => {
                         base.describer.describeTest(test, this.runs);
