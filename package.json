@@ -150,7 +150,7 @@
     "gen-examples": "./src/test/suite/examples/build.sh",
     "test": "npm run test-vm && npm run test-plugin",
     "test-vm": "node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/debugger.test.ts",
-    "spectest": "node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/spec.test.ts",
+    "spectest": "WABT='WABT/build' CORESUITE='core/' node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/spec.test.ts",
     "primtest": "node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/primitives.test.ts",
     "test-plugin": "node ./out/test/runTest.js",
     "check": "node ./out/test.js",
