@@ -100,8 +100,8 @@ jobs:
               if: steps.cache-wabt.outputs.cache-hit != 'true'
               run: ./WABT/build/wasm-objdump --version
 
-    test-vm:
-        name: Virtual Machine Test Suite
+    test-debugger:
+        name: Debugger Test Suite
         needs: [build-wabt, build-wdcli]
         runs-on: ubuntu-latest
     
@@ -163,7 +163,7 @@ jobs:
               cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
 
           - name: Run tests
-            run: npm run pretest; env WABT="${GITHUB_WORKSPACE}/WABT/build" npm run test-vm
+            run: npm run pretest; env WABT="${GITHUB_WORKSPACE}/WABT/build" npm run debugtest
 
     test-ui:
         name: Plugin UI Test Suite
@@ -228,6 +228,5 @@ jobs:
                 cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
 
             - name: Run tests
-              run: npm run pretest; xvfb-run -a npm run test-plugin
-
+              run: npm run pretest; xvfb-run -a npm run plugintest
 
