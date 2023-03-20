@@ -1,10 +1,10 @@
-import {SourceMap} from '../../State/SourceMap';
+import {SourceMap} from '../../../State/SourceMap';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import {exec, ExecException} from 'child_process';
-import {parseExport} from './Parsers';
-import {getFileExtension} from '../../Parsers/ParseUtils';
+import {parseExport} from '../Parsers';
+import {getFileExtension} from '../../../Parsers/ParseUtils';
 
 export interface CompileOutput {
     file: string; // the compiled file

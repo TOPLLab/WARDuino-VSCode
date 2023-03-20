@@ -6,7 +6,7 @@ import {after, beforeEach, describe, PendingSuiteFunction, SuiteFunction} from '
 import {SerialPort} from 'serialport';
 import {Framework} from './Framework';
 import {Action, encoderTable, Instruction, parserTable} from './Actions';
-import {CompileOutput, Compiler, CompilerFactory} from './Compiler';
+import {CompileOutput, Compiler, CompilerFactory} from './bridges/Compiler';
 import {SourceMap} from '../../State/SourceMap';
 import {retry} from 'ts-retry-promise';
 

@@ -8,8 +8,8 @@ import {ReadlineParser} from 'serialport';
 import * as net from 'net';
 import * as fs from 'fs';
 import {InterruptTypes} from '../../DebugBridges/InterruptTypes';
-import {CompilerFactory, WatCompiler} from '../framework/Compiler';
-import {ArduinoUploader} from '../framework/Uploader';
+import {CompilerFactory, WatCompiler} from '../framework/bridges/Compiler';
+import {ArduinoUploader} from '../framework/bridges/Uploader';
 
 export const WABT: string = process.env.WABT ?? '';
 
