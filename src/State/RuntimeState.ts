@@ -22,7 +22,7 @@ export class RuntimeState {
     public globals: VariableInfo[] = [];
     public arguments: VariableInfo[] = [];
 
-    private wasmState: WasmState | undefined;
+    public wasmState: WasmState | undefined;
 
     constructor(source?: string) {
         this.id = hash(source ?? '');
@@ -71,6 +71,41 @@ export class RuntimeState {
         copy.events = this.events.map(obj => new EventItem(obj.topic, obj.payload, obj.collapsibleState));
         copy.globals = this.globals.map(obj => Object.assign({}, obj));
         copy.stack = this.stack.map(obj => Object.assign({}, obj));
+        copy.wasmState = this.wasmState;
         return copy;
     }
+
+    public updateLocal(name: string, value: string): VariableInfo | undefined {
+        const newValue = parseInt(value);
+        if (isNaN(newValue)) {
+            return;
+        }
+        const local = this.locals.find(l => l.name === name);
+        if (!!local) {
+            this.wasmState?.updateStackValue(local.index, newValue);
+            local.value = newValue.toString();
+            return local;
+        }
+        return undefined;
+    }
+
+    public updateArgument(name: string, value: string): VariableInfo | undefined {
+        return undefined;
+
+    }
+
+    public updateGlobal(name: string, value: string): VariableInfo | undefined {
+        const newValue = parseInt(value);
+        if (isNaN(newValue)) {
+            return;
+        }
+        const global = this.globals.find(g => g.name === name);
+        if (!!global) {
+            this.wasmState?.updateGlobalValue(global.index, newValue);
+            global.value = newValue.toString();
+            return global;
+        }
+        return undefined;
+    }
+    
 }

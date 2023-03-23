@@ -117,6 +117,42 @@ export class WasmState {
         return [frame, func];
     }
 
+    public updateStackValue(index: number, newvalue: number): void {
+        const stack = this.state.stack;
+        if (index >= stack.length) {
+            return undefined;
+        }
+        const sv = stack[index];
+        sv.value = newvalue;
+    }
+
+    public updateGlobalValue(index: number, newvalue: number): void {
+        const gbls = this.state.globals;
+        if (index >= gbls.length) {
+            return undefined;
+        }
+        const g = gbls[index];
+        g.value = newvalue;
+    }
+
+
+    public serializeStackValueUpdate(index: number): string | undefined {
+        if (index >= this.state.stack.length) {
+            return undefined;
+        }
+        const sv = this.state.stack[index];
+        return WOODState.serializeStackValueUpdate(sv);
+    }
+
+    public serializeGlobalValueUpdate(index: number): string | undefined {
+        if (index >= this.state.globals.length) {
+            return undefined;
+        }
+        const sv = this.state.globals[index];
+        return WOODState.serializeGlobalValueUpdate(sv);
+    }
+
+
     static fromLine(line: string, sourceMap: SourceMap): WasmState {
         const ws = new WOODState(line);
         return new WasmState(ws.getState(), sourceMap);
