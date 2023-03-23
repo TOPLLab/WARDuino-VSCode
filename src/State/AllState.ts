@@ -25,19 +25,14 @@ export class WasmState {
             return [];
         }
         const [frame, func] = r;
-        const stack = this.state.stack;
         const type = this.sourceMap.typeInfos.get(func.type);
         const argsAmount = type?.parameters.length;
         if (!!!argsAmount || argsAmount === 0) {
             return [];
         }
-        const withIndexes = stack.map((sv, index) => {
-            return { index: index, value: sv };
-        });
         const argStartIndex = frame.sp + 1;
-        const args = withIndexes.slice(argStartIndex, argStartIndex + argsAmount).map((val, argIndex) => {
-            const sv = val.value;
-            return { index: val.index, name: `arg${argIndex}`, type: sv.type, mutable: true, value: `${sv.value}` };
+        const args = this.state.stack.slice(argStartIndex, argStartIndex + argsAmount).map((sv, argIndex) => {
+            return { index: sv.idx, name: `arg${argIndex}`, type: sv.type, mutable: true, value: `${sv.value}` };
         });
         return args;
     }
