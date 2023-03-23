@@ -16,57 +16,47 @@ export class WasmState {
 
     // State getters
     getCurrentFunction(): FunctionInfo | undefined {
-        const frame = this.getCurrentFunctionFrame();
-        let func = undefined;
-        if (!!frame) {
-            this.sourceMap.functionInfos.find((func) => {
-                return func.index === Number(frame.fidx);
-            });
-        }
-        return func;
+        return this.getCurrentFunctionAndFrame()?.[1];
     }
 
-    getArguments(): VariableInfo[]{
-        const frame = this.getCurrentFunctionFrame();
-        const func = this.getCurrentFunction();
-        const stack = this.state.stack;
-        const type = this.sourceMap.typeInfos.get(func?.type ?? -1);
-        const argsAmount = type?.parameters.length;
-        const argStartIndex = !!frame && !!argsAmount && frame.fp - argsAmount;
-        let args = [];
-        if(!!argStartIndex){
-            const withIndexes = stack.map((sv, index)=>{
-                return {index: index, value: sv};
-            });
-            args = withIndexes.slice(argStartIndex, argStartIndex + argsAmount).map((val, argIndex)=>{
-                const sv = val.value;
-                return {index: val.index, name: `arg${argIndex}`, type: sv.type, mutable: true, value: `${sv.value}`};
-            });
-        }
-        else {
+    getArguments(): VariableInfo[] {
+        const r = this.getCurrentFunctionAndFrame();
+        if (!!!r) {
             return [];
         }
+        const [frame, func] = r;
+        const stack = this.state.stack;
+        const type = this.sourceMap.typeInfos.get(func.type);
+        const argsAmount = type?.parameters.length;
+        if (!!!argsAmount || argsAmount === 0) {
+            return [];
+        }
+        const withIndexes = stack.map((sv, index) => {
+            return { index: index, value: sv };
+        });
+        const argStartIndex = frame.sp + 1;
+        const args = withIndexes.slice(argStartIndex, argStartIndex + argsAmount).map((val, argIndex) => {
+            const sv = val.value;
+            return { index: val.index, name: `arg${argIndex}`, type: sv.type, mutable: true, value: `${sv.value}` };
+        });
         return args;
     }
 
     getLocals(): VariableInfo[] {
-        const frame = this.getCurrentFunctionFrame();
-        if (!!!frame) {
+        const r = this.getCurrentFunctionAndFrame();
+        if (!!!r) {
             return [];
         }
-        const func = this.getCurrentFunction();
-        if (!!!func) {
-            return [];
-        }
+        const [frame, func] = r;
         const stack = this.state.stack;
-        return func.locals.map((local, idx)=>{
+        return func.locals.map((local, idx) => {
             const sv = stack[frame.fp + 1 + idx];
-            return {index: local.index, name: local.name, type: local.type, mutable: local.mutable, value: `${sv.value}`};
+            return { index: local.index, name: local.name, type: local.type, mutable: local.mutable, value: `${sv.value}` };
         });
     }
 
-    getGlobals(): VariableInfo[]{
-        return this.state.globals.map((gb, idx) =>{
+    getGlobals(): VariableInfo[] {
+        return this.state.globals.map((gb, idx) => {
             const globalInfo = this.sourceMap.globalInfos[idx];
             const r = Object.assign({}, globalInfo);
             r.value = gb.value.toString();
@@ -75,7 +65,7 @@ export class WasmState {
     }
 
     getFunction(funcId: number): FunctionInfo | undefined {
-        return this.sourceMap.functionInfos.find(f=>f.index===funcId);
+        return this.sourceMap.functionInfos.find(f => f.index === funcId);
     }
 
     getPC(): number {
@@ -83,46 +73,53 @@ export class WasmState {
     }
 
     getCallStack(): Frame[] {
-        return this.state.callstack.filter(frame=> frame.type === FRAME_FUNC_TYPE);
+        return this.state.callstack.filter(frame => frame.type === FRAME_FUNC_TYPE);
     }
 
-    getStack(): VariableInfo[]{
-        const frame =this.getCurrentFunctionFrame();
-        if(!!!frame){
-            return this.getAllStack();
-        }
-        const func = this.sourceMap.functionInfos.find(f=>f.index===Number(frame.fidx));
-        if(!!!func){
-            return this.getAllStack();
-        }
+    getStack(): VariableInfo[] {
+        return this.getAllStack();
+        // const frame =this.getCurrentFunctionFrame();
+        // if(!!!frame){
+        //     return this.getAllStack();
+        // }
+        // const func = this.sourceMap.functionInfos.find(f=>f.index===Number(frame.fidx));
+        // if(!!!func){
+        //     return this.getAllStack();
+        // }
 
-        const type = this.sourceMap.typeInfos.get(func.type);
-        if(!!!type){
-            throw (new Error(`Invalid function type index ${func.type}`));
-        }
-        const argsAmount = type.parameters.length;
-        const stack = this.state.stack.slice(0, frame.fp - argsAmount);
-        return stack.map((sv, idx)=>{
-            return {index: idx, name: "", type: sv.type, mutable: true, value: sv.value.toString()};
+        // const type = this.sourceMap.typeInfos.get(func.type);
+        // if(!!!type){
+        //     throw (new Error(`Invalid function type index ${func.type}`));
+        // }
+        // const argsAmount = type.parameters.length;
+        // const stack = this.state.stack.slice(0, frame.fp - argsAmount);
+        // return stack.map((sv, idx)=>{
+        //     return {index: idx, name: "", type: sv.type, mutable: true, value: sv.value.toString()};
+        // });
+    }
+
+    getAllStack(): VariableInfo[] {
+        return this.state.stack.map((sv, idx) => {
+            return { index: idx, name: "", type: sv.type, mutable: true, value: sv.value.toString() };
         });
     }
 
-    getAllStack(): VariableInfo[]{
-        return this.state.stack.map((sv, idx)=>{
-            return {index: idx, name: "", type: sv.type, mutable: true, value: sv.value.toString()};
-        });
-    }
-
-    private getCurrentFunctionFrame(): Frame | undefined {
+    private getCurrentFunctionAndFrame(): [Frame, FunctionInfo] | undefined {
         let index = this.state.callstack.length - 1;
-        let frame = undefined;
         while (index >= 0 && this.state.callstack[index].type !== FRAME_FUNC_TYPE) {
             index--;
         }
-        if (index >= 0) {
-            frame = this.state.callstack[index];
+        if (index < 0) {
+            return undefined;
         }
-        return frame;
+        const frame = this.state.callstack[index];
+        const func = this.sourceMap.functionInfos.find((f) => {
+            return f.index === Number(frame.fidx);
+        });
+        if (!!!func) {
+            return undefined;
+        }
+        return [frame, func];
     }
 
     static fromLine(line: string, sourceMap: SourceMap): WasmState {

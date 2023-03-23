@@ -1,6 +1,6 @@
-import {EventItem} from "../Views/EventsProvider";
-import {Frame} from "../Parsers/Frame";
-import {VariableInfo} from "./VariableInfo";
+import { EventItem } from "../Views/EventsProvider";
+import { Frame } from "../Parsers/Frame";
+import { VariableInfo } from "./VariableInfo";
 import { WasmState } from "./AllState";
 
 function hash(s: string) {
@@ -20,6 +20,7 @@ export class RuntimeState {
     public events: EventItem[] = [];
     public stack: VariableInfo[] = [];
     public globals: VariableInfo[] = [];
+    public arguments: VariableInfo[] = [];
 
     private wasmState: WasmState | undefined;
 
@@ -35,13 +36,13 @@ export class RuntimeState {
         return this.programCounter;
     }
 
-    public setWasmState(wasmState: WasmState){
+    public setWasmState(wasmState: WasmState) {
         this.wasmState = wasmState;
     }
 
 
-    public getArguments(){
-        return this.wasmState?.getArguments() ?? [];
+    public getArguments() {
+        this.arguments;
     }
 
     public setRawProgramCounter(raw: number) {
@@ -66,6 +67,7 @@ export class RuntimeState {
         copy.startAddress = this.startAddress;
         copy.callstack = this.callstack.map(obj => Object.assign({}, obj));
         copy.locals = this.locals.map(obj => Object.assign({}, obj));
+        copy.arguments = this.arguments.map(obj => Object.assign({}, obj));
         copy.events = this.events.map(obj => new EventItem(obj.topic, obj.payload, obj.collapsibleState));
         copy.globals = this.globals.map(obj => Object.assign({}, obj));
         copy.stack = this.stack.map(obj => Object.assign({}, obj));

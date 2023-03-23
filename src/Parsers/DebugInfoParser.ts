@@ -56,6 +56,7 @@ export class DebugInfoParser {
                 runtimeState.locals = wasmState.getLocals();
                 runtimeState.events = !!!parsed.events ? [] : parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
                 runtimeState.globals = wasmState.getGlobals();
+                runtimeState.arguments = wasmState.getArguments();
             }
             else {
                 runtimeState.startAddress = parseInt(parsed.start);

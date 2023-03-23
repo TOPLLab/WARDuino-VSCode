@@ -394,7 +394,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             };
             this.sendResponse(response);
         } else if( v === "arguments") {
-            const state = this.debugBridge?.getCurrentState()?.getArguments() ?? [];
+            const state = this.debugBridge?.getCurrentState()?.arguments ?? [];
             response.body = {
                 variables: Array.from(state, (info) => {
                     return {name: info.name, value: info.value, variablesReference: 0};
