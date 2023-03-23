@@ -7,6 +7,7 @@ import {CompileBridge} from "./CompileBridge";
 import {SourceMap} from "../State/SourceMap";
 import {FunctionInfo} from "../State/FunctionInfo";
 import {VariableInfo} from "../State/VariableInfo";
+import { TypeInfo } from "../State/TypeInfo";
 import { readFileSync } from "fs";
 
 function checkCompileTimeError(errorMessage: string) {
@@ -115,6 +116,7 @@ export class WASMCompilerBridge implements CompileBridge {
                 lineInfoPairs = makeLineInfoPairs(stdout);
             }
 
+            // TODO here make source mapping better
             let compile = exec(compileCommand, handleCompilerStreams);
 
             compile.on('close', (code) => {
@@ -125,6 +127,7 @@ export class WASMCompilerBridge implements CompileBridge {
 
         }).then((result) => {
             return new Promise<SourceMap>((resolve, reject) => {
+                let typeInfos: Map<number, TypeInfo>;
                 let functionInfos: FunctionInfo[];
                 let globalInfos: VariableInfo[];
                 let importInfos: FunctionInfo[];
@@ -134,6 +137,7 @@ export class WASMCompilerBridge implements CompileBridge {
                 function handleObjDumpStreams(error: ExecException | null, stdout: String, stderr: any) {
                     that.handleStdError(stderr, reject);
                     that.handleError(error, reject);
+                    typeInfos = parseUtils.getTypeInfos(stdout);
                     functionInfos = parseUtils.getFunctionInfos(stdout);
                     globalInfos = parseUtils.getGlobalInfos(stdout);
                     importInfos = parseUtils.getImportInfos(stdout);
@@ -142,12 +146,13 @@ export class WASMCompilerBridge implements CompileBridge {
                 let objDump = exec(objDumpCommand, handleObjDumpStreams);
 
                 if (result) {
-                    sourceMap = {lineInfoPairs: result, functionInfos: [], globalInfos: [], importInfos: []};
+                    sourceMap = {lineInfoPairs: result, functionInfos: [], globalInfos: [], importInfos: [], typeInfos: new Map<number, TypeInfo>()};
                     objDump.on('close', (code) => {
                         if (functionInfos && globalInfos) {
                             sourceMap.functionInfos = functionInfos;
                             sourceMap.globalInfos = globalInfos;
                             sourceMap.importInfos = importInfos;
+                            sourceMap.typeInfos = typeInfos;
                             resolve(sourceMap);
                         }
                     });
@@ -170,6 +175,9 @@ export class WASMCompilerBridge implements CompileBridge {
             let cp = exec(command, handleCompilerStreams);
 
             cp.on('close', (code) => {
+                if(code !== 0 ){
+                    console.error(`An error occured when compiling WAT to WASM code ${code}`);
+                }
                 if (sourceMap) {
                     resolve(sourceMap);
                 }

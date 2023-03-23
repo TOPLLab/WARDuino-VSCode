@@ -68,6 +68,11 @@
           "id": "proxies",
           "name": "proxies",
           "group": "navigation"
+        },
+        {
+          "id": "stack",
+          "name": "stack",
+          "group": "navigation"
         }
       ]
     },

@@ -1,6 +1,7 @@
 import {CompileBridge} from "./CompileBridge";
 import {exec, ExecException} from "child_process";
 import {SourceMap} from "../State/SourceMap";
+import {TypeInfo} from "../State/TypeInfo";
 import { readFileSync } from "fs";
 
 export class AssemblyScriptCompilerBridge implements CompileBridge {
@@ -41,6 +42,6 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
 
     private static makeSourceMap(sourceMapFile: String): SourceMap {
         // TODO
-        return {lineInfoPairs: [], functionInfos: [], globalInfos: [], importInfos: []};
+        return {lineInfoPairs: [], functionInfos: [], globalInfos: [], importInfos: [], typeInfos: new Map<number, TypeInfo>()};
     }
 }

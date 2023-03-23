@@ -1,4 +1,5 @@
 import {FunctionInfo} from "../State/FunctionInfo";
+import { string2WASMType, TypeInfo } from "../State/TypeInfo";
 import {VariableInfo} from "../State/VariableInfo";
 
 export function jsonParse(obj: string) {
@@ -80,6 +81,33 @@ function fillInExportInfos() {
     // TODO
 }
 
+function extractTypeInfo(line: String): TypeInfo {
+    let typeInfo = {} as TypeInfo;
+    // string of the form "type[3] (i32, i64) -> i32"
+    const [leftSidearrow, rightSideArrow] = line.split("->"); // 
+
+    const matchTypeIdx = leftSidearrow.match(/type\[([0-9]+)\]/);
+    if(matchTypeIdx === null){
+        throw (new Error(`TypeInfo parsing error. Index of typesignature missing in line: ${line}`));
+    }
+    typeInfo.index = +matchTypeIdx[1];
+    
+    const matchReturnType = rightSideArrow.match(/ (i32|i64|f32|f64|nil)$/);
+    if(!!!matchReturnType){
+        throw (new Error(`TypeInfo parsing error. Return type of typesginature is missing in line: ${line}`));
+    }
+
+    if(matchReturnType[1] !== 'nil'){
+        typeInfo.result = string2WASMType(matchReturnType[1]);
+    }
+
+    // string of the form "type (i32, i64) "
+    const paramstypes = leftSidearrow.split("(")[1].split(")")[0].split(",").map(s=>s.trim()).filter(s=>s!=="");
+
+    typeInfo.parameters = paramstypes.map(t=>string2WASMType(t));
+    return typeInfo;
+}
+
 function extractGlobalInfo(line: String): VariableInfo {
     let global = {} as VariableInfo;
     let match = line.match(/\[([0-9]+)]/);
@@ -97,14 +125,42 @@ function extractGlobalInfo(line: String): VariableInfo {
 
 function extractImportInfo(line: String): FunctionInfo {
     let primitive = {} as FunctionInfo;
-    let match = line.match(/\[([0-9]+)]/);
-    primitive.index = (match === null) ? NaN : +match[1];
+    let match = line.match(/func\[([0-9]+)\] sig=([0-9]+)/);
+    if(!!!match){
+        throw (new Error(`Importsection does not contain function index and/or type index. Given: ${line}`));
+    }
+    primitive.index = +match[1];
+    primitive.type = +match[2];
     match = line.match(/<([a-zA-Z0-9 ._]+)>/);
     primitive.name = ((match === null) ? `${primitive.index}` : `$${match[1]}`);
     return primitive;
 }
 
+export function getTypeInfos(input: String): Map<number, TypeInfo> {
+    let lines: String[] = extractDetailedSection("Type[", input);
+    const typesInfos: Map<number,TypeInfo> = new Map<number, TypeInfo>();
+    lines.forEach((line) => {
+        const typeInfo = extractTypeInfo(line);
+        typesInfos.set(typeInfo.index, typeInfo);
+    });
+    return typesInfos;
+}
+
 export function getFunctionInfos(input: String): FunctionInfo[] {
+    const functionSection: String[] = extractDetailedSection("Function[", input);
+    const metadata: Map<number,number> = new Map<number,number>();
+    let firstNonPrimiveFunc = -1;
+    functionSection.forEach(s=>{
+        let match = s.match(/func\[([0-9]+)\] sig=([0-9]+)/);
+        if(!!!match){
+            throw (new Error(`function section does not contain idx and/or signature idx. Give: ${s}`));
+        }
+        metadata.set(+match[1], +match[2]);
+        if(firstNonPrimiveFunc === -1){
+            firstNonPrimiveFunc = +match[1];
+        }
+    });
+
     let functionLines: String[] = extractMajorSection("Sourcemap JSON:", input);
 
     if (functionLines.length === 0) {
@@ -114,11 +170,18 @@ export function getFunctionInfos(input: String): FunctionInfo[] {
     let sourcemap = JSON.parse(functionLines.join("").replace(/\t/g,""));
     let functions: FunctionInfo[] = [];
     sourcemap.Functions.forEach((func: any, index: number) => {
-        let locals: VariableInfo[] = [];
-        func.locals.forEach((local: string, index: number) => {
-            locals.push({index: index, name: local, type: "undefined", mutable: true, value: ""});
-        });
-        functions.push({index: index, name: func.name, locals: locals});
+        // primitive functions are handled seperately
+        if(index >= firstNonPrimiveFunc){
+            let locals: VariableInfo[] = [];
+            func.locals.forEach((local: string, index: number) => {
+                locals.push({index: index, name: local, type: "undefined", mutable: true, value: ""});
+            });
+            const typeIdx = metadata.get(index);
+            if(!!!typeIdx){
+                throw Error(`Parsing Error function ${index} has no typesignature`);
+            }
+            functions.push({index: index, name: func.name, locals: locals, type: typeIdx});
+        } 
     });
     return functions;
 }

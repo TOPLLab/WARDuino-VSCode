@@ -28,6 +28,7 @@ import * as path from "path";
 import {WOODState} from "../State/WOODState";
 import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
+import {StackProvider} from "../Views/StackProvider";
 import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
 import { CompileResult } from '../CompilerBridges/CompileBridge';
 import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
@@ -50,7 +51,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private reporter: ErrorReporter;
     private proxyCallsProvider?: ProxyCallsProvider;
 
-    private variableHandles = new Handles<'locals' | 'globals'>();
+    private variableHandles = new Handles<'locals' | 'globals' | 'arguments' >();
     private compiler?: CompileBridge;
 
     private debuggerConfig: DebuggerConfig = new DebuggerConfig();
@@ -125,6 +126,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         const eventsProvider = new EventsProvider();
         vscode.window.registerTreeDataProvider("events", eventsProvider);
+        const stackProvider = new StackProvider();
+        vscode.window.registerTreeDataProvider("stack", stackProvider);
 
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
@@ -153,7 +156,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let that = this;
         const debugmode: string = this.debuggerConfig.device.debugMode;
         const deviceConfig = this.debuggerConfig.device;
-        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap, eventsProvider,
+        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, eventsProvider, stackProvider,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface
@@ -171,7 +174,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     const name = `${that.debuggerConfig.device.name} (Emulator)`;
                     const dc = DeviceConfig.configForProxy(name, that.debuggerConfig.device);
 
-                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap, eventsProvider, RunTimeTarget.wood, that.tmpdir, {
+                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap as SourceMap, eventsProvider, stackProvider, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
                         connected(): void {
@@ -355,7 +358,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         response.body = {
             scopes: [
                 new Scope("Locals", this.variableHandles.create('locals'), false),
-                new Scope("Globals", this.variableHandles.create('globals'), true)
+                new Scope("Globals", this.variableHandles.create('globals'), true),
+                new Scope("Arguments", this.variableHandles.create('arguments'), true),
             ]
         };
         this.sendResponse(response);
@@ -382,9 +386,17 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 })
             };
             this.sendResponse(response);
-        } else {
+        } else if( v === "globals") {
             response.body = {
                 variables: Array.from(this.sourceMap.globalInfos, (info) => {
+                    return {name: info.name, value: info.value, variablesReference: 0};
+                })
+            };
+            this.sendResponse(response);
+        } else if( v === "arguments") {
+            const state = this.debugBridge?.getCurrentState()?.getArguments() ?? [];
+            response.body = {
+                variables: Array.from(state, (info) => {
                     return {name: info.name, value: info.value, variablesReference: 0};
                 })
             };

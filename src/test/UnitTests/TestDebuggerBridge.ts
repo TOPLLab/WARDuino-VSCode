@@ -12,6 +12,7 @@ import {WOODDebugBridge} from "../../DebugBridges/WOODDebugBridge";
 import {DebugBridgeListener} from "../../DebugBridges/DebugBridgeListener";
 import ErrnoException = NodeJS.ErrnoException;
 import { DeviceConfig } from "../../DebuggerConfig";
+import { EmptySourceMap } from "../../State/SourceMap";
  
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
@@ -50,6 +51,7 @@ async function init(target: RunTimeTarget) {
                             bridge = new WOODDebugBridge("",
                             //TODO fix
                             DeviceConfig.defaultDeviceConfig("wood"),
+                                EmptySourceMap(),
                                 undefined,
                                 undefined,
                                 tmpdir,
@@ -61,6 +63,7 @@ async function init(target: RunTimeTarget) {
                         default:
                             bridge = new EmulatedDebugBridge("",
                                 DeviceConfig.defaultDeviceConfig("emulated"),
+                                EmptySourceMap(),
                                 undefined,
                                 undefined,
                                 tmpdir,

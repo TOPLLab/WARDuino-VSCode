@@ -3,13 +3,14 @@ import * as net from 'net';
 import {DebugBridgeListener} from './DebugBridgeListener';
 import {InterruptTypes} from './InterruptTypes';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {SourceMap} from "../State/SourceMap";
 import {AbstractDebugBridge} from "./AbstractDebugBridge";
 import {WOODState} from "../State/WOODState";
+import {SourceMap} from "../State/SourceMap";
 import {EventsProvider} from "../Views/EventsProvider";
 import {Readable} from 'stream';
 import {ReadlineParser} from 'serialport';
 import { DeviceConfig } from '../DebuggerConfig';
+import { StackProvider } from '../Views/StackProvider';
 
 // export const EMULATOR_PORT: number = 8300;
 
@@ -22,15 +23,15 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser;
     private buffer: string = "";
 
-    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
+    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, tmpdir: string, listener: DebugBridgeListener,
                 warduinoSDK: string) {
-        super(config, sourceMap, eventsProvider, listener);
+        super(config, sourceMap, eventsProvider, stackProvider, listener);
 
         this.wasmPath = wasmPath;
         this.sdk = warduinoSDK;
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
-        this.parser = new DebugInfoParser();
+        this.parser = new DebugInfoParser(sourceMap);
     }
 
     upload(): void {
@@ -101,7 +102,8 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     public refresh() {
-        this.sendInterrupt(InterruptTypes.interruptDUMPFull);
+        // this.sendInterrupt(InterruptTypes.interruptDUMPFull);
+        this.sendInterrupt(InterruptTypes.interruptWOODDump);
     }
 
     public pullSession() {

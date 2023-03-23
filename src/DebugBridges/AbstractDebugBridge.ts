@@ -3,7 +3,7 @@ import {Frame} from "../Parsers/Frame";
 import {VariableInfo} from "../State/VariableInfo";
 import {SourceMap} from "../State/SourceMap";
 import {DebugBridgeListener} from "./DebugBridgeListener";
-import {WOODState} from "../State/WOODState";
+import {StackValue, WOODState} from "../State/WOODState";
 import {InterruptTypes} from "./InterruptTypes";
 import {Writable} from "stream";
 import {EventItem, EventsProvider} from "../Views/EventsProvider";
@@ -14,6 +14,7 @@ import {Breakpoint, UniqueSet} from "../State/Breakpoint";
 import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
+import { StackItem, StackProvider } from "../Views/StackProvider";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -47,7 +48,7 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
 
 export abstract class AbstractDebugBridge implements DebugBridge {
     // State
-    protected sourceMap: SourceMap | void;
+    protected sourceMap: SourceMap;
     protected startAddress: number = 0;
     protected pc: number = 0;
     protected callstack: Frame[] = [];
@@ -58,6 +59,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected listener: DebugBridgeListener;
     protected abstract client: Writable | undefined;
     private eventsProvider: EventsProvider | void;
+    private stackProvider: StackProvider | undefined;
     public socketConnection?: ClientSideSocket;
 
     // History (time-travel)
@@ -65,8 +67,9 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     private present = -1;
 
     public readonly deviceConfig: DeviceConfig;
+    public outOfPlaceActive = false; 
 
-    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
@@ -74,6 +77,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.eventsProvider = eventsProvider;
         this.listener = listener;
         this.deviceConfig = deviceConfig;
+        this.stackProvider = stackProvider;
     }
 
     // General Bridge functionality
@@ -215,6 +219,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     public refreshEvents(events: EventItem[]) {
         this.eventsProvider?.setEvents(events);
     }
+    public refreshStack(stack: StackItem[]){
+        this.stackProvider?.setStack(stack);
+    }
+
 
     public notifyNewEvent(): void {
         this.sendInterrupt(InterruptTypes.interruptDUMPAllEvents);
@@ -280,6 +288,13 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Getters and Setters
 
+    getCurrentState(): RuntimeState | undefined {
+        if(this.history.length === 0){
+            return undefined;
+        }
+        return this.history[this.present];
+    }
+
     updateRuntimeState(runtimeState: RuntimeState) {
         if (!this.inHistory()) {
             this.present++;
@@ -289,8 +304,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.setProgramCounter(runtimeState.getAdjustedProgramCounter());
         this.setStartAddress(runtimeState.startAddress);
         this.refreshEvents(runtimeState.events);
+        this.refreshStack(runtimeState.stack.map(sv=>new StackItem(sv)).reverse());
         this.setCallstack(runtimeState.callstack);
         this.setLocals(runtimeState.currentFunction(), runtimeState.locals);
+        this.setGlobals(runtimeState.globals);
     }
 
     getProgramCounter(): number {
@@ -306,21 +323,33 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     getLocals(fidx: number): VariableInfo[] {
-        if (this.sourceMap === undefined || fidx >= this.sourceMap.functionInfos.length || fidx < 0) {
+        if (this.sourceMap === undefined || fidx < 0) {
             return [];
         }
-        return this.sourceMap.functionInfos[fidx].locals;
+        const func = this.sourceMap.functionInfos.find(f=>f.index === fidx);
+        if(!!!func){
+            throw (new Error(`AbstractDebugBridge: getLocals for an unknwon function ${fidx}`));
+        }
+        return func.locals;
     }
 
     setLocals(fidx: number, locals: VariableInfo[]) {
         if (this.sourceMap === undefined) {
             return;
         }
-        if (fidx >= this.sourceMap.functionInfos.length) {
-            console.log(`warning setting locals for new function with index: ${fidx}`);
-            this.sourceMap.functionInfos[fidx] = {index: fidx, name: "<anonymous>", locals: []};
+        const func = this.sourceMap.functionInfos.find(f=>f.index===fidx);
+        if (!!!func) {
+            throw (new Error(`AbstractDebugBridge: SetLocals for an unknwon function ${fidx} locals ${locals}`));
+            // console.log(`warning setting locals for new function with index: ${fidx}`);
+            // this.sourceMap.functionInfos[fidx] = {index: fidx, name: "<anonymous>", locals: []};
         }
-        this.sourceMap.functionInfos[fidx].locals = locals;
+        func.locals = locals;
+    }
+
+    setGlobals(globals: VariableInfo[]){
+        globals.forEach(gbl=>{
+            this.sourceMap.globalInfos[gbl.index].value = gbl.value;
+        });
     }
 
     getCallstack(): Frame[] {
