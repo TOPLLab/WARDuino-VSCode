@@ -15,6 +15,8 @@ export interface DebugBridge {
 
     connect(): Promise<string>;
 
+    getCurrentState(): RuntimeState | undefined;
+
     updateRuntimeState(runtimeState: RuntimeState): void;
 
     getProgramCounter(): number;

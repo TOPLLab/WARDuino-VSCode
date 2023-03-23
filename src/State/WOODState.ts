@@ -12,12 +12,18 @@ export enum RecvStateType {
     stackvalsState = '08'
 }
 
-interface StackValue {
+export interface StackValue {
     type: string;
     value: number | bigint;
 }
 
-interface Frame {
+export const FRAME_FUNC_TYPE = 0;
+export const FRAME_INITEXPR_TYPE = 1;
+export const FRAME_BLOCK_TYPE = 2;
+export const FRAME_LOOP_TYPE = 3;
+export const FRAME_IF_TYPE = 4;
+
+export interface Frame {
     type: number;
     fidx: string;
     sp: number;
@@ -27,25 +33,25 @@ interface Frame {
     idx: number;
 }
 
-interface Table {
+export interface Table {
     max: number;
     init: number;
     elements: number[];
 }
 
-interface Memory {
+export interface Memory {
     pages: number;
     max: number;
     init: number;
     bytes: Uint8Array;
 }
 
-interface BRTable {
+export interface BRTable {
     size: string;
     labels: number[];
 }
 
-interface WOODDumpResponse {
+export interface WOODDumpResponse {
     pc: number;
     breakpoints: number[];
     stack: StackValue[];
@@ -172,6 +178,10 @@ export class WOODState {
     constructor(state: string) {
         this.unparsedJSON = state.trimEnd();
         this.woodResponse = JSON.parse(this.unparsedJSON);
+    }
+
+    getState(): WOODDumpResponse {
+        return this.woodResponse;
     }
 
     toBinary(maxInterruptSize: number = 1024): string[] {
@@ -495,12 +505,7 @@ export class WOODState {
     private serializeFrame(frame: Frame): string {
         // | Frame type | StackPointer | FramePointer |   Return Adress  | FID or Block ID
         // |  1*2 bytes |   4*2bytes   |   4*2bytes   | serializePointer | 4*2bytes or serializePointer
-        const funcType = 0;
-        const initExprType = 1;
-        const blockType = 2;
-        const loopType = 3;
-        const ifType = 4;
-        const validTypes = [funcType, initExprType, blockType, loopType, ifType];
+        const validTypes = [FRAME_FUNC_TYPE, FRAME_INITEXPR_TYPE, FRAME_BLOCK_TYPE, FRAME_LOOP_TYPE, FRAME_IF_TYPE];
 
         if (validTypes.indexOf(frame.type) === -1) {
             throw (new Error(`received unknow frame type ${frame.type}`));
@@ -511,7 +516,7 @@ export class WOODState {
         const ra = this.serializePointer(frame.ra);
         let rest = '';
         let res_str = ''; //TODO remove
-        if (frame.type === funcType) {
+        if (frame.type === FRAME_FUNC_TYPE) {
             rest = HexaEncoder.serializeUInt32BE(Number(frame.fidx));
             res_str = `fun_idx=${Number(frame.fidx)}`;
         }

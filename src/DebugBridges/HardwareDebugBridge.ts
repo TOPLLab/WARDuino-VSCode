@@ -4,17 +4,19 @@ import {ReadlineParser, SerialPort} from 'serialport';
 import {DebugInfoParser} from "../Parsers/DebugInfoParser";
 import {InterruptTypes} from "./InterruptTypes";
 import {exec, spawn} from "child_process";
-import {SourceMap} from "../State/SourceMap";
 import {WOODState} from "../State/WOODState";
+import {SourceMap} from "../State/SourceMap";
 import {EventsProvider} from "../Views/EventsProvider";
 import { DeviceConfig } from "../DebuggerConfig";
 import * as path from 'path';
 import { LoggingSerialMonitor } from "../Channels/SerialConnection";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
+import { StackProvider } from "../Views/StackProvider";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
-    private parser: DebugInfoParser = new DebugInfoParser();
-    public client: SerialPort | undefined;
+    private parser: DebugInfoParser;
+    private wasmPath: string;
+    protected client: SerialPort | undefined;
     protected readonly portAddress: string;
     protected readonly fqbn: string;
     protected readonly sdk: string;
@@ -26,14 +28,15 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     constructor(wasmPath: string,
                 deviceConfig: DeviceConfig,
-                sourceMap: SourceMap | void,
+                sourceMap: SourceMap,
                 eventsProvider: EventsProvider | void,
+                stackProvider: StackProvider | undefined,
                 tmpdir: string,
                 listener: DebugBridgeListener,
                 portAddress: string,
                 fqbn: string,
                 warduinoSDK: string) {
-        super(deviceConfig, sourceMap, eventsProvider, listener);
+        super(deviceConfig, sourceMap, eventsProvider, stackProvider, listener);
 
         this.sourceMap = sourceMap;
         this.listener = listener;
@@ -41,6 +44,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.fqbn = fqbn;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
+        this.parser = new DebugInfoParser(sourceMap);
     }
 
 
@@ -114,7 +118,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     protected handleLine(line: string) {
-        if (this.woodDumpDetected) {
+        if (this.woodDumpDetected && this.outOfPlaceActive) {
             // Next line will be a WOOD dump
             // TODO receive state from WOOD Dump and call bridge.pushSession(state)
             this.woodState = new WOODState(line);
@@ -243,8 +247,8 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     refresh(): void {
-        console.log('Plugin: Refreshing');
-        this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {
+        console.log("Plugin: Refreshing");
+        this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
             if (err) {
                 return console.log('Error on write: ', err.message);
             }

@@ -11,16 +11,16 @@
             "program": "${workspaceFolder}/blink.wast",
             "device": {
                 "name": "Embedded",
-                "debugMode": "embedded",
+                "debugMode": "emulated",
                 "wifiCredentials": "${workspaceFolder}/.wificredentials.json",
-                "ip": "192.168.233.239",
+                "ip": "192.168.225.239",
                 "onStart": {
-                    "flash": true,
+                    "flash": false,
                     "updateSource": false,
                     "pause": true
                 },
                 "port": 8080,
-                "proxy":{
+                "proxyL":{
                     "port": 8081,
                 }
             },
