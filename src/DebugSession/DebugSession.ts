@@ -1,5 +1,5 @@
-import {DebugProtocol} from 'vscode-debugprotocol';
-import {basename} from 'path-browserify';
+import { DebugProtocol } from 'vscode-debugprotocol';
+import { basename } from 'path-browserify';
 import * as vscode from 'vscode';
 
 import {
@@ -13,23 +13,23 @@ import {
     TerminatedEvent,
     Thread
 } from 'vscode-debugadapter';
-import {CompileTimeError} from "../CompilerBridges/CompileTimeError";
-import {ErrorReporter} from "./ErrorReporter";
-import {DebugBridge} from '../DebugBridges/DebugBridge';
-import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
-import {RunTimeTarget} from "../DebugBridges/RunTimeTarget";
-import {CompileBridgeFactory} from "../CompilerBridges/CompileBridgeFactory";
-import {CompileBridge} from "../CompilerBridges/CompileBridge";
-import {SourceMap} from "../State/SourceMap";
-import {VariableInfo} from "../State/VariableInfo";
+import { CompileTimeError } from "../CompilerBridges/CompileTimeError";
+import { ErrorReporter } from "./ErrorReporter";
+import { DebugBridge } from '../DebugBridges/DebugBridge';
+import { DebugBridgeFactory } from '../DebugBridges/DebugBridgeFactory';
+import { RunTimeTarget } from "../DebugBridges/RunTimeTarget";
+import { CompileBridgeFactory } from "../CompilerBridges/CompileBridgeFactory";
+import { CompileBridge } from "../CompilerBridges/CompileBridge";
+import { SourceMap } from "../State/SourceMap";
+import { VariableInfo } from "../State/VariableInfo";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import {WOODState} from "../State/WOODState";
-import {WOODDebugBridge} from "../DebugBridges/WOODDebugBridge";
-import {EventsProvider} from "../Views/EventsProvider";
-import {StackProvider} from "../Views/StackProvider";
-import {ProxyCallItem, ProxyCallsProvider} from "../Views/ProxyCallsProvider";
+import { WOODState } from "../State/WOODState";
+import { WOODDebugBridge } from "../DebugBridges/WOODDebugBridge";
+import { EventsProvider } from "../Views/EventsProvider";
+import { StackProvider } from "../Views/StackProvider";
+import { ProxyCallItem, ProxyCallsProvider } from "../Views/ProxyCallsProvider";
 import { CompileResult } from '../CompilerBridges/CompileBridge';
 import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
 import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBuilder';
@@ -51,7 +51,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private reporter: ErrorReporter;
     private proxyCallsProvider?: ProxyCallsProvider;
 
-    private variableHandles = new Handles<'locals' | 'globals' | 'arguments' >();
+    private variableHandles = new Handles<'locals' | 'globals' | 'arguments'>();
     private compiler?: CompileBridge;
 
     private debuggerConfig: DebuggerConfig = new DebuggerConfig();
@@ -140,7 +140,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             });
         });
 
-        if(this.debuggerConfig.device.isForHardware()){
+        if (this.debuggerConfig.device.isForHardware()) {
             const dc = this.debuggerConfig.device;
             const path2sdk = vscode.workspace.getConfiguration().get("warduino.WARDuinoToolChainPath") as string;
             ArduinoTemplateBuilder.setPath2Templates(path2sdk);
@@ -164,7 +164,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     that.stop();
                 },
                 connected(): void {
-                    if(deviceConfig.onStartConfig.pause){
+                    if (deviceConfig.onStartConfig.pause) {
                         this.notifyPaused();
                     }
                 },
@@ -274,10 +274,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private async uploadHelper(): Promise<string> {
         let res: void | CompileResult = await this.compiler?.compile().catch((reason) => this.handleCompileError(reason));
-        if(!!res){
+        if (!!res) {
             this.sourceMap = res.sourceMap;
             this.debugBridge?.updateSourceMapper(res.sourceMap);
-            if(!!res.wasm){
+            if (!!res.wasm) {
                 this.debugBridge?.updateModule(res.wasm);
                 return "sent upload module";
             }
@@ -366,8 +366,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected variablesRequest(response: DebugProtocol.VariablesResponse,
-                               args: DebugProtocol.VariablesArguments,
-                               request?: DebugProtocol.Request) {
+        args: DebugProtocol.VariablesArguments,
+        request?: DebugProtocol.Request) {
         if (this.sourceMap === undefined) {
             return;
         }
@@ -386,18 +386,18 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 })
             };
             this.sendResponse(response);
-        } else if( v === "globals") {
+        } else if (v === "globals") {
             response.body = {
                 variables: Array.from(this.sourceMap.globalInfos, (info) => {
-                    return {name: info.name, value: info.value, variablesReference: 0};
+                    return { name: info.name, value: info.value, variablesReference: 0 };
                 })
             };
             this.sendResponse(response);
-        } else if( v === "arguments") {
+        } else if (v === "arguments") {
             const state = this.debugBridge?.getCurrentState()?.arguments ?? [];
             response.body = {
                 variables: Array.from(state, (info) => {
-                    return {name: info.name, value: info.value, variablesReference: 0};
+                    return { name: info.name, value: info.value, variablesReference: 0 };
                 })
             };
             this.sendResponse(response);
@@ -405,7 +405,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse,
-                                args: DebugProtocol.StackTraceArguments): void {
+        args: DebugProtocol.StackTraceArguments): void {
         const pc = this.debugBridge!.getProgramCounter();
         this.setLineNumberFromPC(pc);
 
@@ -459,7 +459,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log("Shutting the debugger down");
         this.debugBridge?.disconnect();
         if (this.tmpdir) {
-            fs.rm(this.tmpdir, {recursive: true}, err => {
+            fs.rm(this.tmpdir, { recursive: true }, err => {
                 if (err) {
                     throw new Error('Could not delete temporary directory.');
                 }
