@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import {ProviderResult, TreeItem, TreeItemCollapsibleState} from 'vscode';
+import { ProviderResult, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { VariableInfo } from '../State/VariableInfo';
 
 export class StackProvider implements vscode.TreeDataProvider<StackItem> {
@@ -33,7 +33,7 @@ export class StackItem extends vscode.TreeItem {
     private value: VariableInfo;
 
     constructor(value: VariableInfo, treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
-        const label = `Value: ${value.value} (${value.type})`;
+        const label = `${value.type}: ${value.value}`;
         super(label, treeItemCollapsibleState);
         this.value = value;
     }
