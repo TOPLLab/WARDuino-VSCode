@@ -1,16 +1,16 @@
-import {DebugBridge} from "./DebugBridge";
-import {Frame} from "../Parsers/Frame";
-import {VariableInfo} from "../State/VariableInfo";
-import {SourceMap} from "../State/SourceMap";
-import {DebugBridgeListener} from "./DebugBridgeListener";
-import {StackValue, WOODState} from "../State/WOODState";
-import {InterruptTypes} from "./InterruptTypes";
-import {Writable} from "stream";
-import {EventItem, EventsProvider} from "../Views/EventsProvider";
-import {FunctionInfo} from "../State/FunctionInfo";
-import {ProxyCallItem} from "../Views/ProxyCallsProvider";
-import {RuntimeState} from "../State/RuntimeState";
-import {Breakpoint, UniqueSet} from "../State/Breakpoint";
+import { DebugBridge } from "./DebugBridge";
+import { Frame } from "../Parsers/Frame";
+import { VariableInfo } from "../State/VariableInfo";
+import { SourceMap } from "../State/SourceMap";
+import { DebugBridgeListener } from "./DebugBridgeListener";
+import { StackValue, WOODState } from "../State/WOODState";
+import { InterruptTypes } from "./InterruptTypes";
+import { Writable } from "stream";
+import { EventItem, EventsProvider } from "../Views/EventsProvider";
+import { FunctionInfo } from "../State/FunctionInfo";
+import { ProxyCallItem } from "../Views/ProxyCallsProvider";
+import { RuntimeState } from "../State/RuntimeState";
+import { Breakpoint, UniqueSet } from "../State/Breakpoint";
 import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
@@ -67,7 +67,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     private present = -1;
 
     public readonly deviceConfig: DeviceConfig;
-    public outOfPlaceActive = false; 
+    public outOfPlaceActive = false;
 
     protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
@@ -134,10 +134,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
         let command = `${InterruptTypes.interruptBPRem}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
-        if(!!this.client){
+        if (!!this.client) {
             this.client?.write(command);
         }
-        else{
+        else {
             this.socketConnection?.write(command);
         }
         this.breakpoints.delete(breakpoint);
@@ -148,7 +148,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
         let command = `${InterruptTypes.interruptBPAdd}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
-        if(!!this.client){
+        if (!!this.client) {
             this.client?.write(command);
         }
         else {
@@ -196,13 +196,13 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             console.log(`setting ${name} ${value}`);
             try {
                 let command = this.getVariableCommand(name, value);
-                if(!!this.client){
+                if (!!this.client) {
                     this.client?.write(command, err => {
                         resolve("Interrupt send.");
                     });
                 }
-                else{
-                    this.socketConnection?.write(command, () =>{
+                else {
+                    this.socketConnection?.write(command, () => {
                         resolve("Interrupt send.");
                     });
                 }
@@ -219,7 +219,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     public refreshEvents(events: EventItem[]) {
         this.eventsProvider?.setEvents(events);
     }
-    public refreshStack(stack: StackItem[]){
+    public refreshStack(stack: StackItem[]) {
         this.stackProvider?.setStack(stack);
     }
 
@@ -235,10 +235,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     // Helper functions
 
     protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
-        if(!!this.client){
+        if (!!this.client) {
             return this.client?.write(`${i} \n`, callback);
         }
-        else{
+        else {
             return this.socketConnection?.write(`${i} \n`, callback);
         }
     }
@@ -289,7 +289,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     // Getters and Setters
 
     getCurrentState(): RuntimeState | undefined {
-        if(this.history.length === 0){
+        if (this.history.length === 0) {
             return undefined;
         }
         return this.history[this.present];
@@ -304,7 +304,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.setProgramCounter(runtimeState.getAdjustedProgramCounter());
         this.setStartAddress(runtimeState.startAddress);
         this.refreshEvents(runtimeState.events);
-        this.refreshStack(runtimeState.stack.map(sv=>new StackItem(sv)).reverse());
+        this.refreshStack(runtimeState.stack.map(sv => new StackItem(sv)).reverse());
         this.setCallstack(runtimeState.callstack);
         this.setLocals(runtimeState.currentFunction(), runtimeState.locals);
         this.setGlobals(runtimeState.globals);
@@ -326,8 +326,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         if (this.sourceMap === undefined || fidx < 0) {
             return [];
         }
-        const func = this.sourceMap.functionInfos.find(f=>f.index === fidx);
-        if(!!!func){
+        const func = this.sourceMap.functionInfos.find(f => f.index === fidx);
+        if (!!!func) {
             throw (new Error(`AbstractDebugBridge: getLocals for an unknwon function ${fidx}`));
         }
         return func.locals;
@@ -337,7 +337,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         if (this.sourceMap === undefined) {
             return;
         }
-        const func = this.sourceMap.functionInfos.find(f=>f.index===fidx);
+        const func = this.sourceMap.functionInfos.find(f => f.index === fidx);
         if (!!!func) {
             throw (new Error(`AbstractDebugBridge: SetLocals for an unknwon function ${fidx} locals ${locals}`));
             // console.log(`warning setting locals for new function with index: ${fidx}`);
@@ -346,8 +346,37 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         func.locals = locals;
     }
 
-    setGlobals(globals: VariableInfo[]){
-        globals.forEach(gbl=>{
+    updateLocal(local: VariableInfo): Promise<string> {
+        const state = this.getCurrentState()?.wasmState;
+        const command = state?.serializeStackValueUpdate(local.index);
+        return new Promise<string>((resolve, reject) => {
+            console.log(`setting ${local.name} ${local.value}`);
+            if (!!!command) {
+                reject("Local not found.");
+                return;
+            }
+            this.client?.write(`${command}\n`);
+            resolve("updated");
+        });
+    }
+
+    updateGlobal(global: VariableInfo): Promise<string> {
+        const state = this.getCurrentState()?.wasmState;
+        const command = state?.serializeGlobalValueUpdate(global.index);
+        return new Promise<string>((resolve, reject) => {
+            console.log(`setting ${global.name} ${global.value}`);
+            if (!!!command) {
+                reject("Global not found.");
+                return;
+            }
+            this.client?.write(`${command}\n`);
+            resolve("updated");
+        });
+    }
+
+
+    setGlobals(globals: VariableInfo[]) {
+        globals.forEach(gbl => {
             this.sourceMap.globalInfos[gbl.index].value = gbl.value;
         });
     }

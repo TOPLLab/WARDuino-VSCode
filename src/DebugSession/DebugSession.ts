@@ -253,11 +253,37 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): Promise<void> {
-        console.log(args);
-        this.debugBridge?.setVariable(args.name, parseInt(args.value)).then(value => {
-            console.log(`Plugin: ${value}`);
-            this.debugBridge?.refresh();
-        });
+        const v = this.variableHandles.get(args.variablesReference);
+        const state = this.debugBridge?.getCurrentState();
+        let newvariable: VariableInfo | undefined = undefined;
+        if (v === "locals") {
+            newvariable = state?.updateLocal(args.name, args.value);
+            if (!!newvariable) {
+                console.log("calling updatelocal");
+                await this.debugBridge?.updateLocal(newvariable);
+            }
+        }
+        else if (v === "globals") {
+            newvariable = state?.updateGlobal(args.name, args.value);
+            if (!!newvariable) {
+                console.log("calling updateGlobal");
+                await this.debugBridge?.updateGlobal(newvariable);
+            }
+        }
+        // else if(v === "arguments"){
+        // valid = state.updateArgument(args.name, args.value);
+        // }
+        // else{
+        //     console.log("something else");
+        // }
+        let newvalue = "invalid";
+        if (!!newvariable) {
+            newvalue = newvariable?.value;
+        }
+        response.body = {
+            value: newvalue,
+        };
+        this.sendResponse(response);
     }
 
     // Commands
@@ -374,7 +400,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         const v = this.variableHandles.get(args.variablesReference);
         if (v === "locals") {
-            let locals: VariableInfo[] = this.debugBridge === undefined ? [] : this.debugBridge.getLocals(this.debugBridge.getCurrentFunctionIndex());
+            const locals = this.debugBridge?.getCurrentState()?.locals ?? [];
+            // let locals: VariableInfo[] = this.debugBridge === undefined ? [] : this.debugBridge.getLocals(this.debugBridge.getCurrentFunctionIndex());
             response.body = {
                 variables: Array.from(locals, (local) => {
                     return {
