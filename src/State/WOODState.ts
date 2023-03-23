@@ -1,5 +1,5 @@
-import { InterruptTypes } from '../DebugBridges/InterruptTypes';
-import {HexaEncoder} from '../Util/hexaEncoding';
+import { InterruptTypes } from "../DebugBridges/InterruptTypes";
+import { HexaEncoder } from "../Util/hexaEncoding";
 
 export enum RecvStateType {
     pcState = '01',
@@ -76,14 +76,14 @@ class HexaStateMessages {
     // Header data
     private nrBytesForPayloadSize = 4 * 2; // tells how big the payload is. Times 2 for hexa
     private nrBytesForInterruptKind = InterruptTypes.interruptWOODRecvState.length; // already in hexa
-    private headerSize: number; 
-        
+    private headerSize: number;
+
     // Footer data
     private nrBytesForContinuation = 1 * 2; // 1 byte to tell whether all state is transferred. Times 2 for hexa
     private terminatorChar = ' \n';
     private footerSize: number;
 
-    constructor(messageSize: number){
+    constructor(messageSize: number) {
         this.maxMessageSize = messageSize;
         this.messages = [];
         this.currentMsg = '';
@@ -93,7 +93,7 @@ class HexaStateMessages {
     }
 
     public enoughSpace(spaceNeeded: number): boolean {
-        return this.getFreeSpace() >=  spaceNeeded;
+        return this.getFreeSpace() >= spaceNeeded;
     }
 
     public howManyFit(headerSize: number, payloads: string[]): number {
@@ -101,7 +101,7 @@ class HexaStateMessages {
         let payload: string = '';
         for (let i = 0; i < payloads.length; i++) {
             payload += payloads[i];
-            if(!this.enoughSpace(payload.length + headerSize)){
+            if (!this.enoughSpace(payload.length + headerSize)) {
                 break;
             }
             amount++;
@@ -109,18 +109,18 @@ class HexaStateMessages {
         return amount;
     }
 
-    private validatePayload(payload: string): void{
-        if(this.maxPayloadSize < payload.length){
+    private validatePayload(payload: string): void {
+        if (this.maxPayloadSize < payload.length) {
             let errmsg = `Payload size exceeds maxPayload Size of ${this.maxPayloadSize}`;
             errmsg += `(= maxMessageSize ${this.maxMessageSize} - header/footer ${this.headerSize + this.footerSize}).`;
-            errmsg += 'Either increase maxMessageSize or split payload.';
+            errmsg += "Either increase maxMessageSize or split payload.";
             throw (new Error(errmsg));
         }
-        if(payload.length % 2 !== 0){
+        if (payload.length % 2 !== 0) {
             throw (new Error(`Payload is not even. Got length ${this.currentMsg.length}`));
         }
         const regexHexa = /[0-9A-Fa-f]{6}/g;
-        if(!payload.match(regexHexa)){
+        if (!payload.match(regexHexa)) {
             throw (new Error('Payload should only contain hexa chars'));
         }
 
@@ -132,12 +132,12 @@ class HexaStateMessages {
 
     public addPayload(payload: string): void {
         this.validatePayload(payload);
-        if(!this.enoughSpace(payload.length)){
+        if (!this.enoughSpace(payload.length)) {
             this.forceNewMessage();
         }
         this.currentMsg = `${this.currentMsg}${payload}`;
-        const s = this.currentMsg.length + this.headerSize + this.footerSize ;
-        if(s > this.maxMessageSize){
+        const s = this.currentMsg.length + this.headerSize + this.footerSize;
+        if (s > this.maxMessageSize) {
             throw (new Error(`Exceeded max size is ${s} > ${this.maxMessageSize}`));
         }
     }
@@ -148,7 +148,7 @@ class HexaStateMessages {
     }
 
     public getMessages(): string[] {
-        if(this.currentMsg !== ''){
+        if (this.currentMsg !== '') {
             this.messages = this.messages.concat(this.currentMsg);
             this.currentMsg = '';
         }
@@ -163,7 +163,7 @@ class HexaStateMessages {
             if (msg.length % 2 !== 0) {
                 throw (new Error('WoodState: Hexa message not even'));
             }
-            if(msg.length > this.maxMessageSize){
+            if (msg.length > this.maxMessageSize) {
                 throw (new Error(`msg ${msgIdx} is ${msg.length} > ${this.maxMessageSize}`));
             }
             return msg;
@@ -188,11 +188,11 @@ export class WOODState {
     toBinary(maxInterruptSize: number = 1024): string[] {
 
         const stateMessages = new HexaStateMessages(maxInterruptSize);
-        
+
         // Allocation Message
         this.serialiseAllocationMessage(stateMessages);
         stateMessages.forceNewMessage();
-        
+
         // State Messages
         this.serializePC(stateMessages);
         this.serializeBPs(stateMessages);
@@ -217,10 +217,10 @@ export class WOODState {
         const ws = this;
         const nrBytesUsedForAmountBPs = 1 * 2;
         const headerSize = RecvStateType.bpsState.length + nrBytesUsedForAmountBPs;
-        let breakpoints = this.woodResponse.breakpoints.map(bp=>{return ws.serializePointer(bp);});
-        while (breakpoints.length !== 0 ){
+        let breakpoints = this.woodResponse.breakpoints.map(bp => { return ws.serializePointer(bp); });
+        while (breakpoints.length !== 0) {
             const fits = stateMsgs.howManyFit(headerSize, breakpoints);
-            if(fits === 0 ){
+            if (fits === 0) {
                 stateMsgs.forceNewMessage();
                 continue;
             }
@@ -244,12 +244,12 @@ export class WOODState {
         console.log(`Total Stack length ${this.woodResponse.stack.length}`);
 
         const ws = this;
-        let stack = this.woodResponse.stack.map(v=>ws.serializeValue(v));
+        let stack = this.woodResponse.stack.map(v => ws.serializeValue(v));
         const nrBytesUsedForAmountVals = 2 * 2;
         const headerSize = RecvStateType.stackvalsState.length + nrBytesUsedForAmountVals;
-        while (stack.length !== 0 ){
+        while (stack.length !== 0) {
             const fit = stateMsgs.howManyFit(headerSize, stack);
-            if(fit === 0){
+            if (fit === 0) {
                 stateMsgs.forceNewMessage();
             }
             const amountVals = HexaEncoder.serializeUInt16BE(fit);
@@ -270,17 +270,17 @@ export class WOODState {
         console.log('--------------');
         let elements = this.woodResponse.table.elements.map(HexaEncoder.serializeUInt32BE);
         console.log(`Total Elements ${this.woodResponse.table.elements.length}`);
-        const nrBytesUsedForAmountElements = 4*2;
+        const nrBytesUsedForAmountElements = 4 * 2;
         const headerSize = RecvStateType.tblState.length + nrBytesUsedForAmountElements;
-        while (elements.length !== 0 ){
+        while (elements.length !== 0) {
             const fit = stateMsgs.howManyFit(headerSize, elements);
-            if (fit === 0 ){
+            if (fit === 0) {
                 stateMsgs.forceNewMessage();
                 continue;
             }
             const amountElements = HexaEncoder.serializeUInt32BE(fit);
-            const elems = elements.slice(0, fit).join('');
-            const el_str = this.woodResponse.table.elements.slice(0,fit).map(e=>e.toString()).join(', ');
+            const elems = elements.slice(0, fit).join("");
+            const el_str = this.woodResponse.table.elements.slice(0, fit).map(e => e.toString()).join(", ");
             console.log(`msg: amountElements ${fit} elements ${el_str}`);
             const payload = `${RecvStateType.tblState}${amountElements}${elems}`;
             stateMsgs.addPayload(payload);
@@ -298,19 +298,19 @@ export class WOODState {
         console.log(`Total Frames ${this.woodResponse.callstack.length}`);
 
         const ws = this;
-        let frames = this.woodResponse.callstack.map(f=>ws.serializeFrame(f));
-        const nrBytesUsedForAmountFrames = 2* 2;
+        let frames = this.woodResponse.callstack.map(f => ws.serializeFrame(f));
+        const nrBytesUsedForAmountFrames = 2 * 2;
         const headerSize = RecvStateType.callstackState.length + nrBytesUsedForAmountFrames;
-        while (frames.length !==0 ){
+        while (frames.length !== 0) {
             const fit = stateMsgs.howManyFit(headerSize, frames);
-            if(fit === 0 ){
+            if (fit === 0) {
                 stateMsgs.forceNewMessage();
                 continue;
             }
             const amountFrames = HexaEncoder.serializeUInt16BE(fit);
             const fms = frames.slice(0, fit).join('');
             console.log(`msg: amountFrames=${fit}`);
-            const payload =  `${RecvStateType.callstackState}${amountFrames}${fms}`;
+            const payload = `${RecvStateType.callstackState}${amountFrames}${fms}`;
             stateMsgs.addPayload(payload);
             frames = frames.slice(fit, frames.length);
         }
@@ -326,12 +326,12 @@ export class WOODState {
 
         console.log(`Total Globals ${this.woodResponse.globals.length}`);
         const ws = this;
-        let globals = this.woodResponse.globals.map(v=>ws.serializeValue(v));
-        const nrBytesNeededForAmountGlbs = 4*2;
+        let globals = this.woodResponse.globals.map(v => ws.serializeValue(v));
+        const nrBytesNeededForAmountGlbs = 4 * 2;
         const headerSize = RecvStateType.globalsState.length + nrBytesNeededForAmountGlbs;
-        while( globals.length !== 0 ){
+        while (globals.length !== 0) {
             const fit = stateMsgs.howManyFit(headerSize, globals);
-            if(fit === 0 ){
+            if (fit === 0) {
                 stateMsgs.forceNewMessage();
                 continue;
             }
@@ -348,17 +348,17 @@ export class WOODState {
         // |        Header                          | Memory Bytes
         // | MemState | Mem Start Idx | Mem End Idx |  byte 1   | byte 2| 
         // |  2 bytes |    4*2 bytes  |  4*2 bytes  | 1*2 bytes | .... 
-        console.log('==============');
-        console.log('Memory');
-        console.log('--------------');
-        const sizeHeader = RecvStateType.memState.length + 4 * 2 + 4 * 2 ;
-        let bytes = Array.from(this.woodResponse.memory.bytes).map (b => b.toString (16).padStart (2, '0'));
+        console.log("==============");
+        console.log("Memory");
+        console.log("--------------");
+        const sizeHeader = RecvStateType.memState.length + 4 * 2 + 4 * 2;
+        let bytes = Array.from(this.woodResponse.memory.bytes).map(b => b.toString(16).padStart(2, "0"));
         console.log(`Total Memory Bytes ${this.woodResponse.memory.bytes.length}`);
         let startMemIdx = 0;
         let endMemIdx = 0;
-        while (bytes.length !== 0){
+        while (bytes.length !== 0) {
             let fit = stateMsgs.howManyFit(sizeHeader, bytes);
-            if (fit === 0){
+            if (fit === 0) {
                 stateMsgs.forceNewMessage();
                 continue;
             }
@@ -384,12 +384,12 @@ export class WOODState {
         console.log(`Total Labels ${this.woodResponse.br_table.labels.length}`);
 
         let elements = this.woodResponse.br_table.labels.map(HexaEncoder.serializeUInt32BE);
-        const sizeHeader = RecvStateType.brtblState.length + 2 * 2 + 2 * 2 ;
+        const sizeHeader = RecvStateType.brtblState.length + 2 * 2 + 2 * 2;
         let startTblIdx = 0;
         let endTblIdx = 0;
-        while ( startTblIdx < this.woodResponse.br_table.labels.length){
+        while (startTblIdx < this.woodResponse.br_table.labels.length) {
             let fit = stateMsgs.howManyFit(sizeHeader, elements);
-            if (fit === 0){
+            if (fit === 0) {
                 stateMsgs.forceNewMessage();
                 continue;
             }
@@ -458,7 +458,7 @@ export class WOODState {
         // | 1 * 2 bytes |  4*2 or 8*2 bytes |
         let type = -1;
         let v = '';
-        let type_str='';
+        let type_str = '';
 
         if (val.type === 'i32') {
             if (val.value < 0) {
@@ -494,11 +494,11 @@ export class WOODState {
             throw (new Error(`Got unexisting stack Value type ${val.type} value ${val.value}`));
         }
         console.log(`Value: type=${type_str}(idx ${type}) val=${val.value}`);
-        if(includeType){
+        if (includeType) {
             const typeHex = HexaEncoder.serializeUInt8(type);
             return `${typeHex}${v}`;
         }
-        else{
+        else {
             return v;
         }
     }
@@ -539,7 +539,7 @@ export class WOODState {
         const ws = this;
         const ignoreType = false;
         const fidxHex = HexaEncoder.serializeUInt32BE(functionId);
-        const argsHex = args.map(v=>ws.serializeValue(v, ignoreType)).join(''); 
+        const argsHex = args.map(v => ws.serializeValue(v, ignoreType)).join("");
         return `${InterruptTypes.interruptProxyCall}${fidxHex}${argsHex}`;
     }
 }
