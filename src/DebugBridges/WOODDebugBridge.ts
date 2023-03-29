@@ -56,19 +56,31 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         await this.specifyProxyCalls();
     };
 
+    public refresh() {
+        this.sendInterrupt(InterruptTypes.interruptDUMPFull);
+        // this.sendInterrupt(InterruptTypes.interruptWOODDump);
+    }
+
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
         const port: string = vscode.workspace.getConfiguration().get("warduino.Port") ?? "/dev/ttyUSB0";
         const baudrate: string = vscode.workspace.getConfiguration().get("warduino.Baudrate") ?? "115200";
-        // return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--proxy', port, '--socket', `${this.deviceConfig.port}`, '--baudrate', baudrate]);
-        // return spawn(`echo`, ['"Listening"']);
         const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${this.deviceConfig.port}`];
+
         if(this.deviceConfig.needsProxyToAnotherVM()){
-            args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
+            const ip = this.deviceConfig.proxyConfig?.ip;
+            if(!!ip && ip !== ""){
+                args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
+            }
+            else{
+                args.push("--proxy", port, "--baudrate", baudrate);
+            }
         }
-        else {
-            args.push("--proxy", port, "--baudrate", baudrate);
+
+        if(this.deviceConfig.onStartConfig.pause){
+            args.push("--paused");
         }
         return spawn(`${this.sdk}/build-emu/wdcli`, args);
+        // return spawn(`echo`, ['"Listening"']);
     }
 }

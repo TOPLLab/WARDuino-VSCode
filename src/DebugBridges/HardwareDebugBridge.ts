@@ -84,6 +84,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     protected async openSocketPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
         this.socketConnection = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
+        // TODO fix only on a newline handle the line
         this.socketConnection.on('data', (data)=>{this.handleLine(data);});
         const maxConnectionAttempts = 5;
         if(await this.socketConnection.openConnection(maxConnectionAttempts)){
@@ -112,8 +113,24 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     protected installInputStreamListener() {
         const parser = new ReadlineParser();
         this.client?.pipe(parser);
-        parser.on('data', (line: string) => {
-            this.handleLine(line);
+        let buff = '';
+        parser.on("data", (line: string) => {
+            try {
+                if(buff === ''){
+                    this.handleLine(line);
+                }
+                else{
+                    this.handleLine(buff + line);
+                }
+            }
+            catch(e){
+                if(e instanceof SyntaxError){
+                    buff +=line;
+                }
+                else{
+                    buff ='';
+                }
+            }
         });
     }
 
@@ -248,7 +265,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     refresh(): void {
         console.log("Plugin: Refreshing");
-        this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
+        this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {
             if (err) {
                 return console.log('Error on write: ', err.message);
             }
