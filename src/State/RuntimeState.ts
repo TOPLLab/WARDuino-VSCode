@@ -82,7 +82,7 @@ export class RuntimeState {
     public updateLocal(name: string, value: string): VariableInfo | undefined {
         const newValue = parseInt(value);
         if (isNaN(newValue)) {
-            return;
+            return undefined;
         }
         const local = this.locals.find(l => l.name === name);
         if (!!local) {
@@ -93,9 +93,26 @@ export class RuntimeState {
         return undefined;
     }
 
-    public updateArgument(name: string, value: string): VariableInfo | undefined {
-        return undefined;
+    public getLocal(name: string) {
+        return this.locals.find(l => l.name === name);
+    }
 
+    public updateArgument(name: string, value: string): VariableInfo | undefined {
+        const newValue = parseInt(value);
+        if (isNaN(newValue)) {
+            return undefined;
+        }
+        const arg = this.arguments.find(l => l.name === name);
+        if (!!arg) {
+            this.wasmState?.updateStackValue(arg.index, newValue);
+            arg.value = newValue.toString();
+            return arg;
+        }
+        return undefined;
+    }
+
+    public getArgument(name: string) {
+        return this.arguments.find(l => l.name === name);
     }
 
     public updateGlobal(name: string, value: string): VariableInfo | undefined {
@@ -112,6 +129,10 @@ export class RuntimeState {
         return undefined;
     }
 
+    public getGlobal(name: string) {
+        return this.globals.find(g => g.name === name);
+    }
+    
     private fillState() {
         this.startAddress = 0;
         this.setRawProgramCounter(this.wasmState.getPC());

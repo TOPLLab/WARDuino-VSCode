@@ -259,23 +259,31 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         if (v === "locals") {
             newvariable = state?.updateLocal(args.name, args.value);
             if (!!newvariable) {
-                console.log("calling updatelocal");
                 await this.debugBridge?.updateLocal(newvariable);
+            }
+            else {
+                newvariable = state?.getLocal(args.name);
             }
         }
         else if (v === "globals") {
             newvariable = state?.updateGlobal(args.name, args.value);
             if (!!newvariable) {
-                console.log("calling updateGlobal");
                 await this.debugBridge?.updateGlobal(newvariable);
             }
+            else {
+                newvariable = state?.getGlobal(args.name);
+            }
         }
-        // else if(v === "arguments"){
-        // valid = state.updateArgument(args.name, args.value);
-        // }
-        // else{
-        //     console.log("something else");
-        // }
+        else if (v === "arguments") {
+            newvariable = state?.updateArgument(args.name, args.value);
+            if (!!newvariable) {
+                await this.debugBridge?.updateLocal(newvariable);
+            } else {
+                newvariable = state?.getArgument(args.name);
+            }
+        }
+
+
         let newvalue = "invalid";
         if (!!newvariable) {
             newvalue = newvariable?.value;
