@@ -2,6 +2,7 @@ import { EventItem } from "../Views/EventsProvider";
 import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "./VariableInfo";
 import { WasmState } from "./AllState";
+import { SourceMap } from "./SourceMap";
 
 function hash(s: string) {
     let h: number = 0;
@@ -22,10 +23,18 @@ export class RuntimeState {
     public globals: VariableInfo[] = [];
     public arguments: VariableInfo[] = [];
 
-    public wasmState: WasmState | undefined;
+    public wasmState: WasmState;
 
-    constructor(source?: string) {
-        this.id = hash(source ?? '');
+    private source: string = "";
+    private sourceMap: SourceMap;
+
+
+    constructor(source: string, sourceMap: SourceMap) {
+        this.id = hash(source ?? "");
+        this.sourceMap = sourceMap;
+        this.source = source;
+        this.wasmState = WasmState.fromLine(source, sourceMap);
+        this.fillState();
     }
 
     public getId(): number {
@@ -35,11 +44,6 @@ export class RuntimeState {
     public getRawProgramCounter(): number {
         return this.programCounter;
     }
-
-    public setWasmState(wasmState: WasmState) {
-        this.wasmState = wasmState;
-    }
-
 
     public getArguments() {
         this.arguments;
@@ -61,7 +65,7 @@ export class RuntimeState {
     }
 
     public deepcopy(): RuntimeState {
-        const copy = new RuntimeState(undefined);
+        const copy = new RuntimeState(this.source, this.sourceMap);
         copy.id = this.id;
         copy.programCounter = this.programCounter;
         copy.startAddress = this.startAddress;
@@ -107,5 +111,20 @@ export class RuntimeState {
         }
         return undefined;
     }
-    
+
+    private fillState() {
+        this.startAddress = 0;
+        this.setRawProgramCounter(this.wasmState.getPC());
+        this.callstack = this.wasmState.getCallStack().map(frame => {
+            return { index: Number(frame.fidx), returnAddress: frame.ra };
+        });
+        this.stack = this.wasmState.getStack();
+        this.locals = this.wasmState.getLocals();
+        this.events = []// TODO //!!!parsed.events ? [] : parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
+        this.globals = this.wasmState.getGlobals();
+        this.arguments = this.wasmState.getArguments();
+        //     runtimeState.locals = this.parseLocals(runtimeState.currentFunction(), bridge, parsed.locals.locals);
+        //     runtimeState.events = parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
+        // }
+    }
 }
