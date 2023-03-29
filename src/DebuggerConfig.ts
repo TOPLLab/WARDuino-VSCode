@@ -145,6 +145,10 @@ export class DeviceConfig {
         if (obj.hasOwnProperty('port')) {
             this.port = obj.port;
         }
+        else {
+            this.port = DeviceConfig.defaultDebugPort;
+        }
+
         if (obj.hasOwnProperty("name")) {
             this.name = obj.name;
         } else {
