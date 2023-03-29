@@ -41,33 +41,9 @@ export class DebugInfoParser {
         if (line.startsWith("{\"events")) {
             bridge.refreshEvents(JSON.parse(line).events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
         } else if (line.startsWith("{\"pc")) {
-            const parsed = JSON.parse(line);
-            const runtimeState: RuntimeState = new RuntimeState(line);
-            if (line.includes("memory")) {
-                const ws = new WOODState(line);
-                const wasmState = new WasmState(ws.getState(), this.sourceMap);
-                runtimeState.setWasmState(wasmState);
-                runtimeState.startAddress = 0;
-                runtimeState.setRawProgramCounter(wasmState.getPC());
-                runtimeState.callstack = wasmState.getCallStack().map(frame => {
-                    return { index: Number(frame.fidx), returnAddress: frame.ra };
-                });
-                runtimeState.stack = wasmState.getStack();
-                runtimeState.locals = wasmState.getLocals();
-                runtimeState.events = !!!parsed.events ? [] : parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
-                runtimeState.globals = wasmState.getGlobals();
-                runtimeState.arguments = wasmState.getArguments();
-            }
-            else {
-                runtimeState.startAddress = parseInt(parsed.start);
-                runtimeState.setRawProgramCounter(parseInt(parsed.pc));
-                runtimeState.callstack = this.parseCallstack(parsed.callstack);
-                runtimeState.locals = this.parseLocals(runtimeState.currentFunction(), bridge, parsed.locals.locals);
-                runtimeState.events = parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
-            }
-
+            const runtimeState: RuntimeState = new RuntimeState(line, this.sourceMap);
             bridge.updateRuntimeState(runtimeState);
-            console.log(bridge.getProgramCounter().toString(16));
+            console.log(`PC=${bridge.getProgramCounter().toString(16)}`);
         }
     }
 
