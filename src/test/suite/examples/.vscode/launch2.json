@@ -8,15 +8,21 @@
             "type": "WARDuinoDBG",
             "request": "launch",
             "name": "Debug WARDuino",
-            "program": "${workspaceFolder}/dimmer-m5stickc.wast",
+            "program": "${workspaceFolder}/blink.wast",
             "device": {
                 "name": "Embedded",
                 "debugMode": "embedded",
+                "wifiCredentials": "${workspaceFolder}/.wificredentials.json",
+                "ip": "192.168.225.239",
                 "onStart": {
-                    "flash": false,
+                    "flash": true,
                     "updateSource": false,
                     "pause": true
                 },
+                "port": 8080,
+                "proxy":{
+                    "port": 8081
+                }
             },
             "stopOnEntry": true,
             "trace": false
