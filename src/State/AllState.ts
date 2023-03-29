@@ -21,7 +21,7 @@ export class WasmState {
 
     getArguments(): VariableInfo[] {
         const r = this.getCurrentFunctionAndFrame();
-        if (!!!r) {
+        if (!!!r || !!!this.state.stack) {
             return [];
         }
         const [frame, func] = r;
@@ -44,6 +44,9 @@ export class WasmState {
         }
         const [frame, func] = r;
         const stack = this.state.stack;
+        if (!!!stack) {
+            return [];
+        }
         return func.locals.map((local, idx) => {
             const sv = stack[frame.fp + 1 + idx];
             return { index: local.index, name: local.name, type: local.type, mutable: local.mutable, value: `${sv.value}` };
@@ -51,12 +54,12 @@ export class WasmState {
     }
 
     getGlobals(): VariableInfo[] {
-        return this.state.globals.map((gb, idx) => {
+        return this.state.globals?.map((gb, idx) => {
             const globalInfo = this.sourceMap.globalInfos[idx];
             const r = Object.assign({}, globalInfo);
             r.value = gb.value.toString();
             return r;
-        });
+        }) ?? [];
     }
 
     getFunction(funcId: number): FunctionInfo | undefined {
@@ -68,7 +71,7 @@ export class WasmState {
     }
 
     getCallStack(): Frame[] {
-        return this.state.callstack.filter(frame => frame.type === FRAME_FUNC_TYPE);
+        return this.state.callstack?.filter(frame => frame.type === FRAME_FUNC_TYPE) ?? [];
     }
 
     getStack(): VariableInfo[] {
@@ -94,12 +97,16 @@ export class WasmState {
     }
 
     getAllStack(): VariableInfo[] {
-        return this.state.stack.map((sv, idx) => {
+        return this.state.stack?.map((sv, idx) => {
             return { index: idx, name: "", type: sv.type, mutable: true, value: sv.value.toString() };
-        });
+        }) ?? [];
     }
 
     private getCurrentFunctionAndFrame(): [Frame, FunctionInfo] | undefined {
+        if (!!!this.state.callstack) {
+            return undefined;
+        }
+
         let index = this.state.callstack.length - 1;
         while (index >= 0 && this.state.callstack[index].type !== FRAME_FUNC_TYPE) {
             index--;
@@ -118,7 +125,7 @@ export class WasmState {
     }
 
     public updateStackValue(index: number, newvalue: number): void {
-        const stack = this.state.stack;
+        const stack = this.state.stack ?? [];
         if (index >= stack.length) {
             return undefined;
         }
@@ -127,7 +134,7 @@ export class WasmState {
     }
 
     public updateGlobalValue(index: number, newvalue: number): void {
-        const gbls = this.state.globals;
+        const gbls = this.state.globals ?? [];
         if (index >= gbls.length) {
             return undefined;
         }
@@ -137,7 +144,7 @@ export class WasmState {
 
 
     public serializeStackValueUpdate(index: number): string | undefined {
-        if (index >= this.state.stack.length) {
+        if (!!!this.state.stack || index >= this.state.stack.length) {
             return undefined;
         }
         const sv = this.state.stack[index];
@@ -145,13 +152,12 @@ export class WasmState {
     }
 
     public serializeGlobalValueUpdate(index: number): string | undefined {
-        if (index >= this.state.globals.length) {
+        if (!!!this.state.globals || index >= this.state.globals.length) {
             return undefined;
         }
         const sv = this.state.globals[index];
         return WOODState.serializeGlobalValueUpdate(sv);
     }
-
 
     static fromLine(line: string, sourceMap: SourceMap): WasmState {
         const ws = new WOODState(line);
