@@ -33,7 +33,7 @@ export class StackItem extends vscode.TreeItem {
     private value: VariableInfo;
 
     constructor(value: VariableInfo, treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
-        const label = `${value.type}: ${value.value}`;
+        const label = `Value${value.index} (${value.type}): ${value.value}`;
         super(label, treeItemCollapsibleState);
         this.value = value;
     }
