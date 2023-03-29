@@ -4,7 +4,7 @@
   (type $void->i32 (func (result i32)))
   (type $void->void (func))
 
-  (import "env" "chip_ledc_analog_write" (func $env.analogWrite (type $i32->i32->i32->void)))
+  (import "env" "chip_analog_write" (func $env.analogWrite (type $i32->i32->i32->void)))
   (import "env" "chip_ledc_setup" (func $env.ledcSetup (type $i32->i32->i32->void)))
   (import "env" "chip_ledc_attach_pin" (func $env.ledcAttachPin (type $i32->i32->void)))
   (import "env" "subscribe_interrupt" (func $env.subscribeInterrupt (type $i32->i32->i32->void)))
