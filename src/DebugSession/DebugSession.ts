@@ -145,7 +145,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             const dc = this.debuggerConfig.device;
             const path2sdk = vscode.workspace.getConfiguration().get("warduino.WARDuinoToolChainPath") as string;
             ArduinoTemplateBuilder.setPath2Templates(path2sdk);
-            ArduinoTemplateBuilder.buildArduinoWithWifi(dc);
+            ArduinoTemplateBuilder.build(dc);
         }
 
         this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
