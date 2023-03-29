@@ -54,13 +54,13 @@ export interface BRTable {
 
 export interface WOODDumpResponse {
     pc: number;
-    breakpoints: number[];
-    stack: StackValue[];
-    callstack: Frame[];
-    globals: StackValue[];
-    table: Table;
-    memory: Memory;
-    br_table: BRTable;
+    breakpoints?: number[];
+    stack?: StackValue[];
+    callstack?: Frame[];
+    globals?: StackValue[];
+    table?: Table;
+    memory?: Memory;
+    br_table?: BRTable;
 }
 
 
@@ -175,8 +175,10 @@ export class WOODState {
     private unparsedJSON = '';
     public callbacks = '';
     private woodResponse: WOODDumpResponse;
+    public sourceState = "";
 
     constructor(state: string) {
+        this.sourceState = state;
         this.unparsedJSON = state.trimEnd();
         this.woodResponse = JSON.parse(this.unparsedJSON);
     }
@@ -211,9 +213,12 @@ export class WOODState {
         // |      Header       |        Breakpoints
         // | BPState  | Nr BPS |     BP1          | BP2 | ...
         // |  2 bytes |   1*2  | serializePointer |
-        console.log('==============');
-        console.log('Breakpoints');
-        console.log('--------------');
+        if (!!!this.woodResponse.breakpoints) {
+            return;
+        }
+        console.log("==============");
+        console.log("Breakpoints");
+        console.log("--------------");
         const ws = this;
         const nrBytesUsedForAmountBPs = 1 * 2;
         const headerSize = RecvStateType.bpsState.length + nrBytesUsedForAmountBPs;
@@ -238,9 +243,12 @@ export class WOODState {
         // |          Header           |       StackValues
         // | StackState | Nr StackVals |     V1         | V2 | ...
         // |  2 bytes   |      2*2     | serializeValue |   
-        console.log('==============');
-        console.log('STACK');
-        console.log('--------------');
+        if (!!!this.woodResponse.stack) {
+            return;
+        }
+        console.log("==============");
+        console.log("STACK");
+        console.log("--------------");
         console.log(`Total Stack length ${this.woodResponse.stack.length}`);
 
         const ws = this;
@@ -265,9 +273,12 @@ export class WOODState {
         // |          Header          |       Elements
         // | TableState | Nr Elements |    elem  1  | elem 2 | ...
         // |  2 bytes   |   4*2       |  4*2 bytes  |  
-        console.log('==============');
-        console.log('TABLE');
-        console.log('--------------');
+        if (!!!this.woodResponse.table) {
+            return;
+        }
+        console.log("==============");
+        console.log("TABLE");
+        console.log("--------------");
         let elements = this.woodResponse.table.elements.map(HexaEncoder.serializeUInt32BE);
         console.log(`Total Elements ${this.woodResponse.table.elements.length}`);
         const nrBytesUsedForAmountElements = 4 * 2;
@@ -292,9 +303,12 @@ export class WOODState {
         // |           Header           |              Frames
         // | CallstackState | Nr Frames |   Frame 1      | Frame 2 | ...
         // |    2 bytes     |  2*2bytes | serializeFrame | 
-        console.log('==============');
-        console.log('CallStack');
-        console.log('--------------');
+        if (!!!this.woodResponse.callstack) {
+            return;
+        }
+        console.log("==============");
+        console.log("CallStack");
+        console.log("--------------");
         console.log(`Total Frames ${this.woodResponse.callstack.length}`);
 
         const ws = this;
@@ -320,9 +334,12 @@ export class WOODState {
         // |        Header          |       Globals
         // | GlobalState |  Nr Vals |     V1         | V2 | ...
         // |  2 bytes    | 4*2bytes | serializeValue |   
-        console.log('==============');
-        console.log('GLOBALS');
-        console.log('--------------');
+        if (!!!this.woodResponse.globals) {
+            return;
+        }
+        console.log("==============");
+        console.log("GLOBALS");
+        console.log("--------------");
 
         console.log(`Total Globals ${this.woodResponse.globals.length}`);
         const ws = this;
@@ -348,6 +365,9 @@ export class WOODState {
         // |        Header                          | Memory Bytes
         // | MemState | Mem Start Idx | Mem End Idx |  byte 1   | byte 2| 
         // |  2 bytes |    4*2 bytes  |  4*2 bytes  | 1*2 bytes | .... 
+        if (!!!this.woodResponse.memory) {
+            return;
+        }
         console.log("==============");
         console.log("Memory");
         console.log("--------------");
@@ -378,9 +398,12 @@ export class WOODState {
         // |                    Header           |        Labels 
         // | BR_TblState |  StartIdx |  EndIdx   | label 1   | label 2| 
         // |  2 bytes    | 2*2 bytes | 2*2 bytes | 4*2 bytes | .... 
-        console.log('==============');
-        console.log('BRTable');
-        console.log('--------------');
+        if (!!!this.woodResponse.br_table) {
+            return;
+        }
+        console.log("==============");
+        console.log("BRTable");
+        console.log("--------------");
         console.log(`Total Labels ${this.woodResponse.br_table.labels.length}`);
 
         let elements = this.woodResponse.br_table.labels.map(HexaEncoder.serializeUInt32BE);
@@ -419,12 +442,18 @@ export class WOODState {
     }
 
     private serialiseAllocationMessage(stateMsgs: HexaStateMessages): void {
-        console.log('==============');
-        console.log('Allocate MSG');
-        console.log('--------------');
+        const wr = this.woodResponse;
+        if (!!!wr.globals || !!!wr.table || !!!wr.memory) {
+            throw (new Error("cannot serialise Allocaton Message when state is missing"));
+            return;
+        }
+
+        console.log("==============");
+        console.log("Allocate MSG");
+        console.log("--------------");
 
         // Globals
-        const wr = this.woodResponse;
+
         const gblsAmountHex = HexaEncoder.serializeUInt32BE(wr.globals.length);
         console.log(`Globals: total=${wr.globals.length}`);
         const globals = `${RecvStateType.globalsState}${gblsAmountHex}`;
@@ -553,5 +582,108 @@ export class WOODState {
         const stackIDx = HexaEncoder.serializeUInt32BE(value.idx);
         const valueHex = this.serializeValue(value);
         return `${InterruptTypes.interruptUPDATEGlobalValue}${stackIDx}${valueHex}`;
+    }
+}
+
+export class StateRequest {
+    static readonly PC = 0b10000000;
+    static readonly STACK = 0b01000000;
+    static readonly CALLSTACK = 0b00100000;
+    static readonly MEMORY = 0b00010000;
+    static readonly TABLE = 0b00001000;
+    static readonly BR_TABLE = 0b00000100;
+    static readonly GLOBALS = 0b00000010;
+    static readonly BREAKPOINTS = 0b00000001;
+
+    private pc = false;
+    private stack = false;
+    private callstack = false;
+    private globals = false;
+    private memory = false;
+    private table = false;
+    private br_table = false;
+    private breakpoints = false;
+
+
+    public includePC() {
+        this.pc = true;
+    }
+
+    public includeStack() {
+        this.stack = true;
+    }
+
+    public includeCallstack() {
+        this.callstack = true;
+    }
+
+    public includeGlobals() {
+        this.globals = true;
+    }
+
+    public includeMemory() {
+        this.memory = true;
+    }
+
+    public includeTable() {
+        this.table = true;
+    }
+
+    public includeBranchingTable() {
+        this.br_table = true;
+    }
+
+    public includeBreakpoints() {
+        this.breakpoints = true;
+    }
+
+    public includeAll() {
+        this.pc = true;
+        this.stack = true;
+        this.callstack = true;
+        this.globals = true;
+        this.memory = true;
+        this.table = true;
+        this.br_table = true;
+        this.breakpoints = true;
+    }
+
+
+    public generateInterrupt(): string {
+        let flags = 0;
+        if (this.pc) {
+            flags |= StateRequest.PC;
+        }
+
+        if (this.stack) {
+            flags |= StateRequest.STACK;
+        }
+
+        if (this.callstack) {
+            flags |= StateRequest.CALLSTACK;
+        }
+
+        if (this.globals) {
+            flags |= StateRequest.GLOBALS;
+        }
+
+        if (this.memory) {
+            flags |= StateRequest.MEMORY;
+        }
+
+        if (this.table) {
+            flags |= StateRequest.TABLE;
+        }
+
+        if (this.br_table) {
+            flags |= StateRequest.BR_TABLE;
+        }
+
+        if (this.breakpoints) {
+            flags |= StateRequest.BREAKPOINTS;
+        }
+
+        const hexaFlag = HexaEncoder.serializeUInt8(flags);
+        return `${InterruptTypes.interruptWOODDump}${hexaFlag}`;
     }
 }
