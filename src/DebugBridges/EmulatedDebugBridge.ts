@@ -1,16 +1,17 @@
-import {ChildProcess, spawn} from 'child_process';
+import { ChildProcess, spawn } from 'child_process';
 import * as net from 'net';
-import {DebugBridgeListener} from './DebugBridgeListener';
-import {InterruptTypes} from './InterruptTypes';
-import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {AbstractDebugBridge} from "./AbstractDebugBridge";
-import {WOODState} from "../State/WOODState";
-import {SourceMap} from "../State/SourceMap";
-import {EventsProvider} from "../Views/EventsProvider";
-import {Readable} from 'stream';
-import {ReadlineParser} from 'serialport';
+import { DebugBridgeListener } from './DebugBridgeListener';
+import { InterruptTypes } from './InterruptTypes';
+import { DebugInfoParser } from "../Parsers/DebugInfoParser";
+import { AbstractDebugBridge } from "./AbstractDebugBridge";
+import { WOODState } from "../State/WOODState";
+import { SourceMap } from "../State/SourceMap";
+import { EventsProvider } from "../Views/EventsProvider";
+import { Readable } from 'stream';
+import { ReadlineParser } from 'serialport';
 import { DeviceConfig } from '../DebuggerConfig';
 import { StackProvider } from '../Views/StackProvider';
+import * as vscode from 'vscode';
 
 // export const EMULATOR_PORT: number = 8300;
 
@@ -23,7 +24,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private buffer: string = '';
 
     constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, tmpdir: string, listener: DebugBridgeListener,
-                warduinoSDK: string) {
+        warduinoSDK: string) {
         super(config, sourceMap, eventsProvider, stackProvider, listener);
 
         this.sdk = warduinoSDK;
@@ -54,7 +55,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             let that = this;
-            let address = {port: this.deviceConfig.port, host: "127.0.0.1"};  // TODO config
+            let address = { port: this.deviceConfig.port, host: "127.0.0.1" };  // TODO config
             if (this.client === undefined) {
                 this.client = new net.Socket();
                 this.client.connect(address, () => {
@@ -62,22 +63,22 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
                     resolve(`${address.host}:${address.port}`);
                 });
 
-                this.client.on('error', err => {
-                    this.listener.notifyError('Lost connection to the board');
+                this.client.on("error", err => {
+                    this.listener.notifyError("Lost connection to the board");
                     console.error(err);
                     reject(err);
                 }
                 );
 
-                this.client.on('data', data => {
-                    data.toString().split('\n').forEach((line) => {
+                this.client.on("data", data => {
+                    data.toString().split("\n").forEach((line) => {
                         console.log(`emulator: ${line}`);
 
-                        if (line.startsWith('Interrupt:')) {
+                        if (line.startsWith("Interrupt:")) {
                             this.buffer = line;
                         } else if (this.buffer.length > 0) {
                             this.buffer += line;
-                        } else if (line.startsWith('{')) {
+                        } else if (line.startsWith("{")) {
                             this.buffer = line;
                         } else {
                             that.parser.parse(that, line);
@@ -86,7 +87,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
                         try {
                             that.parser.parse(that, this.buffer);
-                            this.buffer = '';
+                            this.buffer = "";
                         } catch (e) {
                             return;
                         }
@@ -165,16 +166,24 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
+        const baudrate: string = vscode.workspace.getConfiguration().get("warduino.Baudrate") ?? "115200";
         const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${this.deviceConfig.port}`];
-        if(this.deviceConfig.needsProxyToAnotherVM()){
-            args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
-        }
-        if(this.deviceConfig.onStartConfig.pause){
-            args.push("--paused");
+
+        if (this.deviceConfig.needsProxyToAnotherVM()) {
+            const ip = this.deviceConfig.proxyConfig?.ip;
+            if (!!ip && ip !== "") {
+                args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
+            }
+            else {
+                args.push("--proxy", `${this.deviceConfig.port}`, "--baudrate", baudrate);
+            }
         }
 
+        if (this.deviceConfig.onStartConfig.pause) {
+            args.push("--paused");
+        }
         return spawn(`${this.sdk}/build-emu/wdcli`, args);
-        //return spawn(`echo`, ['"Listening"']);
+        // return spawn(`echo`, ['"Listening"']);
     }
 
 }
