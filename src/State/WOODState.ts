@@ -23,6 +23,8 @@ export const FRAME_INITEXPR_TYPE = 1;
 export const FRAME_BLOCK_TYPE = 2;
 export const FRAME_LOOP_TYPE = 3;
 export const FRAME_IF_TYPE = 4;
+export const FRAME_PROXY_GUARD_TYPE = 254;
+export const FRAME_CALLBACK_GUARD_TYPE = 255;
 
 export interface Frame {
     type: number;
@@ -535,20 +537,24 @@ export class WOODState {
     private serializeFrame(frame: Frame): string {
         // | Frame type | StackPointer | FramePointer |   Return Adress  | FID or Block ID
         // |  1*2 bytes |   4*2bytes   |   4*2bytes   | serializePointer | 4*2bytes or serializePointer
-        const validTypes = [FRAME_FUNC_TYPE, FRAME_INITEXPR_TYPE, FRAME_BLOCK_TYPE, FRAME_LOOP_TYPE, FRAME_IF_TYPE];
+        const validTypes = [FRAME_FUNC_TYPE, FRAME_INITEXPR_TYPE, FRAME_BLOCK_TYPE, FRAME_LOOP_TYPE, FRAME_IF_TYPE, FRAME_PROXY_GUARD_TYPE, FRAME_CALLBACK_GUARD_TYPE];
 
         if (validTypes.indexOf(frame.type) === -1) {
             throw (new Error(`received unknow frame type ${frame.type}`));
         }
         const type = HexaEncoder.serializeUInt8(frame.type);
-        const sp = HexaEncoder.serializeInt32(frame.sp, true);
-        const fp = HexaEncoder.serializeInt32(frame.fp, true);
+        const bigEndian = true;
+        const sp = HexaEncoder.serializeInt32(frame.sp, bigEndian);
+        const fp = HexaEncoder.serializeInt32(frame.fp, bigEndian);
         const ra = this.serializePointer(frame.ra);
         let rest = '';
         let res_str = ''; //TODO remove
         if (frame.type === FRAME_FUNC_TYPE) {
             rest = HexaEncoder.serializeUInt32BE(Number(frame.fidx));
             res_str = `fun_idx=${Number(frame.fidx)}`;
+        }
+        else if (frame.type === FRAME_PROXY_GUARD_TYPE || frame.type === FRAME_CALLBACK_GUARD_TYPE) {
+            // Nothing has to happen
         }
         else {
             rest = this.serializePointer(frame.block_key);
