@@ -1,8 +1,8 @@
-import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
-import {WOODState} from "../State/WOODState";
-import {InterruptTypes} from "./InterruptTypes";
-import {ProxyCallItem} from "../Views/ProxyCallsProvider";
-import {ChildProcess, spawn} from "child_process";
+import { EmulatedDebugBridge } from "./EmulatedDebugBridge";
+import { WOODState } from "../State/WOODState";
+import { InterruptTypes } from "./InterruptTypes";
+import { ProxyCallItem } from "../Views/ProxyCallsProvider";
+import { ChildProcess, spawn } from "child_process";
 import * as vscode from 'vscode';
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
@@ -56,28 +56,23 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         await this.specifyProxyCalls();
     };
 
-    public refresh() {
-        this.sendInterrupt(InterruptTypes.interruptDUMPFull);
-        // this.sendInterrupt(InterruptTypes.interruptWOODDump);
-    }
-
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
         const port: string = vscode.workspace.getConfiguration().get("warduino.Port") ?? "/dev/ttyUSB0";
         const baudrate: string = vscode.workspace.getConfiguration().get("warduino.Baudrate") ?? "115200";
         const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${this.deviceConfig.port}`];
 
-        if(this.deviceConfig.needsProxyToAnotherVM()){
+        if (this.deviceConfig.needsProxyToAnotherVM()) {
             const ip = this.deviceConfig.proxyConfig?.ip;
-            if(!!ip && ip !== ""){
+            if (!!ip && ip !== "") {
                 args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
             }
-            else{
+            else {
                 args.push("--proxy", port, "--baudrate", baudrate);
             }
         }
 
-        if(this.deviceConfig.onStartConfig.pause){
+        if (this.deviceConfig.onStartConfig.pause) {
             args.push("--paused");
         }
         return spawn(`${this.sdk}/build-emu/wdcli`, args);
