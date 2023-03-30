@@ -1,12 +1,12 @@
-import {AbstractDebugBridge, Messages} from './AbstractDebugBridge';
-import {DebugBridgeListener} from './DebugBridgeListener';
-import {ReadlineParser, SerialPort} from 'serialport';
-import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {InterruptTypes} from "./InterruptTypes";
-import {exec, spawn} from "child_process";
-import {WOODState} from "../State/WOODState";
-import {SourceMap} from "../State/SourceMap";
-import {EventsProvider} from "../Views/EventsProvider";
+import { AbstractDebugBridge, Messages } from "./AbstractDebugBridge";
+import { DebugBridgeListener } from "./DebugBridgeListener";
+import { ReadlineParser, SerialPort } from 'serialport';
+import { DebugInfoParser } from "../Parsers/DebugInfoParser";
+import { InterruptTypes } from "./InterruptTypes";
+import { exec, spawn } from "child_process";
+import { StateRequest, WOODState } from "../State/WOODState";
+import { SourceMap } from "../State/SourceMap";
+import { EventsProvider } from "../Views/EventsProvider";
 import { DeviceConfig } from "../DebuggerConfig";
 import * as path from 'path';
 import { LoggingSerialMonitor } from "../Channels/SerialConnection";
@@ -27,15 +27,15 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     private logginSerialConnection?: LoggingSerialMonitor;
 
     constructor(wasmPath: string,
-                deviceConfig: DeviceConfig,
-                sourceMap: SourceMap,
-                eventsProvider: EventsProvider | void,
-                stackProvider: StackProvider | undefined,
-                tmpdir: string,
-                listener: DebugBridgeListener,
-                portAddress: string,
-                fqbn: string,
-                warduinoSDK: string) {
+        deviceConfig: DeviceConfig,
+        sourceMap: SourceMap,
+        eventsProvider: EventsProvider | void,
+        stackProvider: StackProvider | undefined,
+        tmpdir: string,
+        listener: DebugBridgeListener,
+        portAddress: string,
+        fqbn: string,
+        warduinoSDK: string) {
         super(deviceConfig, sourceMap, eventsProvider, stackProvider, listener);
 
         this.sourceMap = sourceMap;
@@ -59,19 +59,19 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
                 await this.compileAndUpload();
             }
             this.listener.notifyProgress(Messages.connecting);
-            if(this.deviceConfig.usesWiFi()){
-              await this.openSocketPort(reject, resolve);
-              if(!!!this.logginSerialConnection){
-                  const loggername = this.deviceConfig.name;
-                  const port = this.portAddress;
-                  const baudRate = 115200;
-                  this.logginSerialConnection = new LoggingSerialMonitor(loggername,port,baudRate);
-              }
-              this.logginSerialConnection.openConnection().catch((err)=>{
-                  console.log(`Plugin: could not monitor serial port ${this.portAddress} reason: ${err}`);
-              });
+            if (this.deviceConfig.usesWiFi()) {
+                await this.openSocketPort(reject, resolve);
+                if (!!!this.logginSerialConnection) {
+                    const loggername = this.deviceConfig.name;
+                    const port = this.portAddress;
+                    const baudRate = 115200;
+                    this.logginSerialConnection = new LoggingSerialMonitor(loggername, port, baudRate);
+                }
+                this.logginSerialConnection.openConnection().catch((err) => {
+                    console.log(`Plugin: could not monitor serial port ${this.portAddress} reason: ${err}`);
+                });
             }
-            else{
+            else {
                 this.openSerialPort(reject, resolve);
                 this.installInputStreamListener();
             }
@@ -85,20 +85,20 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     protected async openSocketPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
         this.socketConnection = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
         // TODO fix only on a newline handle the line
-        this.socketConnection.on('data', (data)=>{this.handleLine(data);});
+        this.socketConnection.on('data', (data) => { this.handleLine(data); });
         const maxConnectionAttempts = 5;
-        if(await this.socketConnection.openConnection(maxConnectionAttempts)){
+        if (await this.socketConnection.openConnection(maxConnectionAttempts)) {
             this.listener.notifyProgress(Messages.connected);
             this.client = undefined;
             resolve(`${this.deviceConfig.ip}:${this.deviceConfig.port}`);
         }
-        else{
+        else {
             reject(`Could not connect to socket ${this.deviceConfig.ip}:${this.deviceConfig.port}`);
         }
     }
 
     protected openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
-        this.client = new SerialPort({path: this.portAddress, baudRate: 115200},
+        this.client = new SerialPort({ path: this.portAddress, baudRate: 115200 },
             (error) => {
                 if (error) {
                     reject(`Could not connect to serial port: ${this.portAddress}`);
@@ -116,19 +116,19 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         let buff = '';
         parser.on("data", (line: string) => {
             try {
-                if(buff === ''){
+                if (buff === '') {
                     this.handleLine(line);
                 }
-                else{
+                else {
                     this.handleLine(buff + line);
                 }
             }
-            catch(e){
-                if(e instanceof SyntaxError){
-                    buff +=line;
+            catch (e) {
+                if (e instanceof SyntaxError) {
+                    buff += line;
                 }
-                else{
-                    buff ='';
+                else {
+                    buff = '';
                 }
             }
         });
@@ -155,16 +155,16 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public disconnect(): void {
         console.error("CLOSED!");
-        if(!!this.client){
+        if (!!this.client) {
             this.client?.close((e) => {
                 console.log(e);
                 this.listener.notifyProgress(Messages.disconnected);
             });
         }
-        else{
+        else {
             // this.socketConnection?.close((e)=>{
             //     console.log(e);
-        this.listener.notifyProgress(Messages.disconnected);
+            this.listener.notifyProgress(Messages.disconnected);
             // });
         }
     }
@@ -173,7 +173,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         let lastStdOut = '';
         this.listener.notifyProgress(Messages.reset);
 
-        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, {cwd: path}, (err, stdout, stderr) => {
+        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
             console.error(err);
             lastStdOut = stdout + stderr;
             this.listener.notifyProgress(Messages.initialisationFailure);
@@ -242,8 +242,11 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     pullSession(): void {
         this.outOfPlaceActive = true;
         this.listener.notifyProgress(Messages.transfering);
-        this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
-            console.log('Plugin: WOOD Dump');
+        const req = new StateRequest();
+        req.includeAll();
+        const data = req.generateInterrupt();
+        this.sendData(data, (err: any) => {
+            console.log("Plugin: WOOD Dump");
             if (err) {
                 return console.log('Error on write: ', err.message);
             }
@@ -265,7 +268,14 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     refresh(): void {
         console.log("Plugin: Refreshing");
-        this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {
+        const req = new StateRequest();
+        req.includePC();
+        req.includeStack();
+        req.includeCallstack();
+        req.includeBreakpoints();
+        req.includeGlobals();
+        const data = req.generateInterrupt();
+        this.sendData(data, (err: any) => {
             if (err) {
                 return console.log('Error on write: ', err.message);
             }
