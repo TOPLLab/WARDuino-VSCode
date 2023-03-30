@@ -72,7 +72,7 @@ export class RuntimeState {
         copy.callstack = this.callstack.map(obj => Object.assign({}, obj));
         copy.locals = this.locals.map(obj => Object.assign({}, obj));
         copy.arguments = this.arguments.map(obj => Object.assign({}, obj));
-        copy.events = this.events.map(obj => new EventItem(obj.topic, obj.payload, obj.collapsibleState));
+        copy.events = this.events.map(obj => Object.assign({}, obj));
         copy.globals = this.globals.map(obj => Object.assign({}, obj));
         copy.stack = this.stack.map(obj => Object.assign({}, obj));
         copy.wasmState = this.wasmState;
@@ -132,7 +132,7 @@ export class RuntimeState {
     public getGlobal(name: string) {
         return this.globals.find(g => g.name === name);
     }
-    
+
     private fillState() {
         this.startAddress = 0;
         this.setRawProgramCounter(this.wasmState.getPC());
@@ -141,11 +141,11 @@ export class RuntimeState {
         });
         this.stack = this.wasmState.getStack();
         this.locals = this.wasmState.getLocals();
-        this.events = []// TODO //!!!parsed.events ? [] : parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
         this.globals = this.wasmState.getGlobals();
         this.arguments = this.wasmState.getArguments();
-        //     runtimeState.locals = this.parseLocals(runtimeState.currentFunction(), bridge, parsed.locals.locals);
-        //     runtimeState.events = parsed.events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload)));
-        // }
+    }
+
+    public setEvents(events: EventItem[]): void {
+        this.events = events;
     }
 }
