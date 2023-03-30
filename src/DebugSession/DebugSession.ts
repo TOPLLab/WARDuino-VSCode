@@ -173,6 +173,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
                     const name = `${that.debuggerConfig.device.name} (Emulator)`;
                     const dc = DeviceConfig.configForProxy(name, that.debuggerConfig.device);
+                    const runtimeState = that.debugBridge?.getCurrentState()?.deepcopy();
 
                     that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap as SourceMap, eventsProvider, stackProvider, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
@@ -181,7 +182,11 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                             (that.debugBridge as WOODDebugBridge).pushSession(woodState).
                                 then(v => {
                                     (that.debugBridge as WOODDebugBridge).specifyProxyCalls();
-                                }).catch(console.error);
+                                    if (!!runtimeState) {
+                                        that.debugBridge?.updateRuntimeState(runtimeState);
+                                    }
+                                }).
+                                catch(console.error);
                         },
                         startMultiverseDebugging(woodState: WOODState) {
                         },
