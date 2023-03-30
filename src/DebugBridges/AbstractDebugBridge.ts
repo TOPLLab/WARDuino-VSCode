@@ -91,7 +91,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     // Debug API
 
     public run(): void {
-        this.resetHistory();
+        // this.resetHistory();
+        console.log("Bridge: Running no longer resets history");
         this.sendInterrupt(InterruptTypes.interruptRUN);
     }
 
@@ -240,6 +241,15 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
         else {
             return this.socketConnection?.write(`${i} \n`, callback);
+        }
+    }
+
+    protected sendData(d: string, callback?: (error: Error | null | undefined) => void) {
+        if (!!this.client) {
+            return this.client?.write(`${d}\n`, callback);
+        }
+        else {
+            return this.socketConnection?.write(`${d}\n`, callback);
         }
     }
 
