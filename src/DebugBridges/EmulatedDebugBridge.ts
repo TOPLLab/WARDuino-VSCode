@@ -4,7 +4,7 @@ import { DebugBridgeListener } from './DebugBridgeListener';
 import { InterruptTypes } from './InterruptTypes';
 import { DebugInfoParser } from "../Parsers/DebugInfoParser";
 import { AbstractDebugBridge } from "./AbstractDebugBridge";
-import { WOODState } from "../State/WOODState";
+import { StateRequest, WOODState } from "../State/WOODState";
 import { SourceMap } from "../State/SourceMap";
 import { EventsProvider } from "../Views/EventsProvider";
 import { Readable } from 'stream';
@@ -73,27 +73,19 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
                 );
 
                 this.client.on("data", data => {
-                    data.toString().split("\n").forEach((line) => {
+                    this.buffer += data.toString();
+                    let idx = this.buffer.indexOf("\n");
+                    while (idx !== -1) {
+                        const line = this.buffer.slice(0, idx);
+                        this.buffer = this.buffer.slice(idx + 1); // skip newline
                         console.log(`emulator: ${line}`);
-
-                        if (line.startsWith("Interrupt:")) {
-                            this.buffer = line;
-                        } else if (this.buffer.length > 0) {
-                            this.buffer += line;
-                        } else if (line.startsWith("{")) {
-                            this.buffer = line;
-                        } else {
-                            that.parser.parse(that, line);
-                            return;
-                        }
-
                         try {
-                            that.parser.parse(that, this.buffer);
-                            this.buffer = "";
+                            that.parser.parse(that, line);
                         } catch (e) {
-                            return;
+                            console.log(`Emulator: failed to parse ${line}`);
                         }
-                    });
+                        idx = this.buffer.indexOf("\n");
+                    };
                 }
                 );
             } else {
@@ -103,12 +95,32 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     public refresh() {
-        // this.sendInterrupt(InterruptTypes.interruptDUMPFull);
-        this.sendInterrupt(InterruptTypes.interruptWOODDump);
+        const stateRequest = new StateRequest();
+        stateRequest.includePC();
+        stateRequest.includeStack();
+        stateRequest.includeGlobals();
+        stateRequest.includeCallstack();
+        stateRequest.includeBreakpoints();
+        const req = stateRequest.generateInterrupt();
+        const cberr = (err: any) => {
+            if (err) {
+                console.error(`Emulated: refresh Error ${err}`);
+            }
+        };
+        this.sendData(req, cberr);
+        this.sendInterrupt(InterruptTypes.interruptDUMPAllEvents, cberr);
     }
 
     public pullSession() {
-        this.sendInterrupt(InterruptTypes.interruptWOODDump);
+        const stateRequest = new StateRequest();
+        stateRequest.includeAll();
+        const req = stateRequest.generateInterrupt();
+        const cberr = (err: any) => {
+            if (err) {
+                console.error(`Emulated: pullSession error ${err}`);
+            }
+        };
+        this.sendData(req, cberr);
     }
 
     public pushSession(woodState: WOODState) {
