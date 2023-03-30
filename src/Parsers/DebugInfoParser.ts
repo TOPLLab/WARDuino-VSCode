@@ -39,9 +39,24 @@ export class DebugInfoParser {
         }
 
         if (line.startsWith("{\"events")) {
-            bridge.refreshEvents(JSON.parse(line).events?.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
+            // TODO create empty runtimeState
+            const rs = bridge.getCurrentState();
+            const evts = JSON.parse(line).events;
+            if (!!rs && !!evts) {
+                rs.setEvents(evts.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
+                bridge?.refreshEvents(rs.events);
+            } else {
+                if (!!!rs) {
+                    console.error("DebugInfoParser: no runtimestate to set events upon");
+                }
+                if (!!!evts) {
+                    console.log("DebugInfoParser: received invalid events");
+                }
+            }
         } else if (line.startsWith("{\"pc")) {
             const runtimeState: RuntimeState = new RuntimeState(line, this.sourceMap);
+            const prevState = bridge.getCurrentState();
+            runtimeState.setEvents(prevState?.events ?? []);
             bridge.updateRuntimeState(runtimeState);
             console.log(`PC=${bridge.getProgramCounter().toString(16)}`);
         }
