@@ -6,6 +6,7 @@ export enum InterruptTypes {
     interruptSTEP = '04',
     interruptBPAdd = '06',
     interruptBPRem = '07',
+    interruptDumpExecutionState = '09',
     interruptDUMP = '10',
     interruptDUMPLocals = '11',
     interruptDUMPFull = '12',
