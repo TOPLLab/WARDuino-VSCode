@@ -1,7 +1,7 @@
 import { SourceMap } from "../State/SourceMap";
 import { FunctionInfo } from "./FunctionInfo";
 import { VariableInfo } from "./VariableInfo";
-import { WOODDumpResponse, WOODState, Frame, FRAME_FUNC_TYPE } from "./WOODState";
+import { WOODDumpResponse, WOODState, Frame, FRAME_FUNC_TYPE, InterruptEvent } from "./WOODState";
 
 
 export class WasmState {
@@ -17,6 +17,10 @@ export class WasmState {
     // State getters
     getCurrentFunction(): FunctionInfo | undefined {
         return this.getCurrentFunctionAndFrame()?.[1];
+    }
+
+    getEvents(): InterruptEvent[] {
+        return this.state.events ?? [];
     }
 
     getArguments(): VariableInfo[] {
@@ -67,7 +71,10 @@ export class WasmState {
     }
 
     getPC(): number {
-        return this.state.pc;
+        if (!!this.state.pc) {
+            return this.state.pc;
+        }
+        return 0;
     }
 
     getCallStack(): Frame[] {
