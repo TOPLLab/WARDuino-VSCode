@@ -3,7 +3,7 @@ import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "../State/VariableInfo";
 import { SourceMap } from "../State/SourceMap";
 import { DebugBridgeListener } from "./DebugBridgeListener";
-import { StackValue, WOODState } from "../State/WOODState";
+import { StateRequest, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { Writable } from "stream";
 import { EventItem, EventsProvider } from "../Views/EventsProvider";
@@ -226,7 +226,13 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
 
     public notifyNewEvent(): void {
-        this.sendInterrupt(InterruptTypes.interruptDUMPAllEvents);
+        const req = new StateRequest();
+        req.includeEvents();
+        this.sendData(req.generateInterrupt(), (err: any) => {
+            if (err) {
+                console.error(`Request eventdump failed reason: ${err}`);
+            }
+        })
     }
 
     public popEvent(): void {
