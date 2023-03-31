@@ -3,6 +3,7 @@ import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "./VariableInfo";
 import { WasmState } from "./AllState";
 import { SourceMap } from "./SourceMap";
+import { InterruptEvent } from "./WOODState";
 
 function hash(s: string) {
     let h: number = 0;
@@ -143,6 +144,9 @@ export class RuntimeState {
         this.locals = this.wasmState.getLocals();
         this.globals = this.wasmState.getGlobals();
         this.arguments = this.wasmState.getArguments();
+        this.events = this.wasmState.getEvents().map((ev: InterruptEvent) => {
+            return new EventItem(ev.topic, ev.payload);
+        });
     }
 
     public setEvents(events: EventItem[]): void {
