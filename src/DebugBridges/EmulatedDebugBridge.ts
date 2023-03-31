@@ -101,6 +101,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         stateRequest.includeGlobals();
         stateRequest.includeCallstack();
         stateRequest.includeBreakpoints();
+        stateRequest.includeEvents();
         const req = stateRequest.generateInterrupt();
         const cberr = (err: any) => {
             if (err) {
@@ -108,7 +109,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
             }
         };
         this.sendData(req, cberr);
-        this.sendInterrupt(InterruptTypes.interruptDUMPAllEvents, cberr);
     }
 
     public pullSession() {
