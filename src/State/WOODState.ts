@@ -1,16 +1,22 @@
+import { prototype } from "events";
 import { InterruptTypes } from "../DebugBridges/InterruptTypes";
 import { HexaEncoder } from "../Util/hexaEncoding";
 
-export enum RecvStateType {
+export enum ExecutionStateType {
     pcState = "01",
-    bpsState = "02",
+    breakpointState = "02",
     callstackState = "03",
     globalsState = "04",
-    tblState = "05",
+    tableState = "05",
     memState = "06",
-    brtblState = "07",
-    stackvalsState = "08"
+    branchingTableState = "07",
+    stackState = "08",
+    errorState = "09",
+    callbacksState = "0a",
+    eventsState = "0b"
 }
+
+const numberExecutionStateTypes = 11;
 
 export interface StackValue {
     idx: number,
@@ -25,6 +31,16 @@ export const FRAME_LOOP_TYPE = 3;
 export const FRAME_IF_TYPE = 4;
 export const FRAME_PROXY_GUARD_TYPE = 254;
 export const FRAME_CALLBACK_GUARD_TYPE = 255;
+
+export interface CallbackMapping {
+    callbackid: string;
+    tableIdx: number[]
+}
+
+export interface InterruptEvent {
+    topic: string;
+    payload: string;
+}
 
 export interface Frame {
     type: number;
@@ -55,7 +71,9 @@ export interface BRTable {
 }
 
 export interface WOODDumpResponse {
-    pc: number;
+    pc?: number;
+    pc_error?: number;
+    exception_msg?: string;
     breakpoints?: number[];
     stack?: StackValue[];
     callstack?: Frame[];
@@ -63,6 +81,8 @@ export interface WOODDumpResponse {
     table?: Table;
     memory?: Memory;
     br_table?: BRTable;
+    callbacks?: CallbackMapping[];
+    events?: InterruptEvent[];
 }
 
 
@@ -223,7 +243,7 @@ export class WOODState {
         console.log("--------------");
         const ws = this;
         const nrBytesUsedForAmountBPs = 1 * 2;
-        const headerSize = RecvStateType.bpsState.length + nrBytesUsedForAmountBPs;
+        const headerSize = ExecutionStateType.breakpointState.length + nrBytesUsedForAmountBPs;
         let breakpoints = this.woodResponse.breakpoints.map(bp => { return ws.serializePointer(bp); });
         while (breakpoints.length !== 0) {
             const fits = stateMsgs.howManyFit(headerSize, breakpoints);
@@ -234,7 +254,7 @@ export class WOODState {
             const bps = breakpoints.slice(0, fits).join("");
             const amountBPs = HexaEncoder.serializeUInt8(fits);
             console.log(`Breakpoints: amount=${breakpoints.length}`);
-            const payload = `${RecvStateType.bpsState}${amountBPs}${bps}`;
+            const payload = `${ExecutionStateType.breakpointState}${amountBPs}${bps}`;
             stateMsgs.addPayload(payload);
             breakpoints = breakpoints.slice(fits, breakpoints.length);
         }
@@ -256,7 +276,7 @@ export class WOODState {
         const ws = this;
         let stack = this.woodResponse.stack.map(v => WOODState.serializeValue(v));
         const nrBytesUsedForAmountVals = 2 * 2;
-        const headerSize = RecvStateType.stackvalsState.length + nrBytesUsedForAmountVals;
+        const headerSize = ExecutionStateType.stackState.length + nrBytesUsedForAmountVals;
         while (stack.length !== 0) {
             const fit = stateMsgs.howManyFit(headerSize, stack);
             if (fit === 0) {
@@ -264,7 +284,7 @@ export class WOODState {
             }
             const amountVals = HexaEncoder.serializeUInt16BE(fit);
             const vals = stack.slice(0, fit).join("");
-            const payload = `${RecvStateType.stackvalsState}${amountVals}${vals}`;
+            const payload = `${ExecutionStateType.stackState}${amountVals}${vals}`;
             stateMsgs.addPayload(payload);
             stack = stack.slice(fit, stack.length);
             console.log(`msg: AmountStackValues ${fit}`);
@@ -284,7 +304,7 @@ export class WOODState {
         let elements = this.woodResponse.table.elements.map(HexaEncoder.serializeUInt32BE);
         console.log(`Total Elements ${this.woodResponse.table.elements.length}`);
         const nrBytesUsedForAmountElements = 4 * 2;
-        const headerSize = RecvStateType.tblState.length + nrBytesUsedForAmountElements;
+        const headerSize = ExecutionStateType.tableState.length + nrBytesUsedForAmountElements;
         while (elements.length !== 0) {
             const fit = stateMsgs.howManyFit(headerSize, elements);
             if (fit === 0) {
@@ -295,7 +315,7 @@ export class WOODState {
             const elems = elements.slice(0, fit).join("");
             const el_str = this.woodResponse.table.elements.slice(0, fit).map(e => e.toString()).join(", ");
             console.log(`msg: amountElements ${fit} elements ${el_str}`);
-            const payload = `${RecvStateType.tblState}${amountElements}${elems}`;
+            const payload = `${ExecutionStateType.tableState}${amountElements}${elems}`;
             stateMsgs.addPayload(payload);
             elements = elements.slice(fit, elements.length);
         }
@@ -316,7 +336,7 @@ export class WOODState {
         const ws = this;
         let frames = this.woodResponse.callstack.map(f => ws.serializeFrame(f));
         const nrBytesUsedForAmountFrames = 2 * 2;
-        const headerSize = RecvStateType.callstackState.length + nrBytesUsedForAmountFrames;
+        const headerSize = ExecutionStateType.callstackState.length + nrBytesUsedForAmountFrames;
         while (frames.length !== 0) {
             const fit = stateMsgs.howManyFit(headerSize, frames);
             if (fit === 0) {
@@ -326,7 +346,7 @@ export class WOODState {
             const amountFrames = HexaEncoder.serializeUInt16BE(fit);
             const fms = frames.slice(0, fit).join("");
             console.log(`msg: amountFrames=${fit}`);
-            const payload = `${RecvStateType.callstackState}${amountFrames}${fms}`;
+            const payload = `${ExecutionStateType.callstackState}${amountFrames}${fms}`;
             stateMsgs.addPayload(payload);
             frames = frames.slice(fit, frames.length);
         }
@@ -347,7 +367,7 @@ export class WOODState {
         const ws = this;
         let globals = this.woodResponse.globals.map(v => WOODState.serializeValue(v));
         const nrBytesNeededForAmountGlbs = 4 * 2;
-        const headerSize = RecvStateType.globalsState.length + nrBytesNeededForAmountGlbs;
+        const headerSize = ExecutionStateType.globalsState.length + nrBytesNeededForAmountGlbs;
         while (globals.length !== 0) {
             const fit = stateMsgs.howManyFit(headerSize, globals);
             if (fit === 0) {
@@ -356,7 +376,7 @@ export class WOODState {
             }
             const amountGlobals = HexaEncoder.serializeUInt32BE(fit);
             const glbs = globals.slice(0, fit).join("");
-            const payload = `${RecvStateType.globalsState}${amountGlobals}${glbs}`;
+            const payload = `${ExecutionStateType.globalsState}${amountGlobals}${glbs}`;
             stateMsgs.addPayload(payload);
             globals = globals.slice(fit, globals.length);
             console.log(`msg: AmountGlobals ${fit}`);
@@ -373,7 +393,7 @@ export class WOODState {
         console.log("==============");
         console.log("Memory");
         console.log("--------------");
-        const sizeHeader = RecvStateType.memState.length + 4 * 2 + 4 * 2;
+        const sizeHeader = ExecutionStateType.memState.length + 4 * 2 + 4 * 2;
         let bytes = Array.from(this.woodResponse.memory.bytes).map(b => b.toString(16).padStart(2, "0"));
         console.log(`Total Memory Bytes ${this.woodResponse.memory.bytes.length}`);
         let startMemIdx = 0;
@@ -388,7 +408,7 @@ export class WOODState {
             const bytesHexa = bytes.slice(0, fit).join("");
             const startMemIdxHexa = HexaEncoder.serializeUInt32BE(startMemIdx);
             const endMemIdxHexa = HexaEncoder.serializeUInt32BE(endMemIdx);
-            const payload = `${RecvStateType.memState}${startMemIdxHexa}${endMemIdxHexa}${bytesHexa}`;
+            const payload = `${ExecutionStateType.memState}${startMemIdxHexa}${endMemIdxHexa}${bytesHexa}`;
             stateMsgs.addPayload(payload);
             startMemIdx = endMemIdx + 1;
 
@@ -409,7 +429,7 @@ export class WOODState {
         console.log(`Total Labels ${this.woodResponse.br_table.labels.length}`);
 
         let elements = this.woodResponse.br_table.labels.map(HexaEncoder.serializeUInt32BE);
-        const sizeHeader = RecvStateType.brtblState.length + 2 * 2 + 2 * 2;
+        const sizeHeader = ExecutionStateType.branchingTableState.length + 2 * 2 + 2 * 2;
         let startTblIdx = 0;
         let endTblIdx = 0;
         while (startTblIdx < this.woodResponse.br_table.labels.length) {
@@ -422,7 +442,7 @@ export class WOODState {
             const elems = elements.slice(0, fit).join("");
             const startTblIdxHexa = HexaEncoder.serializeUInt16BE(startTblIdx);
             const endTblIdxHexa = HexaEncoder.serializeUInt16BE(endTblIdx);
-            const payload = `${RecvStateType.brtblState}${startTblIdxHexa}${endTblIdxHexa}${elems}`;
+            const payload = `${ExecutionStateType.branchingTableState}${startTblIdxHexa}${endTblIdxHexa}${elems}`;
             stateMsgs.addPayload(payload);
             console.log(`msg: startTblIdx=${startTblIdx} endTblIdx=${endTblIdx}`);
             startTblIdx = endTblIdx + 1;
@@ -434,12 +454,15 @@ export class WOODState {
     private serializePC(stateMsgs: HexaStateMessages): void {
         // |  PCState Header | PC
         // |     2 bytes     | serializePointer 
+        if (!!!this.woodResponse.pc) {
+            return;
+        }
         console.log("==========");
         console.log("PC");
         console.log("----------");
         const ser = this.serializePointer(this.woodResponse.pc);
         console.log(`PC: pc=${this.woodResponse.pc}`);
-        const payload = `${RecvStateType.pcState}${ser}`;
+        const payload = `${ExecutionStateType.pcState}${ser}`;
         stateMsgs.addPayload(payload);
     }
 
@@ -458,20 +481,20 @@ export class WOODState {
 
         const gblsAmountHex = HexaEncoder.serializeUInt32BE(wr.globals.length);
         console.log(`Globals: total=${wr.globals.length}`);
-        const globals = `${RecvStateType.globalsState}${gblsAmountHex}`;
+        const globals = `${ExecutionStateType.globalsState}${gblsAmountHex}`;
 
         // Table
         const tblInitHex = HexaEncoder.serializeUInt32BE(wr.table.init);
         const tblMaxHex = HexaEncoder.serializeUInt32BE(wr.table.max);
         const tblSizeHex = HexaEncoder.serializeUInt32BE(wr.table.elements.length);
-        const tbl = `${RecvStateType.tblState}${tblInitHex}${tblMaxHex}${tblSizeHex}`;
+        const tbl = `${ExecutionStateType.tableState}${tblInitHex}${tblMaxHex}${tblSizeHex}`;
 
         console.log(`Table:  init=${wr.table.init} max=${wr.table.max} size=${wr.table.elements.length}`);
         // Memory
         const memInitHex = HexaEncoder.serializeUInt32BE(wr.memory.init);
         const memMaxHex = HexaEncoder.serializeUInt32BE(wr.memory.max);
         const memPagesHex = HexaEncoder.serializeUInt32BE(wr.memory.pages);
-        const mem = `${RecvStateType.memState}${memMaxHex}${memInitHex}${memPagesHex}`;
+        const mem = `${ExecutionStateType.memState}${memMaxHex}${memInitHex}${memPagesHex}`;
         console.log(`Mem: max=${wr.memory.max} init=${wr.memory.init}  pages=${wr.memory.pages}`);
         const payload = `${globals}${tbl}${mem}`;
 
@@ -491,7 +514,7 @@ export class WOODState {
         let v = '';
         let type_str = '';
 
-        if (val.type === "i32") {
+        if (val.type === "i32" || val.type === "I32") {
             if (val.value < 0) {
                 v = HexaEncoder.serializeInt32LE(val.value as number);
             }
@@ -501,7 +524,7 @@ export class WOODState {
             type = 0;
             type_str = 'i32';
         }
-        else if (val.type === "i64") {
+        else if (val.type === "i64" || val.type === "I64") {
             if (val.value < 0) {
                 v = HexaEncoder.serializeBigUInt64LE(val.value as bigint);
             }
@@ -511,12 +534,12 @@ export class WOODState {
             type = 1;
             type_str = 'i64';
         }
-        else if (val.type === "f32") {
+        else if (val.type === "f32" || val.type === "F32") {
             v = HexaEncoder.serializeFloatLE(val.value as number);
             type = 2;
             type_str = 'f32';
         }
-        else if (val.type === "f64") {
+        else if (val.type === "f64" || val.type === "F64") {
             v = HexaEncoder.serializeDoubleLE(val.value as number);
             type = 3;
             type_str = 'f64';
@@ -586,104 +609,80 @@ export class WOODState {
 }
 
 export class StateRequest {
-    static readonly PC = 0b10000000;
-    static readonly STACK = 0b01000000;
-    static readonly CALLSTACK = 0b00100000;
-    static readonly MEMORY = 0b00010000;
-    static readonly TABLE = 0b00001000;
-    static readonly BR_TABLE = 0b00000100;
-    static readonly GLOBALS = 0b00000010;
-    static readonly BREAKPOINTS = 0b00000001;
 
-    private pc = false;
-    private stack = false;
-    private callstack = false;
-    private globals = false;
-    private memory = false;
-    private table = false;
-    private br_table = false;
-    private breakpoints = false;
-
+    private state: string[] = [];
 
     public includePC() {
-        this.pc = true;
+        this.pushState(ExecutionStateType.pcState);
     }
 
     public includeStack() {
-        this.stack = true;
+        this.pushState(ExecutionStateType.stackState);
     }
 
     public includeCallstack() {
-        this.callstack = true;
+        this.pushState(ExecutionStateType.callstackState);
     }
 
     public includeGlobals() {
-        this.globals = true;
+        this.pushState(ExecutionStateType.globalsState);
     }
 
     public includeMemory() {
-        this.memory = true;
+        this.pushState(ExecutionStateType.memState);
     }
 
     public includeTable() {
-        this.table = true;
+        this.pushState(ExecutionStateType.tableState);
     }
 
     public includeBranchingTable() {
-        this.br_table = true;
+        this.pushState(ExecutionStateType.branchingTableState);
     }
 
     public includeBreakpoints() {
-        this.breakpoints = true;
+        this.pushState(ExecutionStateType.breakpointState);
+    }
+
+    public includeError() {
+        this.pushState(ExecutionStateType.errorState);
+    }
+
+    public includeCallbackMappings() {
+        this.pushState(ExecutionStateType.callbacksState);
+    }
+
+    public includeEvents() {
+        this.pushState(ExecutionStateType.eventsState);
     }
 
     public includeAll() {
-        this.pc = true;
-        this.stack = true;
-        this.callstack = true;
-        this.globals = true;
-        this.memory = true;
-        this.table = true;
-        this.br_table = true;
-        this.breakpoints = true;
+        let idx = 1;
+        while (idx < numberExecutionStateTypes) {
+            let s = idx.toString(16);
+            // pad with zero
+            if (s.length <= 1) {
+                s = '0' + s;
+            }
+            this.pushState(s);
+            idx++;
+        }
     }
 
 
     public generateInterrupt(): string {
-        let flags = 0;
-        if (this.pc) {
-            flags |= StateRequest.PC;
-        }
-
-        if (this.stack) {
-            flags |= StateRequest.STACK;
-        }
-
-        if (this.callstack) {
-            flags |= StateRequest.CALLSTACK;
-        }
-
-        if (this.globals) {
-            flags |= StateRequest.GLOBALS;
-        }
-
-        if (this.memory) {
-            flags |= StateRequest.MEMORY;
-        }
-
-        if (this.table) {
-            flags |= StateRequest.TABLE;
-        }
-
-        if (this.br_table) {
-            flags |= StateRequest.BR_TABLE;
-        }
-
-        if (this.breakpoints) {
-            flags |= StateRequest.BREAKPOINTS;
-        }
-
-        const hexaFlag = HexaEncoder.serializeUInt8(flags);
-        return `${InterruptTypes.interruptWOODDump}${hexaFlag}`;
+        this.state.sort();
+        const numberBytes = HexaEncoder.serializeUInt16BE(this.state.length);
+        const stateToReq = this.state.join("");
+        return `${InterruptTypes.interruptDumpExecutionState}${numberBytes}${stateToReq}`;
     }
+
+
+    private pushState(s: string): void {
+        const present = this.state.find(s2 => s === s2);
+        if (!!!present) {
+            this.state.push(s);
+        }
+    }
+
 }
