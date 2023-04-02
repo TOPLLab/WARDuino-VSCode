@@ -37,6 +37,10 @@ const listener: DebugBridgeListener = {
     notifyStateUpdate() {
     },
     notifyException(message: string): void {
+    },
+    notifyInfoMessage(message) {
+    },
+    runEvent(){
     }
 };
 
