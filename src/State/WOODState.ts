@@ -219,6 +219,7 @@ export class WOODState {
 
         // State Messages
         this.serializePC(stateMessages);
+        this.serializeException(stateMessages);
         this.serializeBPs(stateMessages);
         this.serializeStack(stateMessages);
         this.serializeTable(stateMessages);
@@ -587,10 +588,25 @@ export class WOODState {
         return `${type}${sp}${fp}${ra}${rest}`;
     }
 
-    private makeAddressEven(addr: string): string {
-        const noHexAddr = addr.startsWith('0x') ? addr.slice(2,addr.length): addr;
-        const charsMissing = noHexAddr.length % 2;
-        return `${'0'.repeat(charsMissing)}${noHexAddr}`;
+    private serializeException(stateMsgs: HexaStateMessages) {
+        if (!!!this.woodResponse.pc_error) {
+            return;
+        }
+        console.log("==========");
+        console.log("PC_ERROR");
+        console.log("----------");
+        const pcError = this.serializePointer(this.woodResponse.pc_error);
+        let exceptionMsg = "";
+        let exceptionMsgSize = 0;
+        if (!!this.woodResponse.exception_msg && this.woodResponse.exception_msg !== "") {
+            exceptionMsg = this.woodResponse.exception_msg;
+            exceptionMsgSize = exceptionMsg.length;
+        }
+        console.log(`PC_ERROR: pc_error=${this.woodResponse.pc_error} exception_msg(#${exceptionMsgSize} chars)=${exceptionMsg}`);
+        const sizeInHexa = HexaEncoder.serializeUInt32BE(exceptionMsgSize);
+        const msgInHexa = HexaEncoder.serializeString(exceptionMsg);
+        const payload = `${ExecutionStateType.errorState}${pcError}${sizeInHexa}${msgInHexa}`;
+        stateMsgs.addPayload(payload);
     }
 
     public serializeRFCall(functionId: number, args: StackValue[]): string {

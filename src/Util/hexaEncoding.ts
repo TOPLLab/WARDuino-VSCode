@@ -140,4 +140,8 @@ export class HexaEncoder {
         }
         return buff.toString('hex');
     }
+
+    static serializeString(s: string): string {
+        return s.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+    }
 }
