@@ -18,4 +18,9 @@ export interface DebugBridgeListener {
     notifyBreakpointHit(): void;
 
     notifyException(message: string): void;
+
+    notifyInfoMessage(message: string): void;
+
+    runEvent(): void;
+
 }
