@@ -15,6 +15,7 @@ import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
 import { StackItem, StackProvider } from "../Views/StackProvider";
+import { window } from "vscode";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -324,6 +325,9 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.setCallstack(runtimeState.callstack);
         this.setLocals(runtimeState.currentFunction(), runtimeState.locals);
         this.setGlobals(runtimeState.globals);
+        if (runtimeState.hasException()) {
+            this.listener.notifyException(runtimeState.getExceptionMsg());
+        }
     }
 
     getProgramCounter(): number {
