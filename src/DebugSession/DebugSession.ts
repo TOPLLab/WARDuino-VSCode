@@ -3,6 +3,8 @@ import { basename } from 'path-browserify';
 import * as vscode from 'vscode';
 
 import {
+    BreakpointEvent,
+    ContinuedEvent,
     Handles,
     InitializedEvent,
     LoggingDebugSession,
@@ -33,6 +35,9 @@ import { ProxyCallItem, ProxyCallsProvider } from "../Views/ProxyCallsProvider";
 import { CompileResult } from '../CompilerBridges/CompileBridge';
 import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
 import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBuilder';
+import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/BreakpointPolicyProvider';
+import { BreakpointPolicy } from '../State/Breakpoint';
+import { Breakpoint } from 'vscode';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ['emulated', RunTimeTarget.emulator],
@@ -51,6 +56,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private notifier: vscode.StatusBarItem;
     private reporter: ErrorReporter;
     private proxyCallsProvider?: ProxyCallsProvider;
+    private breakpointPolicyProvider?: BreakpointPolicyProvider;
 
     private variableHandles = new Handles<'locals' | 'globals' | 'arguments'>();
     private compiler?: CompileBridge;
@@ -212,6 +218,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                             vscode.window.showErrorMessage(message);
                             that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
                         },
+                        notifyInfoMessage(message: string) {
+                            vscode.window.showInformationMessage(message);
+                        },
+                        runEvent(){
+                            that.sendEvent(new ContinuedEvent(that.THREAD_ID));
+                        }
                     }));
                 },
                 notifyPaused(refresh: boolean = true): void {
@@ -234,6 +246,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 notifyException(message: string): void {
                     vscode.window.showErrorMessage(message);
                     that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
+                },
+                notifyInfoMessage(message: string) {
+                    vscode.window.showInformationMessage(message);
+                },
+                runEvent(){
+                    that.sendEvent(new ContinuedEvent(that.THREAD_ID));
                 }
             }
         ));
@@ -249,10 +267,19 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.debugBridge = next;
         if (this.proxyCallsProvider === undefined) {
             this.proxyCallsProvider = new ProxyCallsProvider(next);
-            vscode.window.registerTreeDataProvider('proxies', this.proxyCallsProvider);
+            vscode.window.registerTreeDataProvider("proxies", this.proxyCallsProvider);
+            
         } else {
             this.proxyCallsProvider?.setDebugBridge(next);
         }
+
+        if(!!!this.breakpointPolicyProvider){
+            this.breakpointPolicyProvider = new BreakpointPolicyProvider(next);
+            vscode.window.registerTreeDataProvider("breakpointPolicies", this.breakpointPolicyProvider);
+        }else {
+            this.breakpointPolicyProvider.setDebugBridge(next);
+        }
+        this.breakpointPolicyProvider.refresh();
     }
 
     protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
@@ -347,6 +374,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         resource.toggle();
         this.debugBridge?.updateSelectedProxies(resource);
         this.proxyCallsProvider?.refresh();
+    }
+
+    public toggleBreakpointPolicy(item: BreakpointPolicyItem) {
+        this.breakpointPolicyProvider!.toggleItem(item);
+        const activePolicy = this.breakpointPolicyProvider!.getSelected();
+        this.debugBridge?.setBreakpointPolicy(activePolicy?.getPolicy() ?? BreakpointPolicy.default);
+        this.breakpointPolicyProvider!.refresh();
     }
 
     //
