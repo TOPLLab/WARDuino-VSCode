@@ -207,10 +207,14 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         },
                         notifyStateUpdate(): void {
                             that.notifyStepCompleted();
-                        }
+                        },
+                        notifyException(message: string) {
+                            vscode.window.showErrorMessage(message);
+                            that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
+                        },
                     }));
                 },
-                notifyPaused(): void {
+                notifyPaused(refresh: boolean = true): void {
                     that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
                     that.debugBridge?.refresh();
                 },
@@ -226,6 +230,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 },
                 notifyStateUpdate(): void {
                     that.notifyStepCompleted();
+                },
+                notifyException(message: string): void {
+                    vscode.window.showErrorMessage(message);
+                    that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
                 }
             }
         ));
