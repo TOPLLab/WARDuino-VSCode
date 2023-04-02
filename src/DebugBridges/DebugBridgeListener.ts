@@ -1,4 +1,4 @@
-import {WOODState} from "../State/WOODState";
+import { WOODState } from "../State/WOODState";
 
 export interface DebugBridgeListener {
     connected(): void;
@@ -16,4 +16,6 @@ export interface DebugBridgeListener {
     notifyPaused(): void;
 
     notifyBreakpointHit(): void;
+
+    notifyException(message: string): void;
 }

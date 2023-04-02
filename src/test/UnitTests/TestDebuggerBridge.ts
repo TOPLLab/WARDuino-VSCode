@@ -1,19 +1,19 @@
 import "mocha";
-import {WOODState} from "../../State/WOODState";
-import {assert} from "chai";
+import { WOODState } from "../../State/WOODState";
+import { assert } from "chai";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import {after, before, beforeEach} from "mocha";
-import {EmulatedDebugBridge} from "../../DebugBridges/EmulatedDebugBridge";
-import {WASMCompilerBridge} from "../../CompilerBridges/WASMCompilerBridge";
-import {RunTimeTarget} from "../../DebugBridges/RunTimeTarget";
-import {WOODDebugBridge} from "../../DebugBridges/WOODDebugBridge";
-import {DebugBridgeListener} from "../../DebugBridges/DebugBridgeListener";
+import { after, before, beforeEach } from "mocha";
+import { EmulatedDebugBridge } from "../../DebugBridges/EmulatedDebugBridge";
+import { WASMCompilerBridge } from "../../CompilerBridges/WASMCompilerBridge";
+import { RunTimeTarget } from "../../DebugBridges/RunTimeTarget";
+import { WOODDebugBridge } from "../../DebugBridges/WOODDebugBridge";
+import { DebugBridgeListener } from "../../DebugBridges/DebugBridgeListener";
 import ErrnoException = NodeJS.ErrnoException;
 import { DeviceConfig } from "../../DebuggerConfig";
 import { EmptySourceMap } from "../../State/SourceMap";
- 
+
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
 const wabtSDK = `${runPath}/WABT/build`;
@@ -35,6 +35,8 @@ const listener: DebugBridgeListener = {
         console.log(message);
     },
     notifyStateUpdate() {
+    },
+    notifyException(message: string): void {
     }
 };
 
@@ -44,37 +46,37 @@ let bridge: EmulatedDebugBridge;
 async function init(target: RunTimeTarget) {
     await new Promise(resolve => {
         fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err: ErrnoException | null, dir: string) => {
-                if (err === null) {
-                    tmpdir = dir;
-                    switch (target) {
-                        case RunTimeTarget.wood:
-                            bridge = new WOODDebugBridge("",
+            if (err === null) {
+                tmpdir = dir;
+                switch (target) {
+                    case RunTimeTarget.wood:
+                        bridge = new WOODDebugBridge("",
                             //TODO fix
                             DeviceConfig.defaultDeviceConfig("wood"),
-                                EmptySourceMap(),
-                                undefined,
-                                undefined,
-                                tmpdir,
-                                listener,
-                                warduinoSDK
-                            );
-                            break;
-                        case RunTimeTarget.emulator:
-                        default:
-                            bridge = new EmulatedDebugBridge("",
-                                DeviceConfig.defaultDeviceConfig("emulated"),
-                                EmptySourceMap(),
-                                undefined,
-                                undefined,
-                                tmpdir,
-                                listener,
-                                warduinoSDK
-                            );
-                            break;
-                    }
-                    resolve(null);
+                            EmptySourceMap(),
+                            undefined,
+                            undefined,
+                            tmpdir,
+                            listener,
+                            warduinoSDK
+                        );
+                        break;
+                    case RunTimeTarget.emulator:
+                    default:
+                        bridge = new EmulatedDebugBridge("",
+                            DeviceConfig.defaultDeviceConfig("emulated"),
+                            EmptySourceMap(),
+                            undefined,
+                            undefined,
+                            tmpdir,
+                            listener,
+                            warduinoSDK
+                        );
+                        break;
                 }
+                resolve(null);
             }
+        }
         );
     });
 
@@ -96,7 +98,7 @@ suite("EmulatedDebugBridge Test Suite", () => {
 
     test("Test Emulator Disconnect", async function () {
         bridge.disconnect();
-        fs.rm(tmpdir, {recursive: true}, err => {
+        fs.rm(tmpdir, { recursive: true }, err => {
             if (err) {
                 throw new Error('Could not delete temporary directory.');
             }
@@ -186,7 +188,7 @@ suite("Debug API Test Suite (emulated)", () => {
 
     after(async function () {
         bridge.disconnect();
-        fs.rm(tmpdir, {recursive: true}, err => {
+        fs.rm(tmpdir, { recursive: true }, err => {
             if (err) {
                 throw new Error('Could not delete temporary directory.');
             }
@@ -235,7 +237,7 @@ suite("WOOD Debug API Test Suite (emulated)", () => {
 
     after(async function () {
         bridge.disconnect();
-        fs.rm(tmpdir, {recursive: true}, err => {
+        fs.rm(tmpdir, { recursive: true }, err => {
             if (err) {
                 throw new Error('Could not delete temporary directory.');
             }
