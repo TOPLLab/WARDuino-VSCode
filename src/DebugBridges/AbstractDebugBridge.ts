@@ -10,7 +10,7 @@ import { EventItem, EventsProvider } from "../Views/EventsProvider";
 import { FunctionInfo } from "../State/FunctionInfo";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { RuntimeState } from "../State/RuntimeState";
-import { Breakpoint, UniqueSet } from "../State/Breakpoint";
+import { Breakpoint, BreakpointPolicy, UniqueSet } from "../State/Breakpoint";
 import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
@@ -55,6 +55,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected callstack: Frame[] = [];
     protected selectedProxies: Set<ProxyCallItem> = new Set<ProxyCallItem>();
     protected breakpoints: UniqueSet<Breakpoint> = new UniqueSet<Breakpoint>();
+    protected breakpointPolicy: BreakpointPolicy;
 
     // Interfaces
     protected listener: DebugBridgeListener;
@@ -79,6 +80,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.listener = listener;
         this.deviceConfig = deviceConfig;
         this.stackProvider = stackProvider;
+        this.breakpointPolicy = BreakpointPolicy.default;
     }
 
     // General Bridge functionality
@@ -132,8 +134,13 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract getCurrentFunctionIndex(): number;
 
-    private unsetBreakPoint(breakpoint: Breakpoint) {
-        let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
+
+    public unsetAllBreakpoints() {
+        this.breakpoints.forEach(bp=>this.unsetBreakPoint(bp));
+    }
+
+    public unsetBreakPoint(breakpoint: Breakpoint | number) {
+        let breakPointAddress: string = HexaEncoder.serializeUInt32BE( breakpoint instanceof Breakpoint ? breakpoint.id: breakpoint);
         let command = `${InterruptTypes.interruptBPRem}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
         if (!!this.client) {
@@ -142,7 +149,12 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         else {
             this.socketConnection?.write(command);
         }
-        this.breakpoints.delete(breakpoint);
+        const bp = breakpoint instanceof Breakpoint ? breakpoint: this.getBreakpointFromAddr(breakpoint);
+        this.breakpoints.delete(bp);
+    }
+
+    private getBreakpointFromAddr(addr: number): Breakpoint | undefined {
+        return Array.from(this.breakpoints).find(bp=>bp.id === addr);
     }
 
     private setBreakPoint(breakpoint: Breakpoint) {
@@ -305,11 +317,23 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Getters and Setters
 
+    getListener(): DebugBridgeListener {
+        return this.listener;
+    }
+
     getCurrentState(): RuntimeState | undefined {
         if (this.history.length === 0) {
             return undefined;
         }
         return this.history[this.present];
+    }
+
+    getBreakpointPolicy(): BreakpointPolicy {
+        return this.breakpointPolicy;
+    }
+
+    setBreakpointPolicy(policy: BreakpointPolicy) {
+        this.breakpointPolicy = policy;
     }
 
     updateRuntimeState(runtimeState: RuntimeState) {
