@@ -77,6 +77,24 @@ export class WasmState {
         return 0;
     }
 
+    hasException() {
+        return !!this.state.pc_error || (!!this.state.exception_msg && this.state.exception_msg !== "");
+    }
+
+    getPCError(): number {
+        if (!!this.state.pc_error) {
+            return this.state.pc_error;
+        }
+        return -1;
+    }
+
+    getExceptionMsg(): string {
+        if (!!this.state.exception_msg) {
+            return this.state.exception_msg;
+        }
+        return "";
+    }
+
     getCallStack(): Frame[] {
         return this.state.callstack?.filter(frame => frame.type === FRAME_FUNC_TYPE) ?? [];
     }

@@ -23,6 +23,8 @@ export class RuntimeState {
     public stack: VariableInfo[] = [];
     public globals: VariableInfo[] = [];
     public arguments: VariableInfo[] = [];
+    public pcerror: number = -1;
+    public exception_msg: string = "";
 
     public wasmState: WasmState;
 
@@ -40,6 +42,10 @@ export class RuntimeState {
 
     public getId(): number {
         return this.id;
+    }
+
+    public getExceptionMsg(): string {
+        return `Exception occurred on device: ${this.exception_msg}`;
     }
 
     public getRawProgramCounter(): number {
@@ -77,6 +83,8 @@ export class RuntimeState {
         copy.globals = this.globals.map(obj => Object.assign({}, obj));
         copy.stack = this.stack.map(obj => Object.assign({}, obj));
         copy.wasmState = this.wasmState;
+        copy.pcerror = this.pcerror;
+        copy.exception_msg = this.exception_msg;
         return copy;
     }
 
@@ -147,9 +155,24 @@ export class RuntimeState {
         this.events = this.wasmState.getEvents().map((ev: InterruptEvent) => {
             return new EventItem(ev.topic, ev.payload);
         });
+        if (this.hasException()) {
+            this.pcerror = this.wasmState.getPCError();
+            this.exception_msg = this.wasmState.getExceptionMsg();
+            if (!this.oldException()) {
+                this.programCounter = this.pcerror;
+            }
+        }
     }
 
     public setEvents(events: EventItem[]): void {
         this.events = events;
+    }
+
+    public hasException(): boolean {
+        return this.wasmState.hasException();
+    }
+
+    private oldException(): boolean {
+        return false;
     }
 }
