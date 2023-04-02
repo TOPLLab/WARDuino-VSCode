@@ -56,7 +56,7 @@ export class DebugInfoParser {
         } else if (line.startsWith("{\"pc")) {
             const runtimeState: RuntimeState = new RuntimeState(line, this.sourceMap);
             bridge.updateRuntimeState(runtimeState);
-            console.log(`PC=${bridge.getProgramCounter().toString(16)}`);
+            console.log(`PC=${bridge.getProgramCounter()} (Hexa ${bridge.getProgramCounter().toString(16)})`);
         }
     }
 
