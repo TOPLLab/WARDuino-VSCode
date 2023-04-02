@@ -136,11 +136,11 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
 
     public unsetAllBreakpoints() {
-        this.breakpoints.forEach(bp=>this.unsetBreakPoint(bp));
+        this.breakpoints.forEach(bp => this.unsetBreakPoint(bp));
     }
 
     public unsetBreakPoint(breakpoint: Breakpoint | number) {
-        let breakPointAddress: string = HexaEncoder.serializeUInt32BE( breakpoint instanceof Breakpoint ? breakpoint.id: breakpoint);
+        let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint instanceof Breakpoint ? breakpoint.id : breakpoint);
         let command = `${InterruptTypes.interruptBPRem}${breakPointAddress} \n`;
         console.log(`Plugin: sent ${command}`);
         if (!!this.client) {
@@ -149,12 +149,12 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         else {
             this.socketConnection?.write(command);
         }
-        const bp = breakpoint instanceof Breakpoint ? breakpoint: this.getBreakpointFromAddr(breakpoint);
+        const bp = breakpoint instanceof Breakpoint ? breakpoint : this.getBreakpointFromAddr(breakpoint);
         this.breakpoints.delete(bp);
     }
 
     private getBreakpointFromAddr(addr: number): Breakpoint | undefined {
-        return Array.from(this.breakpoints).find(bp=>bp.id === addr);
+        return Array.from(this.breakpoints).find(bp => bp.id === addr);
     }
 
     private setBreakPoint(breakpoint: Breakpoint) {

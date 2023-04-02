@@ -32,18 +32,18 @@ export class DebugInfoParser {
                 let pc = parseInt(breakpointInfo[1]);
                 bridge.setProgramCounter(pc);
                 bridge.pause();
-                if(bridge.getBreakpointPolicy() === BreakpointPolicy.singleStop){
+                if (bridge.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
                     bridge.getListener().notifyInfoMessage(`Enforcing '${BreakpointPolicy.singleStop}' breakpoint policy`);
                     bridge.unsetAllBreakpoints();
                     bridge.run();
-                } else if(bridge.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed){
+                } else if (bridge.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed) {
                     bridge.getListener().notifyInfoMessage(`Enforcing '${BreakpointPolicy.removeAndProceed}' breakpoint policy`);
                     bridge.unsetBreakPoint(pc);
                     bridge.run();
                 }
             }
         }
-        if(line.includes("GO!")){
+        if (line.includes("GO!")) {
             bridge.getListener().runEvent();
         }
 
