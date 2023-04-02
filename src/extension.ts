@@ -22,6 +22,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.updateModule', () => {
         factory.warduino?.updateModule();
     }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.toggleBreakpointPolicy', resource => {
+        factory.warduino?.toggleBreakpointPolicy(resource);
+    }));
 }
 
 function installDiagnosticReporting(context: vscode.ExtensionContext) {
