@@ -73,6 +73,11 @@
           "id": "stack",
           "name": "stack",
           "group": "navigation"
+        },
+        {
+          "id": "breakpointPolicies",
+          "name":  "breakpoint Policies",
+          "group": "navigation"
         }
       ]
     },
