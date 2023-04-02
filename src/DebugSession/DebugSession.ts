@@ -220,7 +220,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         notifyInfoMessage(message: string) {
                             vscode.window.showInformationMessage(message);
                         },
-                        runEvent(){
+                        runEvent() {
                             that.sendEvent(new ContinuedEvent(that.THREAD_ID));
                         }
                     }));
@@ -249,7 +249,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 notifyInfoMessage(message: string) {
                     vscode.window.showInformationMessage(message);
                 },
-                runEvent(){
+                runEvent() {
                     that.sendEvent(new ContinuedEvent(that.THREAD_ID));
                 }
             }
@@ -267,15 +267,15 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         if (this.proxyCallsProvider === undefined) {
             this.proxyCallsProvider = new ProxyCallsProvider(next);
             vscode.window.registerTreeDataProvider("proxies", this.proxyCallsProvider);
-            
+
         } else {
             this.proxyCallsProvider?.setDebugBridge(next);
         }
 
-        if(!!!this.breakpointPolicyProvider){
+        if (!!!this.breakpointPolicyProvider) {
             this.breakpointPolicyProvider = new BreakpointPolicyProvider(next);
             vscode.window.registerTreeDataProvider("breakpointPolicies", this.breakpointPolicyProvider);
-        }else {
+        } else {
             this.breakpointPolicyProvider.setDebugBridge(next);
         }
         this.breakpointPolicyProvider.refresh();

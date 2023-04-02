@@ -40,7 +40,7 @@ const listener: DebugBridgeListener = {
     },
     notifyInfoMessage(message) {
     },
-    runEvent(){
+    runEvent() {
     }
 };
 

@@ -59,9 +59,9 @@ export interface DebugBridge {
     getSelectedProxies(): Set<ProxyCallItem>;
 
     setBreakPoints(lines: number[]): Breakpoint[];
-    
+
     unsetAllBreakpoints(): void;
-    
+
     unsetBreakPoint(breakpoint: Breakpoint | number): void;
 
     refresh(): void;
