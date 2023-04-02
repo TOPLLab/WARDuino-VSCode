@@ -5,7 +5,8 @@ import { SourceMap } from "../State/SourceMap";
 import { EventItem } from "../Views/EventsProvider";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { RuntimeState } from "../State/RuntimeState";
-import { Breakpoint } from "../State/Breakpoint";
+import { Breakpoint, BreakpointPolicy } from "../State/Breakpoint";
+import { DebugBridgeListener } from "./DebugBridgeListener";
 
 export interface DebugBridge {
     setStartAddress(startAddress: number): void;
@@ -58,6 +59,10 @@ export interface DebugBridge {
     getSelectedProxies(): Set<ProxyCallItem>;
 
     setBreakPoints(lines: number[]): Breakpoint[];
+    
+    unsetAllBreakpoints(): void;
+    
+    unsetBreakPoint(breakpoint: Breakpoint | number): void;
 
     refresh(): void;
 
@@ -76,5 +81,11 @@ export interface DebugBridge {
     updateLocal(local: VariableInfo): Promise<string>;
 
     updateGlobal(updateGlobal: VariableInfo): Promise<string>;
+
+    getBreakpointPolicy(): BreakpointPolicy;
+
+    setBreakpointPolicy(policy: BreakpointPolicy): void;
+
+    getListener(): DebugBridgeListener;
 
 }
