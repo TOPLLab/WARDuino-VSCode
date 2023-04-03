@@ -43,9 +43,6 @@ export class DebugInfoParser {
                 }
             }
         }
-        if (line.includes("GO!")) {
-            bridge.getListener().runEvent();
-        }
 
         if (line.includes("new pushed event")) {
             bridge.notifyNewEvent();
