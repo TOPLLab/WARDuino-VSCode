@@ -16,16 +16,16 @@ export class BreakpointPolicyProvider implements vscode.TreeDataProvider<Breakpo
 
     constructor(debugBridge: DebugBridge) {
         this.debugBridge = debugBridge;
-        this.items = Breakpoint.policies().filter(p => p !== BreakpointPolicy.default).map(p => new BreakpointPolicyItem(p));
+        this.items = Breakpoint.policies().map(p => new BreakpointPolicyItem(p));
     }
 
     getChildren(element?: BreakpointPolicyItem): ProviderResult<BreakpointPolicyItem[]> {
         if (element === undefined) {
             const activePolicy = this.debugBridge.getBreakpointPolicy();
             this.items.forEach(i => {
-                if(i.getPolicy() === activePolicy){
+                if (i.getPolicy() === activePolicy) {
                     i.select();
-                }else{
+                } else {
                     i.deSelect();
                 }
             })
@@ -86,7 +86,7 @@ export class BreakpointPolicyItem extends vscode.TreeItem {
         this.iconPath = new ThemeIcon(this.selected ? "pass-filled" : "circle-large-outline");
     }
 
-    select(){
+    select() {
         this.selected = true;
         this.iconPath = new ThemeIcon("pass-filled");
     }
