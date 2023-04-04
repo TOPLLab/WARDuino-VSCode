@@ -13,6 +13,7 @@ import { DebugBridgeListener } from "../../DebugBridges/DebugBridgeListener";
 import ErrnoException = NodeJS.ErrnoException;
 import { DeviceConfig } from "../../DebuggerConfig";
 import { EmptySourceMap } from "../../State/SourceMap";
+import { RuntimeViewsRefresher } from "../../Views/ViewsRefresh";
 
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
@@ -48,6 +49,7 @@ let tmpdir: string = "";
 let bridge: EmulatedDebugBridge;
 
 async function init(target: RunTimeTarget) {
+    const viewRefresher = new RuntimeViewsRefresher();
     await new Promise(resolve => {
         fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err: ErrnoException | null, dir: string) => {
             if (err === null) {
@@ -60,6 +62,7 @@ async function init(target: RunTimeTarget) {
                             EmptySourceMap(),
                             undefined,
                             undefined,
+                            viewRefresher,
                             tmpdir,
                             listener,
                             warduinoSDK
@@ -72,6 +75,7 @@ async function init(target: RunTimeTarget) {
                             EmptySourceMap(),
                             undefined,
                             undefined,
+                            viewRefresher,
                             tmpdir,
                             listener,
                             warduinoSDK

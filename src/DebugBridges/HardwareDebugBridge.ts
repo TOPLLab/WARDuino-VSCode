@@ -12,6 +12,7 @@ import * as path from 'path';
 import { LoggingSerialMonitor } from "../Channels/SerialConnection";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
 import { StackProvider } from "../Views/StackProvider";
+import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser;
@@ -31,12 +32,13 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         sourceMap: SourceMap,
         eventsProvider: EventsProvider | void,
         stackProvider: StackProvider | undefined,
+        viewsRefresher: RuntimeViewsRefresher,
         tmpdir: string,
         listener: DebugBridgeListener,
         portAddress: string,
         fqbn: string,
         warduinoSDK: string) {
-        super(deviceConfig, sourceMap, eventsProvider, stackProvider, listener);
+        super(deviceConfig, sourceMap, eventsProvider, stackProvider, viewsRefresher, listener);
 
         this.sourceMap = sourceMap;
         this.listener = listener;

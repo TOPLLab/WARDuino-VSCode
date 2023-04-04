@@ -16,6 +16,7 @@ import { DeviceConfig } from "../DebuggerConfig";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
 import { StackItem, StackProvider } from "../Views/StackProvider";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
+import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -70,7 +71,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     public readonly deviceConfig: DeviceConfig;
     public outOfPlaceActive = false;
 
-    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, listener: DebugBridgeListener) {
+
+    private viewsRefresher: RuntimeViewsRefresher;
+
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, viewRefresher: RuntimeViewsRefresher, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
@@ -80,6 +84,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.deviceConfig = deviceConfig;
         this.stackProvider = stackProvider;
         this.breakpointPolicy = BreakpointPolicy.default;
+        this.viewsRefresher = viewRefresher;
     }
 
     // General Bridge functionality
@@ -351,6 +356,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         if (runtimeState.hasException()) {
             this.listener.notifyException(runtimeState.getExceptionMsg());
         }
+        this.viewsRefresher.refreshViews(runtimeState);
     }
 
     getProgramCounter(): number {
