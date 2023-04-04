@@ -11,6 +11,7 @@ import {Messages} from "./AbstractDebugBridge";
 import {EventsProvider} from "../Views/EventsProvider";
 import { DeviceConfig } from "../DebuggerConfig";
 import { StackProvider } from "../Views/StackProvider";
+import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 
 function getConfig(id: string): string {
     const config: string | undefined = vscode.workspace.getConfiguration().get(id);
@@ -21,7 +22,7 @@ function getConfig(id: string): string {
 }
 
 export class DebugBridgeFactory {
-    static makeDebugBridge(file: string, deviceConfig: DeviceConfig,sourceMap: SourceMap, eventsProvider: EventsProvider, stackProvider: StackProvider, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
+    static makeDebugBridge(file: string, deviceConfig: DeviceConfig,sourceMap: SourceMap, eventsProvider: EventsProvider, stackProvider: StackProvider, viewsRefresher: RuntimeViewsRefresher, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
@@ -32,14 +33,14 @@ export class DebugBridgeFactory {
                 switch (target) {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:
-                        bridge = new EmulatedDebugBridge(file, deviceConfig, sourceMap, eventsProvider, stackProvider, tmpdir, listener, warduinoSDK);
+                        bridge = new EmulatedDebugBridge(file, deviceConfig, sourceMap, eventsProvider, stackProvider, viewsRefresher, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.wood:
-                        bridge = new WOODDebugBridge(file, deviceConfig, sourceMap, eventsProvider, stackProvider, tmpdir, listener, warduinoSDK);
+                        bridge = new WOODDebugBridge(file, deviceConfig, sourceMap, eventsProvider, stackProvider, viewsRefresher, tmpdir, listener, warduinoSDK);
                         break;
                     // Hardware runtimes
                     case RunTimeTarget.embedded:
-                        bridge = new HardwareDebugBridge(file, deviceConfig, sourceMap, eventsProvider, stackProvider, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridge = new HardwareDebugBridge(file, deviceConfig, sourceMap, eventsProvider, stackProvider, viewsRefresher, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                 }
 

@@ -38,6 +38,8 @@ import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBu
 import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/BreakpointPolicyProvider';
 import { BreakpointPolicy } from '../State/Breakpoint';
 import { Breakpoint } from 'vscode';
+import { DebuggingTimelineProvider } from '../Views/DebuggingTimelineProvider';
+import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -56,6 +58,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private reporter: ErrorReporter;
     private proxyCallsProvider?: ProxyCallsProvider;
     private breakpointPolicyProvider?: BreakpointPolicyProvider;
+    private timelineProvider?: DebuggingTimelineProvider;
+
+    private viewsRefresher: RuntimeViewsRefresher = new RuntimeViewsRefresher();
 
     private variableHandles = new Handles<'locals' | 'globals' | 'arguments'>();
     private compiler?: CompileBridge;
@@ -162,7 +167,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let that = this;
         const debugmode: string = this.debuggerConfig.device.debugMode;
         const deviceConfig = this.debuggerConfig.device;
-        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, eventsProvider, stackProvider,
+        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, eventsProvider, stackProvider, this.viewsRefresher,
             debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
             this.tmpdir,
             {   // VS Code Interface
@@ -181,7 +186,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                     const dc = DeviceConfig.configForProxy(name, that.debuggerConfig.device);
                     const runtimeState = that.debugBridge?.getCurrentState()?.deepcopy();
 
-                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap as SourceMap, eventsProvider, stackProvider, RunTimeTarget.wood, that.tmpdir, {
+                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap as SourceMap, eventsProvider, stackProvider, that.viewsRefresher, RunTimeTarget.wood, that.tmpdir, {
                         notifyError(): void {
                         },
                         connected(): void {
@@ -279,6 +284,14 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.breakpointPolicyProvider.setDebugBridge(next);
         }
         this.breakpointPolicyProvider.refresh();
+
+        if (!!!this.timelineProvider) {
+            this.timelineProvider = new DebuggingTimelineProvider(next);
+            this.viewsRefresher.addViewProvider(this.timelineProvider);
+            vscode.window.registerTreeDataProvider("debuggingTimeline", this.timelineProvider);
+        } else {
+            this.timelineProvider.setDebugBridge(next);
+        }
     }
 
     protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {

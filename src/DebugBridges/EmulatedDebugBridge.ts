@@ -12,6 +12,7 @@ import { ReadlineParser } from 'serialport';
 import { DeviceConfig } from '../DebuggerConfig';
 import { StackProvider } from '../Views/StackProvider';
 import * as vscode from 'vscode';
+import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 
 // export const EMULATOR_PORT: number = 8300;
 
@@ -24,9 +25,9 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser;
     private buffer: string = "";
 
-    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, tmpdir: string, listener: DebugBridgeListener,
+    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, viewsRefresher: RuntimeViewsRefresher, tmpdir: string, listener: DebugBridgeListener,
         warduinoSDK: string) {
-        super(config, sourceMap, eventsProvider, stackProvider, listener);
+        super(config, sourceMap, eventsProvider, stackProvider, viewsRefresher, listener);
 
         this.wasmPath = wasmPath;
         this.sdk = warduinoSDK;
