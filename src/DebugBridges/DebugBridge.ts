@@ -7,6 +7,7 @@ import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { RuntimeState } from "../State/RuntimeState";
 import { Breakpoint, BreakpointPolicy } from "../State/Breakpoint";
 import { DebugBridgeListener } from "./DebugBridgeListener";
+import { DebuggingTimeline } from "../State/DebuggingTimeline";
 
 export interface DebugBridge {
     client: Duplex | undefined;
@@ -14,6 +15,8 @@ export interface DebugBridge {
     setStartAddress(startAddress: number): void;
 
     connect(): Promise<string>;
+
+    getDebuggingTimeline(): DebuggingTimeline;
 
     getCurrentState(): RuntimeState | undefined;
 

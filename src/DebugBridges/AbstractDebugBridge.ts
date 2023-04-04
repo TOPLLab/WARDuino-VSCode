@@ -15,7 +15,7 @@ import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
 import { StackItem, StackProvider } from "../Views/StackProvider";
-import { window } from "vscode";
+import { DebuggingTimeline } from "../State/DebuggingTimeline";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -65,8 +65,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     public socketConnection?: ClientSideSocket;
 
     // History (time-travel)
-    private history: RuntimeState[] = [];
-    private present = -1;
+    protected timeline: DebuggingTimeline = new DebuggingTimeline();
 
     public readonly deviceConfig: DeviceConfig;
     public outOfPlaceActive = false;
@@ -109,10 +108,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     public step(): void {
-        if (this.present + 1 < this.history.length) {
+        const runtimeState = this.timeline.advanceTimeline();
+        if (!!runtimeState) {
             // Time travel forward
-            this.present++;
-            this.updateRuntimeState(this.history[this.present]);
+            this.updateRuntimeState(runtimeState);
         } else {
             // Normal step forward
             this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
@@ -126,8 +125,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     public stepBack() {
         // Time travel backward
-        this.present = this.present > 0 ? this.present - 1 : 0;
-        this.updateRuntimeState(this.history[this.present]);
+        const rs = this.timeline.goBackTimeline();
+        if (!!rs) {
+            this.updateRuntimeState(rs);
+        }
     }
 
     abstract refresh(): void;
@@ -306,14 +307,6 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         console.warn('Only WOOD Emulator Debug Bridge needs proxies');
     }
 
-    private inHistory() {
-        return this.present + 1 < this.history.length;
-    }
-
-    private resetHistory() {
-        this.present = -1;
-        this.history = [];
-    }
 
     // Getters and Setters
 
@@ -321,11 +314,12 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return this.listener;
     }
 
+    getDebuggingTimeline(): DebuggingTimeline {
+        return this.timeline;
+    }
+
     getCurrentState(): RuntimeState | undefined {
-        if (this.history.length === 0) {
-            return undefined;
-        }
-        return this.history[this.present];
+        return this.timeline.getActiveState();
     }
 
     getBreakpointPolicy(): BreakpointPolicy {
@@ -337,11 +331,16 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     updateRuntimeState(runtimeState: RuntimeState) {
-        if (!this.inHistory()) {
-            this.present++;
-            this.history.push(runtimeState.deepcopy());
+        if (this.timeline.isActiveStatePresent()) {
+            this.timeline.addRuntime(runtimeState.deepcopy());
+            if (!!!this.timeline.advanceTimeline()) {
+                throw new Error("Timeline should be able to advance")
+            }
         }
+        this.refreshRuntimeState(runtimeState);
+    }
 
+    private refreshRuntimeState(runtimeState: RuntimeState) {
         this.setProgramCounter(runtimeState.getAdjustedProgramCounter());
         this.setStartAddress(runtimeState.startAddress);
         this.refreshEvents(runtimeState.events);
