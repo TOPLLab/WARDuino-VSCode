@@ -1,14 +1,14 @@
-import {DebugBridge} from "./DebugBridge";
-import {DebugBridgeListener} from "./DebugBridgeListener";
-import {RunTimeTarget} from "./RunTimeTarget";
-import {EmulatedDebugBridge} from "./EmulatedDebugBridge";
-import {getFileExtension} from '../Parsers/ParseUtils';
-import {HardwareDebugBridge} from "./HardwareDebugBridge";
+import { DebugBridge } from "./DebugBridge";
+import { DebugBridgeListener } from "./DebugBridgeListener";
+import { RunTimeTarget } from "./RunTimeTarget";
+import { EmulatedDebugBridge } from "./EmulatedDebugBridge";
+import { getFileExtension } from '../Parsers/ParseUtils';
+import { HardwareDebugBridge } from "./HardwareDebugBridge";
 import * as vscode from "vscode";
-import {SourceMap} from "../State/SourceMap";
-import {WOODDebugBridge} from "./WOODDebugBridge";
-import {Messages} from "./AbstractDebugBridge";
-import {EventsProvider} from "../Views/EventsProvider";
+import { SourceMap } from "../State/SourceMap";
+import { WOODDebugBridge } from "./WOODDebugBridge";
+import { Messages } from "./AbstractDebugBridge";
+import { EventsProvider } from "../Views/EventsProvider";
 import { DeviceConfig } from "../DebuggerConfig";
 import { StackProvider } from "../Views/StackProvider";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
@@ -22,11 +22,11 @@ function getConfig(id: string): string {
 }
 
 export class DebugBridgeFactory {
-    static makeDebugBridge(file: string, deviceConfig: DeviceConfig,sourceMap: SourceMap, eventsProvider: EventsProvider, stackProvider: StackProvider, viewsRefresher: RuntimeViewsRefresher, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
+    static makeDebugBridge(file: string, deviceConfig: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider, stackProvider: StackProvider, viewsRefresher: RuntimeViewsRefresher, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
-            case "wast" :
+            case "wast":
                 const warduinoSDK: string = getConfig("warduino.WARDuinoToolChainPath");
                 const portAddress: string = getConfig("warduino.Port");
                 const fqbn: string = getConfig("warduino.Device");
