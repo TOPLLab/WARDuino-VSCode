@@ -78,6 +78,11 @@
           "id": "breakpointPolicies",
           "name":  "breakpoint Policies",
           "group": "navigation"
+        },
+        {
+          "id": "debuggingTimeline",
+          "name":  "Debugging Timeline",
+          "group": "navigation"
         }
       ]
     },
