@@ -4,6 +4,12 @@ import { RuntimeState } from '../State/RuntimeState';
 import { DebugBridge } from '../DebugBridges/DebugBridge';
 import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
 
+export enum AllowedAction {
+    Save = "save",
+    DebugExternally = "debug-externally",
+    None = "none"
+}
+
 export class DebuggingTimelineProvider implements vscode.TreeDataProvider<TimelineItem>, RuntimeViewRefreshInterface {
 
     private _onDidChangeTreeData: vscode.EventEmitter<TimelineItem | undefined | null | void> = new vscode.EventEmitter<TimelineItem | undefined | null | void>();
@@ -20,7 +26,18 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
     getChildren(element?: TimelineItem): ProviderResult<TimelineItem[]> {
         if (element === undefined) {
             const timeline = this.debugBridge.getDebuggingTimeline();
-            this.items = timeline.getRuntimesChronologically().map((rs: RuntimeState, idx: number) => { return new TimelineItem(rs, idx) }).reverse();
+            const states = timeline.getRuntimesChronologically();
+            this.items = states.map((rs: RuntimeState, idx: number) => {
+                let act = AllowedAction.None;
+                if (rs.hasAllState()) {
+                    act = AllowedAction.DebugExternally;
+                }
+                else if (idx === states.length - 1) {
+                    act = AllowedAction.Save
+                }
+                return new TimelineItem(rs, idx, act)
+            });
+            this.items = this.items.reverse();
             const activeIndex = timeline.getIndexOfActiveState();
             if (!!activeIndex) {
                 this.items[activeIndex].select();
@@ -67,12 +84,15 @@ export class TimelineItem extends vscode.TreeItem {
     private runtimeState: RuntimeState;
     private timelineIndex: number;
     private selected: boolean;
+    private allowedAction: AllowedAction;
 
-    constructor(runtimeState: RuntimeState, timelineIndex: number, treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
+    constructor(runtimeState: RuntimeState, timelineIndex: number, allowedAction: AllowedAction, treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
         super(`Session#${timelineIndex} ${runtimeState.getId()}`, treeItemCollapsibleState);
         this.runtimeState = runtimeState;
         this.timelineIndex = timelineIndex;
         this.selected = false;
+        this.allowedAction = allowedAction;
+        this.contextValue = allowedAction;
     }
 
     public select() {
