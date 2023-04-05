@@ -1,7 +1,7 @@
 import { SourceMap } from "../State/SourceMap";
 import { FunctionInfo } from "./FunctionInfo";
 import { VariableInfo } from "./VariableInfo";
-import { WOODDumpResponse, WOODState, Frame, FRAME_FUNC_TYPE, InterruptEvent, ExecutionStateType } from "./WOODState";
+import { WOODDumpResponse, WOODState, Frame, FRAME_FUNC_TYPE, InterruptEvent, ExecutionStateType, StackValue } from "./WOODState";
 
 
 export class WasmState {
@@ -21,6 +21,14 @@ export class WasmState {
 
     getEvents(): InterruptEvent[] {
         return this.state.events ?? [];
+    }
+
+    getRawEvents() {
+        return this.state.events;
+    }
+
+    getRawTable() {
+        return this.state.table;
     }
 
     getMissingState(): ExecutionStateType[] {
@@ -72,6 +80,51 @@ export class WasmState {
         return missings;
     }
 
+    copyMissingState(otherState: WasmState) {
+        const missing = this.getMissingState();
+        for (let index = 0; index < missing.length; index++) {
+            const m = missing[index];
+            if (m === ExecutionStateType.pcState) {
+                this.state.pc = otherState.getRawPC();
+            }
+            else if (m === ExecutionStateType.breakpointState) {
+                this.state.breakpoints = otherState.getRawBreakpoints();
+            }
+            else if (m === ExecutionStateType.callstackState) {
+                this.state.callstack = otherState.getRawCallStack();
+            }
+            else if (m === ExecutionStateType.globalsState) {
+                this.state.globals = otherState.getRawGlobals();
+            }
+
+            else if (m === ExecutionStateType.tableState) {
+                this.state.table = otherState.getRawTable();
+            }
+
+            else if (m === ExecutionStateType.memState) {
+                this.state.memory = otherState.getRawMemory();
+            }
+
+            else if (m === ExecutionStateType.branchingTableState) {
+                this.state.br_table = otherState.getRawBranchingTable();
+            }
+            else if (m === ExecutionStateType.stackState) {
+                this.state.stack = otherState.getRawStack();
+            }
+            else if (m === ExecutionStateType.errorState) {
+                this.state.pc_error = otherState.getRawPCError();
+                this.state.exception_msg = otherState.getRawExceptionMsg();
+            }
+            else if (m === ExecutionStateType.callbacksState) {
+                this.state.callbacks = otherState.getRawCallbacks();
+            }
+
+            else if (m === ExecutionStateType.eventsState) {
+                this.state.events = otherState.getRawEvents();
+            }
+        }
+    }
+
     getArguments(): VariableInfo[] {
         const r = this.getCurrentFunctionAndFrame();
         if (!!!r || !!!this.state.stack) {
@@ -115,6 +168,10 @@ export class WasmState {
         }) ?? [];
     }
 
+    getRawGlobals() {
+        return this.state.globals;
+    }
+
     getFunction(funcId: number): FunctionInfo | undefined {
         return this.sourceMap.functionInfos.find(f => f.index === funcId);
     }
@@ -124,6 +181,10 @@ export class WasmState {
             return this.state.pc;
         }
         return 0;
+    }
+
+    getRawPC() {
+        return this.state.pc;
     }
 
     hasException() {
@@ -137,6 +198,10 @@ export class WasmState {
         return -1;
     }
 
+    getRawPCError() {
+        return this.state.pc_error;
+    }
+
     getExceptionMsg(): string {
         if (!!this.state.exception_msg) {
             return this.state.exception_msg;
@@ -144,8 +209,20 @@ export class WasmState {
         return "";
     }
 
+    getRawExceptionMsg() {
+        return this.state.exception_msg;
+    }
+
+    getRawCallStack() {
+        return this.state.callstack;
+    }
+
     getCallStack(): Frame[] {
         return this.state.callstack?.filter(frame => frame.type === FRAME_FUNC_TYPE) ?? [];
+    }
+
+    getAllCallStack(): Frame[] {
+        return this.state.callstack ?? [];
     }
 
     getStack(): VariableInfo[] {
@@ -174,6 +251,30 @@ export class WasmState {
         return this.state.stack?.map((sv, idx) => {
             return { index: idx, name: "", type: sv.type, mutable: true, value: sv.value.toString() };
         }) ?? [];
+    }
+
+    public getRawStack(){
+        return this.state.stack;
+    }
+
+    public getRawMemory(){
+        return this.state.memory;
+    }
+
+    public getRawBranchingTable(){
+        return this.state.br_table;
+    }
+
+    public getBreakpoints(): number[] {
+        return this.state.breakpoints ?? [];
+    }
+
+    public getRawBreakpoints() {
+        return this.state.breakpoints;
+    }
+
+    public getRawCallbacks() {
+        return this.state.callbacks;
     }
 
     private getCurrentFunctionAndFrame(): [Frame, FunctionInfo] | undefined {
