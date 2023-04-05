@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import {ErrorReporter} from './DebugSession/ErrorReporter';
-import {InlineDebugAdapterFactory} from './DebugSession/InlineDebugAdapterFactory';
+import { ErrorReporter } from './DebugSession/ErrorReporter';
+import { InlineDebugAdapterFactory } from './DebugSession/InlineDebugAdapterFactory';
 
 export function activate(context: vscode.ExtensionContext) {
     let status = installStatusMenuBar(context);
@@ -24,6 +24,9 @@ export function activate(context: vscode.ExtensionContext) {
     }));
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.toggleBreakpointPolicy', resource => {
         factory.warduino?.toggleBreakpointPolicy(resource);
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.showViewOnRuntimeState', resource => {
+        factory.warduino?.showViewOnRuntimeState(resource);
     }));
 }
 
