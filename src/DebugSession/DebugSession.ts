@@ -412,6 +412,23 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
     }
 
+
+    public saveRuntimeState(item: TimelineItem) {
+        const itemIdx = item.getTimelineIndex();
+        const timeline = this.debugBridge?.getDebuggingTimeline();
+        const numberStates = timeline?.size();
+        const savingPresentState = (itemIdx + 1) === numberStates;
+
+        // only save the present state
+        if (savingPresentState && !!timeline?.isActiveStatePresent()) {
+            this.debugBridge?.requestMissingState();
+        }
+    }
+
+    public startDebuggingOnEmulator(item: TimelineItem) {
+        throw Error("not implemented");
+    }
+
     //
 
     private handleCompileError(handleCompileError: CompileTimeError) {

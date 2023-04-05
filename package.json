@@ -61,6 +61,18 @@
         "category": "WARDuino",
         "title": "View the state",
         "icon": "$(eye)"
+      },
+      {
+        "command": "warduinodebug.saveRuntimeState",
+        "category": "WARDuino",
+        "title": "Save current state",
+        "icon": "$(save)"
+      },
+      {
+        "command": "warduinodebug.startDebuggingOnEmulator",
+        "category": "WARDuino",
+        "title": "Start debugging locally",
+        "icon": "$(debug-start)"
       }
     ],
     "views": {
@@ -104,6 +116,16 @@
         {
           "command": "warduinodebug.showViewOnRuntimeState",
           "when": "view == debuggingTimeline",
+          "group": "inline"
+        },
+        {
+          "command": "warduinodebug.saveRuntimeState",
+          "when": "view == debuggingTimeline && viewItem == save",
+          "group": "inline"
+        },
+        {
+          "command": "warduinodebug.startDebuggingOnEmulator",
+          "when": "view == debuggingTimeline && viewItem == debug-externally",
           "group": "inline"
         }
       ]

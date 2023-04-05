@@ -28,6 +28,12 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.showViewOnRuntimeState', resource => {
         factory.warduino?.showViewOnRuntimeState(resource);
     }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.saveRuntimeState', resource => {
+        factory.warduino?.saveRuntimeState(resource);
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.startDebuggingOnEmulator', resource => {
+        factory.warduino?.startDebuggingOnEmulator(resource);
+    }));
 }
 
 function installDiagnosticReporting(context: vscode.ExtensionContext) {
