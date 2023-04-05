@@ -35,7 +35,7 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
                 else if (idx === states.length - 1) {
                     act = AllowedAction.Save
                 }
-                return new TimelineItem(rs, idx, act)
+                return new TimelineItem(rs, this.debugBridge, idx, act)
             });
             this.items = this.items.reverse();
             const activeIndex = timeline.getIndexOfActiveState();
@@ -82,13 +82,15 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
 
 export class TimelineItem extends vscode.TreeItem {
     private runtimeState: RuntimeState;
+    private debuggerBridge: DebugBridge;
     private timelineIndex: number;
     private selected: boolean;
     private allowedAction: AllowedAction;
 
-    constructor(runtimeState: RuntimeState, timelineIndex: number, allowedAction: AllowedAction, treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
+    constructor(runtimeState: RuntimeState, debuggerBridge: DebugBridge, timelineIndex: number, allowedAction: AllowedAction, treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
         super(`Session#${timelineIndex} ${runtimeState.getId()}`, treeItemCollapsibleState);
         this.runtimeState = runtimeState;
+        this.debuggerBridge = debuggerBridge;
         this.timelineIndex = timelineIndex;
         this.selected = false;
         this.allowedAction = allowedAction;
@@ -114,4 +116,9 @@ export class TimelineItem extends vscode.TreeItem {
     public getTimelineIndex() {
         return this.timelineIndex;
     }
+
+    public getDebuggerBridge() {
+        return this.debuggerBridge;
+    }
+
 }
