@@ -3,7 +3,6 @@ import { basename } from 'path-browserify';
 import * as vscode from 'vscode';
 
 import {
-    BreakpointEvent,
     ContinuedEvent,
     Handles,
     InitializedEvent,
@@ -37,8 +36,7 @@ import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
 import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBuilder';
 import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/BreakpointPolicyProvider';
 import { BreakpointPolicy } from '../State/Breakpoint';
-import { Breakpoint } from 'vscode';
-import { DebuggingTimelineProvider } from '../Views/DebuggingTimelineProvider';
+import { DebuggingTimelineProvider, TimelineItem } from '../Views/DebuggingTimelineProvider';
 import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
@@ -137,8 +135,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.debuggerConfig.fillConfig(args);
 
         const eventsProvider = new EventsProvider();
+        this.viewsRefresher.addViewProvider(eventsProvider);
         vscode.window.registerTreeDataProvider("events", eventsProvider);
         const stackProvider = new StackProvider();
+        this.viewsRefresher.addViewProvider(stackProvider);
         vscode.window.registerTreeDataProvider("stack", stackProvider);
 
         await new Promise((resolve, reject) => {
@@ -272,6 +272,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.debugBridge = next;
         if (this.proxyCallsProvider === undefined) {
             this.proxyCallsProvider = new ProxyCallsProvider(next);
+            this.viewsRefresher.addViewProvider(this.proxyCallsProvider);
             vscode.window.registerTreeDataProvider("proxies", this.proxyCallsProvider);
 
         } else {
@@ -280,6 +281,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         if (!!!this.breakpointPolicyProvider) {
             this.breakpointPolicyProvider = new BreakpointPolicyProvider(next);
+            this.viewsRefresher.addViewProvider(this.breakpointPolicyProvider);
             vscode.window.registerTreeDataProvider("breakpointPolicies", this.breakpointPolicyProvider);
         } else {
             this.breakpointPolicyProvider.setDebugBridge(next);
@@ -396,6 +398,20 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.breakpointPolicyProvider!.refresh();
     }
 
+    public showViewOnRuntimeState(item: TimelineItem) {
+        this.timelineProvider?.showItem(item);
+        const activeItem = this.timelineProvider?.getSelected();
+        const index = activeItem?.getTimelineIndex();
+        if (!this.debugBridge?.getDebuggingTimeline().activateStateFromIndex(index ?? -1)) {
+            this.debugBridge?.getDebuggingTimeline().advanceToPresent()
+        }
+        const state = this.debugBridge?.getCurrentState();
+        if (!!state) {
+            this.viewsRefresher.refreshViews(state);
+            this.notifyStepCompleted();
+        }
+    }
+
     //
 
     private handleCompileError(handleCompileError: CompileTimeError) {
@@ -471,8 +487,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         const v = this.variableHandles.get(args.variablesReference);
         if (v === "locals") {
-            const locals = this.debugBridge?.getCurrentState()?.locals ?? [];
-            // let locals: VariableInfo[] = this.debugBridge === undefined ? [] : this.debugBridge.getLocals(this.debugBridge.getCurrentFunctionIndex());
+            const locals = this.debugBridge?.getCurrentState()?.getLocals() ?? [];
             response.body = {
                 variables: Array.from(locals, (local) => {
                     return {
@@ -485,14 +500,15 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             };
             this.sendResponse(response);
         } else if (v === "globals") {
+            const globals = this.debugBridge?.getCurrentState()?.getGlobals() ?? this.sourceMap.globalInfos;
             response.body = {
-                variables: Array.from(this.sourceMap.globalInfos, (info) => {
+                variables: Array.from(globals, (info) => {
                     return { name: info.name, value: info.value, variablesReference: 0 };
                 })
             };
             this.sendResponse(response);
         } else if (v === "arguments") {
-            const state = this.debugBridge?.getCurrentState()?.arguments ?? [];
+            const state = this.debugBridge?.getCurrentState()?.getArguments() ?? [];
             response.body = {
                 variables: Array.from(state, (info) => {
                     return { name: info.name, value: info.value, variablesReference: 0 };
@@ -504,7 +520,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse,
         args: DebugProtocol.StackTraceArguments): void {
-        const pc = this.debugBridge!.getProgramCounter();
+        const pc = this.debugBridge!.getCurrentState()?.getProgramCounter() ?? 0;
         this.setLineNumberFromPC(pc);
 
         const bottom: DebugProtocol.StackFrame = new StackFrame(0,
@@ -512,8 +528,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.createSource(this.program),
             1);
 
-        const callstack = this.debugBridge === undefined
-            ? [] : this.debugBridge.getCallstack();
+        const callstack = this.debugBridge?.getCurrentState()?.getCallStack() ?? [];
         let frames = Array.from(callstack.reverse(), (frame, index) => {
             // @ts-ignore
             const functionInfo = this.sourceMap.functionInfos[frame.index];
