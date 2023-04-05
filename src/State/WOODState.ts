@@ -34,7 +34,7 @@ export const FRAME_CALLBACK_GUARD_TYPE = 255;
 
 export interface CallbackMapping {
     callbackid: string;
-    tableIdx: number[]
+    tableIndexes: number[]
 }
 
 export interface InterruptEvent {
@@ -199,10 +199,9 @@ export class WOODState {
     private woodResponse: WOODDumpResponse;
     public sourceState = "";
 
-    constructor(state: string) {
+    constructor(state: string, woodResponse: WOODDumpResponse) {
         this.sourceState = state;
-        this.unparsedJSON = state.trimEnd();
-        this.woodResponse = JSON.parse(this.unparsedJSON);
+        this.woodResponse = woodResponse;
     }
 
     getState(): WOODDumpResponse {
@@ -225,8 +224,10 @@ export class WOODState {
         this.serializeTable(stateMessages);
         this.serializeCallstack(stateMessages);
         this.serializeGlobals(stateMessages);
+        this.serializeCallbacksMapping(stateMessages);
         this.serializeMemory(stateMessages);
         this.serializeBrTable(stateMessages);
+
         return stateMessages.getMessages();
     }
 
@@ -609,6 +610,49 @@ export class WOODState {
         stateMsgs.addPayload(payload);
     }
 
+    private serializeCallbacksMapping(stateMsgs: HexaStateMessages) {
+        // | Mappings type | amountMapings | CallbackMapping |   Return Adress  | FID or Block ID
+        // |  1*2 bytes |   4*2bytes   |   4*2bytes   | serializePointer | 4*2bytes or serializePointer
+        // callbacks": [{"interrupt_37": [1]}, {"interrupt_39": [2]}]
+
+        if (!!!this.woodResponse.callbacks) {
+            return;
+        }
+        console.log("==============");
+        console.log("CallbackMapping");
+        console.log("--------------");
+        console.log(`Total Mappings ${this.woodResponse.callbacks.length}`);
+
+        const ws = this;
+        let mappings = this.woodResponse.callbacks.map(f => ws.serializeCallbackMapping(f));
+        const nrBytesUsedForAmountMappings = 2 * 2;
+        const headerSize = ExecutionStateType.callbacksState.length + nrBytesUsedForAmountMappings;
+        while (mappings.length !== 0) {
+            const fit = stateMsgs.howManyFit(headerSize, mappings);
+            if (fit === 0) {
+                stateMsgs.forceNewMessage();
+                continue;
+            }
+            const amountMappings = HexaEncoder.serializeUInt32BE(fit);
+            const fms = mappings.slice(0, fit).join("");
+            console.log(`msg: amountMappings=${fit}`);
+            const payload = `${ExecutionStateType.callbacksState}${amountMappings}${fms}`;
+            stateMsgs.addPayload(payload);
+            mappings = mappings.slice(fit, mappings.length);
+        }
+    }
+
+    private serializeCallbackMapping(mapping: CallbackMapping): string {
+        // | size CallbackID | CallbackID | Number TableIndeces | TableIndex | TableIndex | ....
+        // |  4 * 2 bytes    |   ....     |   4*2bytes          | 4*2bytes   |
+        const sizeCallbackID = HexaEncoder.serializeUInt32BE(mapping.callbackid.length);
+        const callbackIDInHexa = HexaEncoder.serializeString(mapping.callbackid);
+        const tableIndeces = mapping.tableIndexes.map(tidx => HexaEncoder.serializeUInt32BE(tidx));
+        const tableIndecesSize = HexaEncoder.serializeUInt32BE(tableIndeces.length);
+        return `${sizeCallbackID}${callbackIDInHexa}${tableIndecesSize}${tableIndeces}`;
+    }
+
+
     public serializeRFCall(functionId: number, args: StackValue[]): string {
         const ws = this;
         const ignoreType = false;
@@ -627,6 +671,12 @@ export class WOODState {
         const stackIDx = HexaEncoder.serializeUInt32BE(value.idx);
         const valueHex = this.serializeValue(value);
         return `${InterruptTypes.interruptUPDATEGlobalValue}${stackIDx}${valueHex}`;
+    }
+
+    static fromLine(line: string) {
+        const trimmed = line.trimEnd();
+        const wr: WOODDumpResponse = JSON.parse(trimmed);
+        return new WOODState(trimmed, wr)
     }
 }
 
