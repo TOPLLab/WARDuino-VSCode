@@ -15,14 +15,8 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
             this.client?.write(messages[i]);
         }
 
-        this.pushCallbacks(woodState.callbacks);
     }
 
-    private pushCallbacks(callbacks: string) {
-        const command = `${InterruptTypes.interruptRecvCallbackmapping}${callbacks} \n`;
-        console.log(`send 75 message: ${command}`);
-        this.client?.write(command);
-    }
 
     private monitorProxiesCommand(primitives: number[]): string {
         function encode(i: number, byteLength: number, byteorder = 'big'): string {
