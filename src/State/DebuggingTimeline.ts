@@ -13,7 +13,7 @@ export class DebuggingTimeline {
         return this.getStateFromIndex(this.activeStateIdx);
     }
 
-    public getIndexOfActiveState(): number  | undefined {
+    public getIndexOfActiveState(): number | undefined {
         return this.activeStateIdx == -1 ? undefined : this.activeStateIdx;
     }
 
@@ -26,6 +26,14 @@ export class DebuggingTimeline {
             return this.runtimes[this.runtimes.length - 1];
         }
         return undefined;
+    }
+
+    public activateStateFromIndex(idx: number): boolean {
+        if (idx < 0 || idx >= this.runtimes.length || this.runtimes.length == 0) {
+            return false;
+        }
+        this.activeStateIdx = idx;
+        return true;
     }
 
     public getStateFromIndex(idx: number): RuntimeState | undefined {
@@ -45,6 +53,10 @@ export class DebuggingTimeline {
     }
 
 
+    public advanceToPresent(): void {
+        this.activeStateIdx = this.runtimes.length - 1;
+    }
+
     public goBackTimeline(): RuntimeState | undefined {
         let state = undefined;
         if (this.activeStateIdx >= 1) {
@@ -58,7 +70,7 @@ export class DebuggingTimeline {
     public isActiveStatePresent(): boolean {
         return this.activeStateIdx == (this.runtimes.length - 1)
     }
-    
+
     public getRuntimesChronologically(): RuntimeState[] {
         return this.runtimes;
     }
