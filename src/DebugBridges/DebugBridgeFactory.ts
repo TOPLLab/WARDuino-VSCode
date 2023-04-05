@@ -7,10 +7,7 @@ import { HardwareDebugBridge } from "./HardwareDebugBridge";
 import * as vscode from "vscode";
 import { SourceMap } from "../State/SourceMap";
 import { WOODDebugBridge } from "./WOODDebugBridge";
-import { Messages } from "./AbstractDebugBridge";
-import { EventsProvider } from "../Views/EventsProvider";
 import { DeviceConfig } from "../DebuggerConfig";
-import { StackProvider } from "../Views/StackProvider";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 
 function getConfig(id: string): string {
