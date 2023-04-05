@@ -3,7 +3,7 @@ import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "../State/VariableInfo";
 import { SourceMap } from "../State/SourceMap";
 import { DebugBridgeListener } from "./DebugBridgeListener";
-import { StateRequest, WOODState } from "../State/WOODState";
+import { ExecutionStateType, StateRequest, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { Writable } from "stream";
 import { EventItem, EventsProvider } from "../Views/EventsProvider";
@@ -277,6 +277,21 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
 
     // Getters and Setters
+
+    requestMissingState(): void {
+        const missing: ExecutionStateType[] = this.getCurrentState()?.getMissingState() ?? [];
+        const stateRequest = StateRequest.fromList(missing);
+        if (stateRequest.isRequestEmpty()) {
+            return;
+        }
+        const req = stateRequest.generateInterrupt();
+        const cberr = (err: any) => {
+            if (err) {
+                console.error(`AbstractDebubBridge: requestMissingstate error ${err}`);
+            }
+        };
+        this.sendData(req, cberr);
+    }
 
     getListener(): DebugBridgeListener {
         return this.listener;
