@@ -1,5 +1,5 @@
 import { AbstractDebugBridge, Messages } from "./AbstractDebugBridge";
-import { DebugBridgeListener } from "./DebugBridgeListener";
+import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { ReadlineParser, SerialPort } from 'serialport';
 import { DebugInfoParser } from "../Parsers/DebugInfoParser";
 import { InterruptTypes } from "./InterruptTypes";
@@ -32,7 +32,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         sourceMap: SourceMap,
         viewsRefresher: RuntimeViewsRefresher,
         tmpdir: string,
-        listener: DebugBridgeListener,
+        listener: DebugBridgeListenerInterface,
         portAddress: string,
         fqbn: string,
         warduinoSDK: string) {
@@ -139,7 +139,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         if (this.woodDumpDetected && this.outOfPlaceActive) {
             // Next line will be a WOOD dump
             // TODO receive state from WOOD Dump and call bridge.pushSession(state)
-            this.woodState = new WOODState(line);
+            this.woodState = WOODState.fromLine(line);
             this.requestCallbackmapping();
             this.woodDumpDetected = false;
             return;
@@ -246,6 +246,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
                 return console.log("Error on write: ", err.message);
             }
         });
+    }
+
+    public proxify(): void {
+        this.sendInterrupt(InterruptTypes.interruptProxify);
     }
 
     pushSession(): void {
