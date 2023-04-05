@@ -634,6 +634,10 @@ export class StateRequest {
 
     private state: string[] = [];
 
+    public isRequestEmpty(): boolean {
+        return this.state.length === 0;
+    }
+
     public includePC() {
         this.pushState(ExecutionStateType.pcState);
     }
@@ -707,4 +711,11 @@ export class StateRequest {
         }
     }
 
+    static fromList(states: ExecutionStateType[]): StateRequest {
+        const request = new StateRequest();
+        states.forEach(s => {
+            request.pushState(s);
+        })
+        return request;
+    }
 }
