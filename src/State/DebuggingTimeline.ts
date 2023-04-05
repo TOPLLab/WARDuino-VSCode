@@ -74,4 +74,8 @@ export class DebuggingTimeline {
     public getRuntimesChronologically(): RuntimeState[] {
         return this.runtimes;
     }
+
+    public size(): number {
+        return this.runtimes.length;
+    }
 }
