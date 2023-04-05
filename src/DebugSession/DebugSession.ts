@@ -38,6 +38,10 @@ import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/Breakpo
 import { BreakpointPolicy } from '../State/Breakpoint';
 import { DebuggingTimelineProvider, TimelineItem } from '../Views/DebuggingTimelineProvider';
 import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
+import { DevicesManager } from '../DebugBridges/DevicesManager';
+import { BridgeListener } from '../DebugBridges/DebugBridgeListener';
+import { Messages } from '../DebugBridges/AbstractDebugBridge';
+import { DebugBridgeListenerInterface } from '../DebugBridges/DebugBridgeListenerInterface';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ['emulated', RunTimeTarget.emulator],
@@ -65,6 +69,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private compiler?: CompileBridge;
 
     private debuggerConfig: DebuggerConfig = new DebuggerConfig();
+
+    private devicesManager: DevicesManager = new DevicesManager();
 
     public constructor(notifier: vscode.StatusBarItem, reporter: ErrorReporter) {
         super('debug_log.txt');
@@ -165,104 +171,25 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         if (compileResult) {
             this.sourceMap = compileResult.sourceMap;
         }
-        let that = this;
+
         const debugmode: string = this.debuggerConfig.device.debugMode;
         const deviceConfig = this.debuggerConfig.device;
-        this.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, this.viewsRefresher,
-            debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator,
-            this.tmpdir,
-            {   // VS Code Interface
-                notifyError(): void {
-                    that.stop();
-                },
-                connected(): void {
-                    if (deviceConfig.onStartConfig.pause) {
-                        this.notifyPaused();
-                    }
-                },
-                startMultiverseDebugging(woodState: WOODState) {
-                    that.debugBridge?.disconnect();
 
-                    const name = `${that.debuggerConfig.device.name} (Emulator)`;
-                    const dc = DeviceConfig.configForProxy(name, that.debuggerConfig.device);
-                    const runtimeState = that.debugBridge?.getCurrentState()?.deepcopy();
+        const listener: DebugBridgeListenerInterface = new BridgeListener(this, this.THREAD_ID, this.notifier);
+        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, this.viewsRefresher, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir, listener);
 
-                    that.setDebugBridge(DebugBridgeFactory.makeDebugBridge(args.program, dc, that.sourceMap as SourceMap, that.viewsRefresher, RunTimeTarget.wood, that.tmpdir, {
-                        notifyError(): void {
-                        },
-                        connected(): void {
-                            (that.debugBridge as WOODDebugBridge).pushSession(woodState).
-                                then(v => {
-                                    (that.debugBridge as WOODDebugBridge).specifyProxyCalls();
-                                    if (!!runtimeState) {
-                                        that.debugBridge?.updateRuntimeState(runtimeState);
-                                    }
-                                }).
-                                catch(console.error);
-                        },
-                        startMultiverseDebugging(woodState: WOODState) {
-                        },
-                        notifyPaused(): void {
-                            that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
-                            that.debugBridge?.refresh();
-                        },
-                        notifyBreakpointHit(): void {
-                            that.sendEvent(new StoppedEvent('breakpoint', that.THREAD_ID));
-                            that.debugBridge?.refresh();
-                        },
-                        disconnected(): void {
-
-                        },
-                        notifyProgress(message: string): void {
-                            that.notifier.text = message;
-                        },
-                        notifyStateUpdate(): void {
-                            that.notifyStepCompleted();
-                        },
-                        notifyException(message: string) {
-                            vscode.window.showErrorMessage(message);
-                            that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
-                        },
-                        notifyInfoMessage(message: string) {
-                            vscode.window.showInformationMessage(message);
-                        },
-                        runEvent() {
-                            that.sendEvent(new ContinuedEvent(that.THREAD_ID));
-                        }
-                    }));
-                },
-                notifyPaused(refresh: boolean = true): void {
-                    that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
-                    that.debugBridge?.refresh();
-                },
-                notifyBreakpointHit(): void {
-                    that.sendEvent(new StoppedEvent('breakpoint', that.THREAD_ID));
-                    that.debugBridge?.refresh();
-                },
-                disconnected(): void {
-
-                },
-                notifyProgress(message: string): void {
-                    that.notifier.text = message;
-                },
-                notifyStateUpdate(): void {
-                    that.notifyStepCompleted();
-                },
-                notifyException(message: string): void {
-                    vscode.window.showErrorMessage(message);
-                    that.sendEvent(new StoppedEvent('pause', that.THREAD_ID));
-                },
-                notifyInfoMessage(message: string) {
-                    vscode.window.showInformationMessage(message);
-                },
-                runEvent() {
-                    that.sendEvent(new ContinuedEvent(that.THREAD_ID));
-                }
-            }
-        ));
-
-        this.sendResponse(response);
-        this.sendEvent(new StoppedEvent('entry', this.THREAD_ID));
+        try {
+            await debugBridge.connect();
+            listener.connected();
+            this.devicesManager.addDevice(debugBridge);
+            this.setDebugBridge(debugBridge);
+            this.sendResponse(response);
+            this.sendEvent(new StoppedEvent('entry', this.THREAD_ID));
+        }
+        catch (reason) {
+            console.error(reason);
+            listener.notifyError(Messages.connectionFailure);
+        }
     }
 
     private setDebugBridge(next: DebugBridge) {
@@ -425,8 +352,36 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
     }
 
-    public startDebuggingOnEmulator(item: TimelineItem) {
-        throw Error("not implemented");
+    public async startDebuggingOnEmulator(item: TimelineItem) {
+        const itemIdx = item.getTimelineIndex();
+        const state = this.debugBridge?.getDebuggingTimeline().getStateFromIndex(itemIdx);
+        if (!!!state || !state.hasAllState()) {
+            return;
+        }
+        const bridge = item.getDebuggerBridge();
+        const config = bridge.getDeviceConfig();
+        const name = `${config.name} (Emulator)`;
+        const dc = DeviceConfig.configForProxy(name, config);
+        const stateToPush = item.getRuntimeState().deepcopy();
+        const listener = new BridgeListener(this, this.THREAD_ID, this.notifier);
+        const newBridge = DebugBridgeFactory.makeDebugBridge(this.program, dc, this.sourceMap as SourceMap, this.viewsRefresher, RunTimeTarget.wood, this.tmpdir, listener);
+
+        bridge.proxify();
+        bridge.disconnect();
+        console.log("Plugin: transfer state received.");
+
+        try {
+            await newBridge.connect();
+            listener.notifyConnected();
+            this.devicesManager.addDevice(newBridge);
+            this.setDebugBridge(newBridge);
+            newBridge.pushSession(stateToPush.getSendableState());
+            (newBridge as WOODDebugBridge).specifyProxyCalls();
+        }
+        catch (reason) {
+            console.error(reason);
+            listener.notifyError(Messages.connectionFailure);
+        }
     }
 
     //
