@@ -121,4 +121,7 @@ export class TimelineItem extends vscode.TreeItem {
         return this.debuggerBridge;
     }
 
+    public getRuntimeState() {
+        return this.runtimeState;
+    }
 }
