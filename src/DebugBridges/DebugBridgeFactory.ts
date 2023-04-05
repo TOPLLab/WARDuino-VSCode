@@ -1,5 +1,5 @@
 import { DebugBridge } from "./DebugBridge";
-import { DebugBridgeListener } from "./DebugBridgeListener";
+import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { RunTimeTarget } from "./RunTimeTarget";
 import { EmulatedDebugBridge } from "./EmulatedDebugBridge";
 import { getFileExtension } from '../Parsers/ParseUtils';
@@ -22,7 +22,7 @@ function getConfig(id: string): string {
 }
 
 export class DebugBridgeFactory {
-    static makeDebugBridge(file: string, deviceConfig: DeviceConfig, sourceMap: SourceMap, viewsRefresher: RuntimeViewsRefresher, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListener): DebugBridge {
+    static makeDebugBridge(file: string, deviceConfig: DeviceConfig, sourceMap: SourceMap, viewsRefresher: RuntimeViewsRefresher, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListenerInterface): DebugBridge {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
@@ -44,13 +44,6 @@ export class DebugBridgeFactory {
                         break;
                 }
 
-                bridge.connect().then(() => {
-                    console.log("Plugin: Connected.");
-                    listener.connected();
-                }).catch(reason => {
-                    console.error(reason);
-                    listener.notifyError(Messages.connectionFailure);
-                });
                 return bridge;
         }
         throw new Error("Unsupported file type");
