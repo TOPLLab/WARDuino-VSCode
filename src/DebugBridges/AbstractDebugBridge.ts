@@ -2,7 +2,7 @@ import { DebugBridge } from "./DebugBridge";
 import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "../State/VariableInfo";
 import { SourceMap } from "../State/SourceMap";
-import { DebugBridgeListener } from "./DebugBridgeListener";
+import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { ExecutionStateType, StateRequest, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { Writable } from "stream";
@@ -59,7 +59,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected breakpointPolicy: BreakpointPolicy;
 
     // Interfaces
-    protected listener: DebugBridgeListener;
+    protected listener: DebugBridgeListenerInterface;
     protected abstract client: Writable | undefined;
     public socketConnection?: ClientSideSocket;
 
@@ -72,7 +72,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     private viewsRefresher: RuntimeViewsRefresher;
 
-    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, viewRefresher: RuntimeViewsRefresher, listener: DebugBridgeListener) {
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, viewRefresher: RuntimeViewsRefresher, listener: DebugBridgeListenerInterface) {
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
@@ -81,6 +81,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.deviceConfig = deviceConfig;
         this.breakpointPolicy = BreakpointPolicy.default;
         this.viewsRefresher = viewRefresher;
+        this.listener.setBridge(this);
     }
 
     // General Bridge functionality
@@ -92,6 +93,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     abstract upload(): void;
 
     // Debug API
+
+    abstract proxify(): void;
 
     public run(): void {
         // this.resetHistory();
@@ -289,7 +292,11 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.sendData(req, cberr);
     }
 
-    getListener(): DebugBridgeListener {
+    getDeviceConfig() {
+        return this.deviceConfig;
+    }
+
+    getListener(): DebugBridgeListenerInterface {
         return this.listener;
     }
 

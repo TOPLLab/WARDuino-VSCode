@@ -1,6 +1,6 @@
 import { ChildProcess, spawn } from 'child_process';
 import * as net from 'net';
-import { DebugBridgeListener } from './DebugBridgeListener';
+import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
 import { InterruptTypes } from './InterruptTypes';
 import { DebugInfoParser } from "../Parsers/DebugInfoParser";
 import { AbstractDebugBridge } from "./AbstractDebugBridge";
@@ -24,7 +24,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser;
     private buffer: string = '';
 
-    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, viewsRefresher: RuntimeViewsRefresher, tmpdir: string, listener: DebugBridgeListener,
+    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, viewsRefresher: RuntimeViewsRefresher, tmpdir: string, listener: DebugBridgeListenerInterface,
         warduinoSDK: string) {
         super(config, sourceMap, viewsRefresher, listener);
 
@@ -32,6 +32,10 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
         this.parser = new DebugInfoParser(sourceMap);
+    }
+
+    public proxify(): void {
+        throw new Error("Method not supported.");
     }
 
     upload(): void {

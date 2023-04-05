@@ -4,8 +4,9 @@ import { SourceMap } from "../State/SourceMap";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { RuntimeState } from "../State/RuntimeState";
 import { Breakpoint, BreakpointPolicy } from "../State/Breakpoint";
-import { DebugBridgeListener } from "./DebugBridgeListener";
+import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
+import { DeviceConfig } from "../DebuggerConfig";
 
 export interface DebugBridge {
 
@@ -24,6 +25,8 @@ export interface DebugBridge {
 
   getBreakpointPossibilities(): Breakpoint[];
 
+
+  proxify(): void;
 
   step(): void;
 
@@ -76,6 +79,8 @@ export interface DebugBridge {
 
   setBreakpointPolicy(policy: BreakpointPolicy): void;
 
-  getListener(): DebugBridgeListener;
+  getDeviceConfig(): DeviceConfig;
+
+  getListener(): DebugBridgeListenerInterface;
 
 }
