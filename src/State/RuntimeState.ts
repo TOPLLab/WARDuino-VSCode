@@ -201,6 +201,10 @@ export class RuntimeState {
         return this.stack;
     }
 
+    public hasAllState(): boolean {
+        return this.wasmState.getMissingState().length === 0;
+    }
+
     private oldException(): boolean {
         return false;
     }
