@@ -55,6 +55,12 @@
         "category": "WARDuino",
         "title": "Update Module",
         "icon": "$(arrow-circle-up)"
+      },
+      {
+        "command": "warduinodebug.showViewOnRuntimeState",
+        "category": "WARDuino",
+        "title": "View the state",
+        "icon": "$(eye)"
       }
     ],
     "views": {
@@ -92,6 +98,13 @@
           "command": "warduinodebug.popEvent",
           "when": "view == events",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "warduinodebug.showViewOnRuntimeState",
+          "when": "view == debuggingTimeline",
+          "group": "inline"
         }
       ]
     },
