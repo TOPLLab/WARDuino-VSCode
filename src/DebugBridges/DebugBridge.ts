@@ -10,87 +10,72 @@ import { DebugBridgeListener } from "./DebugBridgeListener";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 
 export interface DebugBridge {
-    client: Duplex | undefined;
 
-    setStartAddress(startAddress: number): void;
+  refreshViews(): void;
 
-    connect(): Promise<string>;
+  connect(): Promise<string>;
 
-    getDebuggingTimeline(): DebuggingTimeline;
+  getDebuggingTimeline(): DebuggingTimeline;
 
-    getCurrentState(): RuntimeState | undefined;
+  getCurrentState(): RuntimeState | undefined;
 
-    updateRuntimeState(runtimeState: RuntimeState): void;
+  updateRuntimeState(runtimeState: RuntimeState, refreshViews?: boolean): void;
 
-    getProgramCounter(): number;
 
-    setProgramCounter(pc: number): void;
+  getBreakpointPossibilities(): Breakpoint[];
 
-    getBreakpointPossibilities(): Breakpoint[];
 
-    getLocals(fidx: number): VariableInfo[];
+  step(): void;
 
-    setLocals(fidx: number, locals: VariableInfo[]): void;
+  stepBack(): void;
 
-    getCallstack(): Frame[];
+  run(): void;
 
-    setCallstack(callstack: Frame[]): void;
+  pause(): void;
 
-    getCurrentFunctionIndex(): number;
+  hitBreakpoint(): void;
 
-    step(): void;
+  pullSession(): void;
 
-    stepBack(): void;
+  pushSession(woodState: WOODState): void;
 
-    run(): void;
 
-    pause(): void;
+  popEvent(): void;
 
-    hitBreakpoint(): void;
+  // Adds or removes the current callback depending on whether is selected or not respectively
+  updateSelectedProxies(proxy: ProxyCallItem): void;
 
-    pullSession(): void;
+  setSelectedProxies(proxies: Set<ProxyCallItem>): void;
 
-    pushSession(woodState: WOODState): void;
+  getSelectedProxies(): Set<ProxyCallItem>;
 
-    refreshEvents(events: EventItem[]): void;
+  setBreakPoints(lines: number[]): Breakpoint[];
 
-    popEvent(): void;
+  unsetAllBreakpoints(): void;
 
-    // Adds or removes the current callback depending on whether is selected or not respectively
-    updateSelectedProxies(proxy: ProxyCallItem): void;
+  unsetBreakPoint(breakpoint: Breakpoint | number): void;
 
-    setSelectedProxies(proxies: Set<ProxyCallItem>): void;
+  refresh(): void;
 
-    getSelectedProxies(): Set<ProxyCallItem>;
+  notifyNewEvent(): void;
 
-    setBreakPoints(lines: number[]): Breakpoint[];
+  disconnect(): void;
 
-    unsetAllBreakpoints(): void;
 
-    unsetBreakPoint(breakpoint: Breakpoint | number): void;
+  upload(): void;
 
-    refresh(): void;
+  updateModule(wasm: Buffer): void;
 
-    notifyNewEvent(): void;
+  updateSourceMapper(newSourceMap: SourceMap): void;
 
-    disconnect(): void;
+  updateLocal(local: VariableInfo): Promise<string>;
 
-    setVariable(name: string, value: number): Promise<string>;
+  updateGlobal(updateGlobal: VariableInfo): Promise<string>;
 
-    upload(): void;
+  getBreakpointPolicy(): BreakpointPolicy;
 
-    updateModule(wasm: Buffer): void;
+  setBreakpointPolicy(policy: BreakpointPolicy): void;
 
-    updateSourceMapper(newSourceMap: SourceMap): void;
-
-    updateLocal(local: VariableInfo): Promise<string>;
-
-    updateGlobal(updateGlobal: VariableInfo): Promise<string>;
-
-    getBreakpointPolicy(): BreakpointPolicy;
-
-    setBreakpointPolicy(policy: BreakpointPolicy): void;
-
-    getListener(): DebugBridgeListener;
+  getListener(): DebugBridgeListener;
 
 }

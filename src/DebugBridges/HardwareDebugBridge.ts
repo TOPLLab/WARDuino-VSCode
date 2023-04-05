@@ -234,12 +234,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    getCurrentFunctionIndex(): number {
-        if (this.callstack.length === 0) {
-            return -1;
-        }
-        return this.callstack[this.callstack.length - 1].index;
-    }
 
     pullSession(): void {
         this.outOfPlaceActive = true;

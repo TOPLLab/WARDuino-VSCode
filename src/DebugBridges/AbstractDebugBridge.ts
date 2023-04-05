@@ -14,7 +14,7 @@ import { Breakpoint, BreakpointPolicy, UniqueSet } from "../State/Breakpoint";
 import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
-import { StackItem, StackProvider } from "../Views/StackProvider";
+import { StackProvider } from "../Views/StackProvider";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 
@@ -138,7 +138,6 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract refresh(): void;
 
-    abstract getCurrentFunctionIndex(): number;
 
 
     public unsetAllBreakpoints() {
@@ -209,39 +208,11 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return parseInt('0x' + lineInfoPair?.lineAddress ?? '');
     }
 
-    abstract setStartAddress(startAddress: number): void;
-
-    public setVariable(name: string, value: number): Promise<string> {
-        return new Promise<string>((resolve, reject) => {
-            console.log(`setting ${name} ${value}`);
-            try {
-                let command = this.getVariableCommand(name, value);
-                if (!!this.client) {
-                    this.client?.write(command, err => {
-                        resolve("Interrupt send.");
-                    });
-                }
-                else {
-                    this.socketConnection?.write(command, () => {
-                        resolve("Interrupt send.");
-                    });
-                }
-            } catch {
-                reject('Local not found.');
-            }
-        });
-    }
 
     abstract pullSession(): void;
 
     abstract pushSession(woodState: WOODState): void;
 
-    public refreshEvents(events: EventItem[]) {
-        this.eventsProvider?.setEvents(events);
-    }
-    public refreshStack(stack: StackItem[]) {
-        this.stackProvider?.setStack(stack);
-    }
 
 
     public notifyNewEvent(): void {
@@ -278,14 +249,6 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
     }
 
-    protected getVariableCommand(name: string, value: number): string {
-        let local = this.getLocals(this.getCurrentFunctionIndex()).find(o => o.name === name);
-        if (local) {
-            return `21${convertToLEB128(local.index)}${convertToLEB128(value)} \n`;
-        } else {
-            throw new Error('Failed to set variables.');
-        }
-    }
 
     protected getPrimitives(): number[] {
         return this.sourceMap?.importInfos.map((primitive: FunctionInfo) => (primitive.index)) ?? [];
@@ -335,24 +298,30 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.breakpointPolicy = policy;
     }
 
-    updateRuntimeState(runtimeState: RuntimeState) {
+    updateRuntimeState(runtimeState: RuntimeState, refreshViews?: boolean) {
         if (this.timeline.isActiveStatePresent()) {
             this.timeline.addRuntime(runtimeState.deepcopy());
             if (!!!this.timeline.advanceTimeline()) {
                 throw new Error("Timeline should be able to advance")
             }
         }
-        this.refreshRuntimeState(runtimeState);
+
+        const refresh = !!refreshViews ? refreshViews : true;
+        if (refresh) {
+            this.refreshRuntimeState(runtimeState);
+            this.listener.notifyStateUpdate();
+        }
+
+    }
+
+    public refreshViews() {
+        const rs = this.getCurrentState();
+        if (!!rs) {
+            this.refreshRuntimeState(rs);
+        }
     }
 
     private refreshRuntimeState(runtimeState: RuntimeState) {
-        this.setProgramCounter(runtimeState.getAdjustedProgramCounter());
-        this.setStartAddress(runtimeState.startAddress);
-        this.refreshEvents(runtimeState.events);
-        this.refreshStack(runtimeState.stack.map(sv => new StackItem(sv)).reverse());
-        this.setCallstack(runtimeState.callstack);
-        this.setLocals(runtimeState.currentFunction(), runtimeState.locals);
-        this.setGlobals(runtimeState.globals);
         if (runtimeState.hasException()) {
             this.listener.notifyException(runtimeState.getExceptionMsg());
         }
@@ -371,32 +340,9 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return this.sourceMap?.lineInfoPairs.map(info => new Breakpoint(this.lineToAddress(info.lineInfo.line), info.lineInfo.line)) ?? [];
     }
 
-    getLocals(fidx: number): VariableInfo[] {
-        if (this.sourceMap === undefined || fidx < 0) {
-            return [];
-        }
-        const func = this.sourceMap.functionInfos.find(f => f.index === fidx);
-        if (!!!func) {
-            throw (new Error(`AbstractDebugBridge: getLocals for an unknwon function ${fidx}`));
-        }
-        return func.locals;
-    }
-
-    setLocals(fidx: number, locals: VariableInfo[]) {
-        if (this.sourceMap === undefined) {
-            return;
-        }
-        const func = this.sourceMap.functionInfos.find(f => f.index === fidx);
-        if (!!!func) {
-            throw (new Error(`AbstractDebugBridge: SetLocals for an unknwon function ${fidx} locals ${locals}`));
-            // console.log(`warning setting locals for new function with index: ${fidx}`);
-            // this.sourceMap.functionInfos[fidx] = {index: fidx, name: "<anonymous>", locals: []};
-        }
-        func.locals = locals;
-    }
 
     updateLocal(local: VariableInfo): Promise<string> {
-        const state = this.getCurrentState()?.wasmState;
+        const state = this.getCurrentState()?.getWasmState();
         const command = state?.serializeStackValueUpdate(local.index);
         return new Promise<string>((resolve, reject) => {
             console.log(`setting ${local.name} ${local.value}`);
@@ -410,7 +356,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
     updateGlobal(global: VariableInfo): Promise<string> {
-        const state = this.getCurrentState()?.wasmState;
+        const state = this.getCurrentState()?.getWasmState();
         const command = state?.serializeGlobalValueUpdate(global.index);
         return new Promise<string>((resolve, reject) => {
             console.log(`setting ${global.name} ${global.value}`);
@@ -424,20 +370,6 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
 
-    setGlobals(globals: VariableInfo[]) {
-        globals.forEach(gbl => {
-            this.sourceMap.globalInfos[gbl.index].value = gbl.value;
-        });
-    }
-
-    getCallstack(): Frame[] {
-        return this.callstack;
-    }
-
-    setCallstack(callstack: Frame[]): void {
-        this.callstack = callstack;
-        this.listener.notifyStateUpdate();
-    }
 
     updateSourceMapper(newSourceMap: SourceMap): void {
         this.sourceMap = newSourceMap;
