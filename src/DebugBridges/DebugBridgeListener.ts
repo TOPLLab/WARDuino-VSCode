@@ -1,26 +1,85 @@
-import { WOODState } from "../State/WOODState";
+import * as vscode from 'vscode';
+import {
+    ContinuedEvent,
+    StoppedEvent
+} from 'vscode-debugadapter';
+import { WARDuinoDebugSession } from "../DebugSession/DebugSession";
+import { DebugBridge } from "./DebugBridge";
+import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
+import { WOODState } from '../State/WOODState';
 
-export interface DebugBridgeListener {
-    connected(): void;
+export class BridgeListener implements DebugBridgeListenerInterface {
 
-    disconnected(): void;
+    private debugSession: WARDuinoDebugSession;
+    private debugBridge: DebugBridge | undefined;
+    private THREAD_ID: number;
+    private notifier: vscode.StatusBarItem;
 
-    startMultiverseDebugging(woodState: WOODState): void;
+    constructor(debugSession: WARDuinoDebugSession, THREAD_ID: number, notifier: vscode.StatusBarItem) {
+        this.debugSession = debugSession;
+        this.debugBridge = undefined;
+        this.THREAD_ID = THREAD_ID;
+        this.notifier = notifier;
+    }
 
-    notifyError(message: string): void;
+    public setBridge(debugBridge: DebugBridge) {
+        this.debugBridge = debugBridge;
+    }
 
-    notifyProgress(message: string): void;
+    public notifyError(message: string) {
+        this.debugSession.stop();
+    }
 
-    notifyStateUpdate(): void;
+    public notifyConnected(): void {
+        const deviceName = this.debugBridge?.getDeviceConfig().name;
+        if (!!deviceName) {
+            vscode.window.showInformationMessage(deviceName);
+        }
+    }
 
-    notifyPaused(): void;
 
-    notifyBreakpointHit(): void;
+    public connected(): void {
+        if (this.debugBridge?.getDeviceConfig().onStartConfig.pause) {
+            this.notifyPaused();
+        }
+    }
 
-    notifyException(message: string): void;
+    public notifyPaused(refresh: boolean = true): void {
+        this.debugSession.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
+        this.debugBridge?.refresh();
+    }
 
-    notifyInfoMessage(message: string): void;
+    public notifyBreakpointHit(): void {
+        this.debugSession.sendEvent(new StoppedEvent('breakpoint', this.THREAD_ID));
+        this.debugBridge?.refresh();
+    }
 
-    runEvent(): void;
+    public disconnected(): void {
 
+    }
+
+    public notifyProgress(message: string): void {
+        this.notifier.text = message;
+    }
+
+    public notifyStateUpdate(): void {
+        this.debugSession.notifyStepCompleted();
+    }
+
+    public notifyException(message: string): void {
+        vscode.window.showErrorMessage(message);
+        this.debugSession.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
+    }
+
+    public notifyInfoMessage(message: string) {
+        vscode.window.showInformationMessage(message);
+    }
+
+    public runEvent() {
+        this.debugSession.sendEvent(new ContinuedEvent(this.THREAD_ID));
+    }
+
+    public startMultiverseDebugging(woodState: WOODState) {
+        return;
+    }
 }
