@@ -60,8 +60,6 @@ async function init(target: RunTimeTarget) {
                             //TODO fix
                             DeviceConfig.defaultDeviceConfig("wood"),
                             EmptySourceMap(),
-                            undefined,
-                            undefined,
                             viewRefresher,
                             tmpdir,
                             listener,
@@ -73,8 +71,6 @@ async function init(target: RunTimeTarget) {
                         bridge = new EmulatedDebugBridge("",
                             DeviceConfig.defaultDeviceConfig("emulated"),
                             EmptySourceMap(),
-                            undefined,
-                            undefined,
                             viewRefresher,
                             tmpdir,
                             listener,
