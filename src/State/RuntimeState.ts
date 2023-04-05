@@ -3,7 +3,7 @@ import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "./VariableInfo";
 import { WasmState } from "./AllState";
 import { SourceMap } from "./SourceMap";
-import { InterruptEvent } from "./WOODState";
+import { ExecutionStateType, InterruptEvent } from "./WOODState";
 
 function hash(s: string) {
     let h: number = 0;
@@ -46,6 +46,10 @@ export class RuntimeState {
 
     public getWasmState(): WasmState {
         return this.wasmState;
+    }
+
+    public getMissingState(): ExecutionStateType[] {
+        return this.wasmState.getMissingState();
     }
 
     public getExceptionMsg(): string {
@@ -181,6 +185,11 @@ export class RuntimeState {
         }
     }
 
+    public copyMissingState(otherState: RuntimeState) {
+        this.wasmState.copyMissingState(otherState.getWasmState());
+        this.fillState();
+    }
+
     public getEvents() {
         return this.events;
     }
@@ -202,7 +211,9 @@ export class RuntimeState {
     }
 
     public hasAllState(): boolean {
-        return this.wasmState.getMissingState().length === 0;
+        // PC ERROR may never be set when no error occured
+        const missingState = this.wasmState.getMissingState();
+        return missingState.length == 0 || (missingState.length == 1 && missingState[0] == ExecutionStateType.errorState);
     }
 
     private oldException(): boolean {
