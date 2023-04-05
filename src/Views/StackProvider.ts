@@ -1,9 +1,10 @@
-
 import * as vscode from 'vscode';
 import { ProviderResult, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { VariableInfo } from '../State/VariableInfo';
+import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
+import { RuntimeState } from '../State/RuntimeState';
 
-export class StackProvider implements vscode.TreeDataProvider<StackItem> {
+export class StackProvider implements vscode.TreeDataProvider<StackItem>, RuntimeViewRefreshInterface {
     private stack: StackItem[] = [];
 
     private _onDidChangeTreeData: vscode.EventEmitter<StackItem | undefined | null | void> = new vscode.EventEmitter<StackItem | undefined | null | void>();
@@ -23,8 +24,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackItem> {
         return element;
     }
 
-    setStack(stack: StackItem[]) {
-        this.stack = stack ?? [];
+    refreshView(runtimeState: RuntimeState): void {
+        this.stack = runtimeState.getValuesStack().map(sv => new StackItem(sv)).reverse();
         this._onDidChangeTreeData.fire();
     }
 }

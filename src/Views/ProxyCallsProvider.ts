@@ -2,8 +2,10 @@ import {FunctionInfo} from "../State/FunctionInfo";
 import * as vscode from 'vscode';
 import {ProviderResult, ThemeIcon, TreeItem} from 'vscode';
 import {DebugBridge} from "../DebugBridges/DebugBridge";
+import { RuntimeViewRefreshInterface } from "./RuntimeViewRefreshInterface";
+import { RuntimeState } from "../State/RuntimeState";
 
-export class ProxyCallsProvider implements vscode.TreeDataProvider<ProxyCallItem> {
+export class ProxyCallsProvider implements vscode.TreeDataProvider<ProxyCallItem>, RuntimeViewRefreshInterface {
     private debugBridge: DebugBridge;
 
     private _onDidChangeTreeData: vscode.EventEmitter<ProxyCallItem | undefined | null | void> = new vscode.EventEmitter<ProxyCallItem | undefined | null | void>();
@@ -26,6 +28,10 @@ export class ProxyCallsProvider implements vscode.TreeDataProvider<ProxyCallItem
 
     setDebugBridge(debugBridge: DebugBridge) {
         this.debugBridge = debugBridge;
+    }
+
+    refreshView(runtimeState: RuntimeState) {
+        this._onDidChangeTreeData.fire();
     }
 
     refresh() {

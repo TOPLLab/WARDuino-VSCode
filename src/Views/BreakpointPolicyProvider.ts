@@ -3,8 +3,10 @@ import * as vscode from 'vscode';
 import { ProviderResult, ThemeIcon, TreeItem } from 'vscode';
 import { DebugBridge } from "../DebugBridges/DebugBridge";
 import { BreakpointPolicy, Breakpoint } from "../State/Breakpoint";
+import { RuntimeViewRefreshInterface } from "./RuntimeViewRefreshInterface";
+import { RuntimeState } from "../State/RuntimeState";
 
-export class BreakpointPolicyProvider implements vscode.TreeDataProvider<BreakpointPolicyItem> {
+export class BreakpointPolicyProvider implements vscode.TreeDataProvider<BreakpointPolicyItem>, RuntimeViewRefreshInterface {
     private debugBridge: DebugBridge;
 
     private _onDidChangeTreeData: vscode.EventEmitter<BreakpointPolicyItem | undefined | null | void> = new vscode.EventEmitter<BreakpointPolicyItem | undefined | null | void>();
@@ -41,6 +43,10 @@ export class BreakpointPolicyProvider implements vscode.TreeDataProvider<Breakpo
 
     setDebugBridge(debugBridge: DebugBridge) {
         this.debugBridge = debugBridge;
+    }
+
+    refreshView(runtimeState: RuntimeState): void {
+        this._onDidChangeTreeData.fire();
     }
 
     refresh() {
