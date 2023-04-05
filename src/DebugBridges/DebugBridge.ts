@@ -1,8 +1,6 @@
 import { VariableInfo } from "../State/VariableInfo";
-import { Frame } from "../Parsers/Frame";
 import { WOODState } from "../State/WOODState";
 import { SourceMap } from "../State/SourceMap";
-import { EventItem } from "../Views/EventsProvider";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { RuntimeState } from "../State/RuntimeState";
 import { Breakpoint, BreakpointPolicy } from "../State/Breakpoint";
@@ -10,6 +8,8 @@ import { DebugBridgeListener } from "./DebugBridgeListener";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 
 export interface DebugBridge {
+
+  requestMissingState(): void;
 
   refreshViews(): void;
 
