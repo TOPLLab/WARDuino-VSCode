@@ -16,17 +16,17 @@ function hash(s: string) {
 export class RuntimeState {
     private id: number = 0;
     private programCounter: number = 0;
-    public startAddress: number = 0;
-    public callstack: Frame[] = [];
-    public locals: VariableInfo[] = [];
-    public events: EventItem[] = [];
-    public stack: VariableInfo[] = [];
-    public globals: VariableInfo[] = [];
-    public arguments: VariableInfo[] = [];
-    public pcerror: number = -1;
-    public exception_msg: string = "";
+    private startAddress: number = 0;
+    private callstack: Frame[] = [];
+    private locals: VariableInfo[] = [];
+    private events: EventItem[] = [];
+    private stack: VariableInfo[] = [];
+    private globals: VariableInfo[] = [];
+    private arguments: VariableInfo[] = [];
+    private pcerror: number = -1;
+    private exception_msg: string = "";
 
-    public wasmState: WasmState;
+    private wasmState: WasmState;
 
     private source: string = "";
     private sourceMap: SourceMap;
@@ -44,8 +44,17 @@ export class RuntimeState {
         return this.id;
     }
 
+    public getWasmState(): WasmState {
+        return this.wasmState;
+    }
+
     public getExceptionMsg(): string {
         return `Exception occurred on device: ${this.exception_msg}`;
+    }
+
+
+    public getProgramCounter(): number {
+        return this.programCounter;
     }
 
     public getRawProgramCounter(): number {
@@ -53,7 +62,7 @@ export class RuntimeState {
     }
 
     public getArguments() {
-        this.arguments;
+        return this.arguments;
     }
 
     public setRawProgramCounter(raw: number) {
@@ -102,6 +111,10 @@ export class RuntimeState {
         return undefined;
     }
 
+    public getLocals(): VariableInfo[] {
+        return this.locals;
+    }
+
     public getLocal(name: string) {
         return this.locals.find(l => l.name === name);
     }
@@ -138,6 +151,10 @@ export class RuntimeState {
         return undefined;
     }
 
+    public getGlobals(): VariableInfo[] {
+        return this.globals;
+    }
+
     public getGlobal(name: string) {
         return this.globals.find(g => g.name === name);
     }
@@ -164,12 +181,24 @@ export class RuntimeState {
         }
     }
 
+    public getEvents() {
+        return this.events;
+    }
+
     public setEvents(events: EventItem[]): void {
         this.events = events;
     }
 
     public hasException(): boolean {
         return this.wasmState.hasException();
+    }
+
+    public getCallStack(): Frame[] {
+        return this.callstack;
+    }
+
+    public getValuesStack() {
+        return this.stack;
     }
 
     private oldException(): boolean {
