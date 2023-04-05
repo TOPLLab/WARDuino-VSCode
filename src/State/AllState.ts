@@ -1,7 +1,7 @@
 import { SourceMap } from "../State/SourceMap";
 import { FunctionInfo } from "./FunctionInfo";
 import { VariableInfo } from "./VariableInfo";
-import { WOODDumpResponse, WOODState, Frame, FRAME_FUNC_TYPE, InterruptEvent } from "./WOODState";
+import { WOODDumpResponse, WOODState, Frame, FRAME_FUNC_TYPE, InterruptEvent, ExecutionStateType } from "./WOODState";
 
 
 export class WasmState {
@@ -21,6 +21,55 @@ export class WasmState {
 
     getEvents(): InterruptEvent[] {
         return this.state.events ?? [];
+    }
+
+    getMissingState(): ExecutionStateType[] {
+        const missings = [];
+        if (this.state.pc === undefined) {
+            missings.push(ExecutionStateType.pcState);
+        }
+
+        if (this.state.breakpoints === undefined) {
+            missings.push(ExecutionStateType.breakpointState);
+        }
+
+        if (this.state.callstack === undefined) {
+            missings.push(ExecutionStateType.callstackState);
+        }
+
+        if (this.state.globals === undefined) {
+            missings.push(ExecutionStateType.globalsState);
+        }
+
+        if (this.state.table === undefined) {
+            missings.push(ExecutionStateType.tableState);
+        }
+
+        if (this.state.memory === undefined) {
+            missings.push(ExecutionStateType.memState);
+        }
+
+        if (this.state.br_table === undefined) {
+            missings.push(ExecutionStateType.branchingTableState);
+        }
+
+
+        if (this.state.stack === undefined) {
+            missings.push(ExecutionStateType.stackState);
+        }
+
+        if (this.state.pc_error === undefined || this.state.exception_msg === undefined) {
+            missings.push(ExecutionStateType.errorState);
+        }
+
+        if (this.state.callbacks === undefined) {
+            missings.push(ExecutionStateType.callbacksState);
+        }
+
+        if (this.state.events === undefined) {
+            missings.push(ExecutionStateType.eventsState);
+        }
+        return missings;
     }
 
     getArguments(): VariableInfo[] {
