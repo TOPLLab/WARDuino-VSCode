@@ -60,9 +60,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Interfaces
     protected listener: DebugBridgeListener;
-    abstract client: Duplex | undefined;
-    private eventsProvider: EventsProvider | void;
-    private stackProvider: StackProvider | undefined;
+    protected abstract client: Writable | undefined;
     public socketConnection?: ClientSideSocket;
 
     // History (time-travel)
@@ -74,15 +72,13 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     private viewsRefresher: RuntimeViewsRefresher;
 
-    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, viewRefresher: RuntimeViewsRefresher, listener: DebugBridgeListener) {
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, viewRefresher: RuntimeViewsRefresher, listener: DebugBridgeListener) {
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
             ?? new Set<ProxyCallItem>();
-        this.eventsProvider = eventsProvider;
         this.listener = listener;
         this.deviceConfig = deviceConfig;
-        this.stackProvider = stackProvider;
         this.breakpointPolicy = BreakpointPolicy.default;
         this.viewsRefresher = viewRefresher;
     }

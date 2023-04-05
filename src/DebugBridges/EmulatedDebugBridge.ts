@@ -24,9 +24,9 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser;
     private buffer: string = '';
 
-    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, eventsProvider: EventsProvider | void, stackProvider: StackProvider | undefined, viewsRefresher: RuntimeViewsRefresher, tmpdir: string, listener: DebugBridgeListener,
+    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, viewsRefresher: RuntimeViewsRefresher, tmpdir: string, listener: DebugBridgeListener,
         warduinoSDK: string) {
-        super(config, sourceMap, eventsProvider, stackProvider, viewsRefresher, listener);
+        super(config, sourceMap, viewsRefresher, listener);
 
         this.sdk = warduinoSDK;
         this.sourceMap = sourceMap;
