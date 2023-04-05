@@ -10,21 +10,23 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
     readonly onDidChangeTreeData: vscode.Event<TimelineItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
     private debugBridge: DebugBridge;
+    private items: TimelineItem[];
 
     constructor(debugBridge: DebugBridge) {
         this.debugBridge = debugBridge;
+        this.items = [];
     }
 
     getChildren(element?: TimelineItem): ProviderResult<TimelineItem[]> {
         if (element === undefined) {
             const timeline = this.debugBridge.getDebuggingTimeline();
-            const items: TimelineItem[] = timeline.getRuntimesChronologically().map((rs: RuntimeState, idx: number) => { return new TimelineItem(rs, idx) }).reverse();
+            this.items = timeline.getRuntimesChronologically().map((rs: RuntimeState, idx: number) => { return new TimelineItem(rs, idx) }).reverse();
             const activeIndex = timeline.getIndexOfActiveState();
             if (!!activeIndex) {
-                items[activeIndex].select();
+                this.items[activeIndex].select();
             }
 
-            return items;
+            return this.items;
         } else if (element.collapsibleState !== TreeItemCollapsibleState.None) {
             // const children = this.stack;
             console.log("weird case")
@@ -44,6 +46,21 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
     refreshView(runtimeState: RuntimeState) {
         this._onDidChangeTreeData.fire();
     }
+
+    showItem(item: TimelineItem) {
+        this.items.forEach(i => {
+            if (item !== i) {
+                i.deSelect();
+            }
+            else {
+                item.select();
+            }
+        });
+    }
+
+    getSelected(): undefined | TimelineItem {
+        return this.items.find(item => item.isSelected());
+    }
 }
 
 export class TimelineItem extends vscode.TreeItem {
@@ -52,7 +69,7 @@ export class TimelineItem extends vscode.TreeItem {
     private selected: boolean;
 
     constructor(runtimeState: RuntimeState, timelineIndex: number, treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None) {
-        super(`Session ${runtimeState.getId()}`, treeItemCollapsibleState);
+        super(`Session#${timelineIndex} ${runtimeState.getId()}`, treeItemCollapsibleState);
         this.runtimeState = runtimeState;
         this.timelineIndex = timelineIndex;
         this.selected = false;
@@ -60,5 +77,21 @@ export class TimelineItem extends vscode.TreeItem {
 
     public select() {
         this.selected = true;
+    }
+
+    public deSelect() {
+        this.selected = false;
+    }
+
+    public toggle() {
+        this.selected = !this.selected;
+    }
+
+    public isSelected() {
+        return this.selected;
+    }
+
+    public getTimelineIndex() {
+        return this.timelineIndex;
     }
 }
