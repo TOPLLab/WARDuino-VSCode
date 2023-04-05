@@ -48,12 +48,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         return this.startEmulator();
     }
 
-    getCurrentFunctionIndex(): number {
-        if (this.callstack.length === 0) {
-            return -1;
-        }
-        return this.callstack[this.callstack.length - 1].index;
-    }
 
     private initClient(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
