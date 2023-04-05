@@ -9,17 +9,23 @@ import { EmulatedDebugBridge } from "../../DebugBridges/EmulatedDebugBridge";
 import { WASMCompilerBridge } from "../../CompilerBridges/WASMCompilerBridge";
 import { RunTimeTarget } from "../../DebugBridges/RunTimeTarget";
 import { WOODDebugBridge } from "../../DebugBridges/WOODDebugBridge";
-import { DebugBridgeListener } from "../../DebugBridges/DebugBridgeListener";
+import { DebugBridgeListenerInterface } from "../../DebugBridges/DebugBridgeListenerInterface";
 import ErrnoException = NodeJS.ErrnoException;
 import { DeviceConfig } from "../../DebuggerConfig";
 import { EmptySourceMap } from "../../State/SourceMap";
 import { RuntimeViewsRefresher } from "../../Views/ViewsRefresh";
+import { DebugBridge } from "../../DebugBridges/DebugBridge";
 
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
 const wabtSDK = `${runPath}/WABT/build`;
 const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
-const listener: DebugBridgeListener = {
+const listener: DebugBridgeListenerInterface = {
+
+    setBridge(debugBridge: DebugBridge){
+    },
+    notifyConnected(): void {
+    },
     notifyError(): void {
     },
     connected(): void {
@@ -222,7 +228,7 @@ suite("WOOD Debug API Test Suite (emulated)", () => {
 
         class DummyState extends WOODState {
             constructor() {
-                super("");
+                super("", JSON.parse(""));
             }
 
             toBinary(): string[] {
