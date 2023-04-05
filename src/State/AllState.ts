@@ -253,15 +253,15 @@ export class WasmState {
         }) ?? [];
     }
 
-    public getRawStack(){
+    public getRawStack() {
         return this.state.stack;
     }
 
-    public getRawMemory(){
+    public getRawMemory() {
         return this.state.memory;
     }
 
-    public getRawBranchingTable(){
+    public getRawBranchingTable() {
         return this.state.br_table;
     }
 
@@ -334,8 +334,20 @@ export class WasmState {
         return WOODState.serializeGlobalValueUpdate(sv);
     }
 
+    public getSendableState() {
+        const ws = new WOODState(JSON.stringify(this.state), this.state);
+        if (!!this.state.callbacks) {
+            ws.callbacks = JSON.stringify(this.state.callbacks);
+        }
+        else {
+            console.warn("callbacks mapping empty");
+        }
+
+        return ws;
+    }
+
     static fromLine(line: string, sourceMap: SourceMap): WasmState {
-        const ws = new WOODState(line);
+        const ws = WOODState.fromLine(line);
         return new WasmState(ws.getState(), sourceMap);
     }
 }

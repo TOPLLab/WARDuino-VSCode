@@ -210,6 +210,10 @@ export class RuntimeState {
         return this.stack;
     }
 
+    public getSendableState() {
+        return this.wasmState.getSendableState();
+    }
+
     public hasAllState(): boolean {
         // PC ERROR may never be set when no error occured
         const missingState = this.wasmState.getMissingState();
