@@ -63,5 +63,16 @@ export class DebugInfoParser {
             const currentState = bridge.getCurrentState();
             console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
         }
+        else if (line.startsWith("{\"")) {
+            // request to missing state
+            const state = bridge.getCurrentState();
+            if (!!!state) {
+                return;
+            }
+            const missingState = new RuntimeState(line, this.sourceMap);
+            state.copyMissingState(missingState);
+            bridge.refreshViews();
+            console.log(`PC=${state!.getProgramCounter()} (Hexa ${state!.getProgramCounter().toString(16)})`);
+        }
     }
 }
