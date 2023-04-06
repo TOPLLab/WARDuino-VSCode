@@ -86,4 +86,11 @@ export class DebuggingTimeline {
     public size(): number {
         return this.runtimes.length;
     }
+
+    public makeCurrentStateNewPresent() {
+        if (this.activeStateIdx === -1) {
+            return;
+        }
+        this.runtimes = this.runtimes.slice(0, this.activeStateIdx + 1);
+    }
 }
