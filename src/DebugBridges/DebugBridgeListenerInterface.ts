@@ -14,6 +14,8 @@ export interface DebugBridgeListenerInterface {
 
     notifyProgress(message: string): void;
 
+    notifyProgressInNotification(title: string, message: string): void;
+
     notifyStateUpdate(): void;
 
     notifyPaused(): void;
