@@ -345,6 +345,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         // only save the present state
         if (savingPresentState && !!timeline?.isActiveStatePresent()) {
+            this.debugBridge?.getListener().notifyInfoMessage(`Retrieving and saving state from ${this.debugBridge!.getDeviceConfig().name}`);
             this.debugBridge?.requestMissingState();
         }
     }
