@@ -21,8 +21,9 @@ const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
 const wabtSDK = `${runPath}/WABT/build`;
 const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
 const listener: DebugBridgeListenerInterface = {
-
     setBridge(debugBridge: DebugBridge){
+    },
+    notifyProgressInNotification(title: string, message:string){
     },
     notifyConnected(): void {
     },
