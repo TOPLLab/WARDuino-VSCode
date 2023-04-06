@@ -302,7 +302,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     public startMultiverseDebugging() {
-        this.debugBridge?.pullSession();
+        const index = this.debugBridge?.getDebuggingTimeline().getIndexOfActiveState();
+        const item = this.timelineProvider?.getItemFromTimeLineIndex(index ?? - 1);
+        if (!!item) {
+            this.saveRuntimeState(item);
+            console.info("(TODO) startMultiveDebugging: for now just pulls state but does not spawn yet a local VM");
+        }
     }
 
     public popEvent() {
