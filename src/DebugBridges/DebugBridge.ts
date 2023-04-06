@@ -22,6 +22,7 @@ export interface DebugBridge {
 
   updateRuntimeState(runtimeState: RuntimeState, opts?: { refreshViews?: boolean, includeInTimeline?: boolean }): void;
 
+  isUpdateOperationAllowed(): boolean;
 
   getBreakpointPossibilities(): Breakpoint[];
 
