@@ -237,13 +237,21 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): Promise<void> {
         const v = this.variableHandles.get(args.variablesReference);
-        const state = this.debugBridge?.getCurrentState();
+        const db = this.debugBridge;
+        const state = db?.getCurrentState();
+        const isPresent = db?.getDebuggingTimeline().isActiveStatePresent();
+        const isUpdateAllowed = db?.isUpdateOperationAllowed();
         let newvariable: VariableInfo | undefined = undefined;
-        if (v === "locals") {
-            if (this.debugBridge?.isUpdateOperationAllowed()) {
-                newvariable = state?.updateLocal(args.name, args.value);
+        if (v === "locals" && db && state) {
+            if (isUpdateAllowed) {
+                newvariable = state.updateLocal(args.name, args.value);
                 if (!!newvariable) {
-                    await this.debugBridge?.updateLocal(newvariable);
+                    if (!!!isPresent) {
+                        db.pushSession(state.getSendableState());
+                        db.getDebuggingTimeline().makeCurrentStateNewPresent();
+                        this.timelineProvider?.refreshView();
+                    }
+                    await db.updateLocal(newvariable);
                 }
                 else {
                     newvariable = state?.getLocal(args.name);
@@ -253,10 +261,15 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 newvariable = state?.getLocal(args.name);
             }
         }
-        else if (v === "globals") {
-            if (this.debugBridge?.isUpdateOperationAllowed()) {
+        else if (v === "globals" && db && state) {
+            if (isUpdateAllowed) {
                 newvariable = state?.updateGlobal(args.name, args.value);
                 if (!!newvariable) {
+                    if (!!!isPresent) {
+                        db.pushSession(state.getSendableState());
+                        db.getDebuggingTimeline().makeCurrentStateNewPresent();
+                        this.timelineProvider?.refreshView();
+                    }
                     await this.debugBridge?.updateGlobal(newvariable);
                 }
                 else {
@@ -267,10 +280,15 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 newvariable = state?.getGlobal(args.name);
             }
         }
-        else if (v === "arguments") {
-            if (this.debugBridge?.isUpdateOperationAllowed()) {
+        else if (v === "arguments" && db && state) {
+            if (isUpdateAllowed) {
                 newvariable = state?.updateArgument(args.name, args.value);
                 if (!!newvariable) {
+                    if (!!!isPresent) {
+                        db.pushSession(state.getSendableState());
+                        db.getDebuggingTimeline().makeCurrentStateNewPresent();
+                        this.timelineProvider?.refreshView();
+                    }
                     await this.debugBridge?.updateLocal(newvariable);
                 }
                 else {
@@ -282,7 +300,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             }
         }
 
-        if (!!!this.debugBridge?.isUpdateOperationAllowed()) {
+        if (!!!isUpdateAllowed) {
             this.debugBridge?.getListener().notifyDisallowedOperation("Update value disallowed in viewing mode");
         }
 
