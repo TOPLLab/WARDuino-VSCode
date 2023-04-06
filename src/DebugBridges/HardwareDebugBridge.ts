@@ -146,7 +146,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
         if (this.woodState !== undefined && line.startsWith('{"callbacks": ')) {
             this.woodState.callbacks = line;
-            this.pushSession();
+            //this.pushSession();
         }
         this.woodDumpDetected = line.includes('DUMP!');
         console.log(`hardware: ${line}`);
@@ -251,14 +251,14 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.sendInterrupt(InterruptTypes.interruptProxify);
     }
 
-    pushSession(): void {
-        if (this.woodState === undefined) {
-            return;
-        }
-        console.log('Plugin: transfer state received.');
-        this.sendInterrupt(InterruptTypes.interruptProxify);
-        this.listener.startMultiverseDebugging(this.woodState);
-    }
+    // pushSession(): void {
+    //     if (this.woodState === undefined) {
+    //         return;
+    //     }
+    //     console.log("Plugin: transfer state received.");
+    //     this.sendInterrupt(InterruptTypes.interruptProxify);
+    //     this.listener.startMultiverseDebugging(this.woodState);
+    // }
 
     requestCallbackmapping() {
         this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);

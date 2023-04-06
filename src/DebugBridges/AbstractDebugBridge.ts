@@ -212,9 +212,14 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract pullSession(): void;
 
-    abstract pushSession(woodState: WOODState): void;
-
-
+    public async pushSession(woodState: WOODState) {
+        console.log("Plugin: pusing state");
+        const messages: string[] = woodState.toBinary();
+        console.log(`sending ${messages.length} messages as new State\n`);
+        for (let i = 0; i < messages.length; i++) {
+            this.client?.write(messages[i]);
+        }
+    }
 
     public notifyNewEvent(): void {
         const req = new StateRequest();
