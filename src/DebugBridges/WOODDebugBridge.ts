@@ -7,16 +7,6 @@ import * as vscode from 'vscode';
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
 
-    public async pushSession(woodState: WOODState) {
-        console.log("Plugin: WOOD RecvState");
-        const messages: string[] = woodState.toBinary();
-        console.log(`sending ${messages.length} messages as new State\n`);
-        for (let i = 0; i < messages.length; i++) {
-            this.client?.write(messages[i]);
-        }
-
-    }
-
 
     private monitorProxiesCommand(primitives: number[]): string {
         function encode(i: number, byteLength: number, byteorder = 'big'): string {
