@@ -130,9 +130,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     public stepBack() {
         // Time travel backward
-        const rs = this.timeline.goBackTimeline();
+        const rs = this.timeline.isActiveStateTheStart() ? this.timeline.getStartState() : this.timeline.goBackTimeline();
         if (!!rs) {
-            this.updateRuntimeState(rs);
+            const doNotSave = { includeInTimeline: false };
+            this.updateRuntimeState(rs, doNotSave);
         }
     }
 
