@@ -330,7 +330,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const activeItem = this.timelineProvider?.getSelected();
         const index = activeItem?.getTimelineIndex();
         if (!this.debugBridge?.getDebuggingTimeline().activateStateFromIndex(index ?? -1)) {
-            this.debugBridge?.getDebuggingTimeline().advanceToPresent()
+            this.debugBridge?.getDebuggingTimeline().advanceToPresent();
         }
         const state = this.debugBridge?.getCurrentState();
         if (!!state) {
@@ -377,6 +377,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.setDebugBridge(newBridge);
             newBridge.pushSession(stateToPush.getSendableState());
             (newBridge as WOODDebugBridge).specifyProxyCalls();
+            newBridge.updateRuntimeState(stateToPush);
         }
         catch (reason) {
             console.error(reason);
