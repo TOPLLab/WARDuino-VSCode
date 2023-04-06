@@ -217,7 +217,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         if (!!!this.timelineProvider) {
             this.timelineProvider = new DebuggingTimelineProvider(next);
             this.viewsRefresher.addViewProvider(this.timelineProvider);
-            vscode.window.registerTreeDataProvider("debuggingTimeline", this.timelineProvider);
+            const v = vscode.window.createTreeView("debuggingTimeline", { treeDataProvider: this.timelineProvider });
+            this.timelineProvider.setView(v);
         } else {
             this.timelineProvider.setDebugBridge(next);
         }
