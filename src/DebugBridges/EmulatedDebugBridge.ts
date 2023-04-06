@@ -122,10 +122,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.sendData(req, cberr);
     }
 
-    public pushSession(woodState: WOODState) {
-        throw new Error("Method not implemented.");
-    }
-
     private executeCommand(command: InterruptTypes) {
         console.log(command.toString());
         this.client?.write(command.toString + '\n');
