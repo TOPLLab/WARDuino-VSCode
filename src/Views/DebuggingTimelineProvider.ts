@@ -58,7 +58,7 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
         this.debugBridge = debugBridge;
     }
 
-    refreshView(runtimeState: RuntimeState) {
+    refreshView(runtimeState?: RuntimeState) {
         this._onDidChangeTreeData.fire();
     }
 
