@@ -72,7 +72,7 @@ export class DebuggingTimeline {
 
 
     public isActiveStatePresent(): boolean {
-        return this.activeStateIdx == (this.runtimes.length - 1)
+        return this.activeStateIdx === (this.runtimes.length - 1)
     }
 
     public isActiveStateTheStart(): boolean {
