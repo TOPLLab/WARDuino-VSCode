@@ -115,7 +115,8 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         const runtimeState = this.timeline.advanceTimeline();
         if (!!runtimeState) {
             // Time travel forward
-            this.updateRuntimeState(runtimeState);
+            const doNotSave = { includeInTimeline: false };
+            this.updateRuntimeState(runtimeState, doNotSave);
         } else {
             // Normal step forward
             this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
@@ -316,15 +317,16 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.breakpointPolicy = policy;
     }
 
-    updateRuntimeState(runtimeState: RuntimeState, refreshViews?: boolean) {
-        if (this.timeline.isActiveStatePresent()) {
+    updateRuntimeState(runtimeState: RuntimeState, opts?: { refreshViews?: boolean, includeInTimeline?: boolean }) {
+        const includeInTimeline = opts?.includeInTimeline ?? true;
+        if (includeInTimeline && this.timeline.isActiveStatePresent()) {
             this.timeline.addRuntime(runtimeState.deepcopy());
             if (!!!this.timeline.advanceTimeline()) {
                 throw new Error("Timeline should be able to advance")
             }
         }
 
-        const refresh = !!refreshViews ? refreshViews : true;
+        const refresh = opts?.refreshViews ?? true;
         if (refresh) {
             this.refreshRuntimeState(runtimeState);
             this.listener.notifyStateUpdate();

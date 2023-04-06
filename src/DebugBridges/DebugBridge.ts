@@ -20,7 +20,7 @@ export interface DebugBridge {
 
   getCurrentState(): RuntimeState | undefined;
 
-  updateRuntimeState(runtimeState: RuntimeState, refreshViews?: boolean): void;
+  updateRuntimeState(runtimeState: RuntimeState, opts?: { refreshViews?: boolean, includeInTimeline?: boolean }): void;
 
 
   getBreakpointPossibilities(): Breakpoint[];
