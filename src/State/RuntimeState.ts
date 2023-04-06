@@ -217,7 +217,7 @@ export class RuntimeState {
     public hasAllState(): boolean {
         // PC ERROR may never be set when no error occured
         const missingState = this.wasmState.getMissingState();
-        return missingState.length == 0 || (missingState.length == 1 && missingState[0] == ExecutionStateType.errorState);
+        return missingState.length === 0 || (missingState.length === 1 && missingState[0] === ExecutionStateType.errorState);
     }
 
     private oldException(): boolean {
