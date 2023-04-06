@@ -240,39 +240,54 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const state = this.debugBridge?.getCurrentState();
         let newvariable: VariableInfo | undefined = undefined;
         if (v === "locals") {
-            newvariable = state?.updateLocal(args.name, args.value);
-            if (!!newvariable) {
-                await this.debugBridge?.updateLocal(newvariable);
+            if (this.debugBridge?.isUpdateOperationAllowed()) {
+                newvariable = state?.updateLocal(args.name, args.value);
+                if (!!newvariable) {
+                    await this.debugBridge?.updateLocal(newvariable);
+                }
+                else {
+                    newvariable = state?.getLocal(args.name);
+                }
             }
             else {
                 newvariable = state?.getLocal(args.name);
             }
         }
         else if (v === "globals") {
-            newvariable = state?.updateGlobal(args.name, args.value);
-            if (!!newvariable) {
-                await this.debugBridge?.updateGlobal(newvariable);
+            if (this.debugBridge?.isUpdateOperationAllowed()) {
+                newvariable = state?.updateGlobal(args.name, args.value);
+                if (!!newvariable) {
+                    await this.debugBridge?.updateGlobal(newvariable);
+                }
+                else {
+                    newvariable = state?.getGlobal(args.name);
+                }
             }
             else {
                 newvariable = state?.getGlobal(args.name);
             }
         }
         else if (v === "arguments") {
-            newvariable = state?.updateArgument(args.name, args.value);
-            if (!!newvariable) {
-                await this.debugBridge?.updateLocal(newvariable);
-            } else {
+            if (this.debugBridge?.isUpdateOperationAllowed()) {
+                newvariable = state?.updateArgument(args.name, args.value);
+                if (!!newvariable) {
+                    await this.debugBridge?.updateLocal(newvariable);
+                }
+                else {
+                    newvariable = state?.getArgument(args.name);
+                }
+            }
+            else {
                 newvariable = state?.getArgument(args.name);
             }
         }
 
-
-        let newvalue = "invalid";
-        if (!!newvariable) {
-            newvalue = newvariable?.value;
+        if (!!!this.debugBridge?.isUpdateOperationAllowed()) {
+            this.debugBridge?.getListener().notifyDisallowedOperation("Update value disallowed in viewing mode");
         }
+
         response.body = {
-            value: newvalue,
+            value: newvariable!.value,
         };
         this.sendResponse(response);
     }
