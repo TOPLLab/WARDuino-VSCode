@@ -6,7 +6,7 @@ export class RuntimeViewsRefresher {
     private viewsProviders: RuntimeViewRefreshInterface[];
 
     constructor() {
-        this.viewsProviders = []
+        this.viewsProviders = [];
     }
 
 
@@ -14,7 +14,7 @@ export class RuntimeViewsRefresher {
         this.viewsProviders.push(viewProvider);
     }
 
-    refreshViews(runtimeState: RuntimeState) {
+    refreshViews(runtimeState?: RuntimeState) {
         this.viewsProviders.forEach(v => {
             v.refreshView(runtimeState);
         });

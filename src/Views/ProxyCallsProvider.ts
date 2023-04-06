@@ -30,7 +30,7 @@ export class ProxyCallsProvider implements vscode.TreeDataProvider<ProxyCallItem
         this.debugBridge = debugBridge;
     }
 
-    refreshView(runtimeState: RuntimeState) {
+    refreshView(runtimeState?: RuntimeState) {
         this._onDidChangeTreeData.fire();
     }
 

@@ -24,9 +24,11 @@ export class StackProvider implements vscode.TreeDataProvider<StackItem>, Runtim
         return element;
     }
 
-    refreshView(runtimeState: RuntimeState): void {
-        this.stack = runtimeState.getValuesStack().map(sv => new StackItem(sv)).reverse();
-        this._onDidChangeTreeData.fire();
+    refreshView(runtimeState?: RuntimeState): void {
+        if (!!runtimeState) {
+            this.stack = runtimeState.getValuesStack().map(sv => new StackItem(sv)).reverse();
+            this._onDidChangeTreeData.fire();
+        }
     }
 }
 

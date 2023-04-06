@@ -30,7 +30,7 @@ export class BreakpointPolicyProvider implements vscode.TreeDataProvider<Breakpo
                 } else {
                     i.deSelect();
                 }
-            })
+            });
             return this.items;
 
         }
@@ -45,7 +45,7 @@ export class BreakpointPolicyProvider implements vscode.TreeDataProvider<Breakpo
         this.debugBridge = debugBridge;
     }
 
-    refreshView(runtimeState: RuntimeState): void {
+    refreshView(runtimeState?: RuntimeState): void {
         this._onDidChangeTreeData.fire();
     }
 

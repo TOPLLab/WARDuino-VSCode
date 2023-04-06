@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import {ProviderResult, TreeItem, TreeItemCollapsibleState} from 'vscode';
+import { ProviderResult, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
 import { RuntimeState } from '../State/RuntimeState';
 
@@ -26,9 +26,11 @@ export class EventsProvider implements vscode.TreeDataProvider<EventItem>, Runti
         return element;
     }
 
-    refreshView(runtimeState: RuntimeState): void {
-        this.events = runtimeState.getEvents();
-        this._onDidChangeTreeData.fire();
+    refreshView(runtimeState?: RuntimeState): void {
+        if (!!runtimeState) {
+            this.events = runtimeState.getEvents();
+            this._onDidChangeTreeData.fire();
+        }
     }
 }
 
