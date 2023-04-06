@@ -33,9 +33,9 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
                     act = AllowedAction.DebugExternally;
                 }
                 else if (idx === states.length - 1) {
-                    act = AllowedAction.Save
+                    act = AllowedAction.Save;
                 }
-                return new TimelineItem(rs, this.debugBridge, idx, act)
+                return new TimelineItem(rs, this.debugBridge, idx, act);
             });
             this.items = this.items.reverse();
             const activeIndex = timeline.getIndexOfActiveState();
@@ -45,8 +45,6 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
 
             return this.items;
         } else if (element.collapsibleState !== TreeItemCollapsibleState.None) {
-            // const children = this.stack;
-            console.log("weird case")
             return undefined;
         }
         return undefined;
