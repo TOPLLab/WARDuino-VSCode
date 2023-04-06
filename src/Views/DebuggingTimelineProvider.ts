@@ -17,10 +17,12 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
 
     private debugBridge: DebugBridge;
     private items: TimelineItem[];
+    private itemsBeingSaved: Set<number>;
 
     constructor(debugBridge: DebugBridge) {
         this.debugBridge = debugBridge;
         this.items = [];
+        this.itemsBeingSaved = new Set();
     }
 
     getChildren(element?: TimelineItem): ProviderResult<TimelineItem[]> {
@@ -32,7 +34,7 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
                 if (rs.hasAllState()) {
                     act = AllowedAction.DebugExternally;
                 }
-                else if (idx === states.length - 1) {
+                else if ((idx === states.length - 1) && !this.itemsBeingSaved.has(idx)) {
                     act = AllowedAction.Save;
                 }
                 return new TimelineItem(rs, this.debugBridge, idx, act);
@@ -60,6 +62,10 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
 
     refreshView(runtimeState?: RuntimeState) {
         this._onDidChangeTreeData.fire();
+    }
+
+    showItemAsBeingSaved(item: TimelineItem) {
+        this.itemsBeingSaved.add(item.getTimelineIndex());
     }
 
     showItem(item: TimelineItem) {
