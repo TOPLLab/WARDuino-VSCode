@@ -76,17 +76,6 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
         this.itemsBeingSaved.add(item.getTimelineIndex());
     }
 
-    showItem(item: TimelineItem) {
-        this.items.forEach(i => {
-            if (item !== i) {
-                i.deSelect();
-            }
-            else {
-                item.select();
-            }
-        });
-    }
-
     getSelected(): undefined | TimelineItem {
         return this.items.find(item => item.isSelected());
     }

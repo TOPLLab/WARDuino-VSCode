@@ -332,10 +332,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     public showViewOnRuntimeState(item: TimelineItem) {
-        this.timelineProvider?.showItem(item);
-        const activeItem = this.timelineProvider?.getSelected();
-        const index = activeItem?.getTimelineIndex();
-        if (!this.debugBridge?.getDebuggingTimeline().activateStateFromIndex(index ?? -1)) {
+        const index = item.getTimelineIndex();
+        if (!this.debugBridge?.getDebuggingTimeline().activateStateFromIndex(index)) {
             this.debugBridge?.getDebuggingTimeline().advanceToPresent();
         }
         const state = this.debugBridge?.getCurrentState();
