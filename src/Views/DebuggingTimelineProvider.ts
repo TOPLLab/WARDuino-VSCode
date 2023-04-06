@@ -82,6 +82,10 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
     getSelected(): undefined | TimelineItem {
         return this.items.find(item => item.isSelected());
     }
+
+    getItemFromTimeLineIndex(index: number): TimelineItem | undefined {
+        return this.items.find(i => i.getTimelineIndex() === index);
+    }
 }
 
 export class TimelineItem extends vscode.TreeItem {
