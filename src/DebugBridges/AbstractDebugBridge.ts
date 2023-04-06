@@ -335,6 +335,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     }
 
+    public isUpdateOperationAllowed(): boolean {
+        return this.timeline.isActiveStatePresent() || !!this.timeline.getActiveState()?.hasAllState();
+    }
+
     public refreshViews() {
         const rs = this.getCurrentState();
         if (!!rs) {
