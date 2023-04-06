@@ -27,6 +27,10 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
         this.view = undefined;
     }
 
+    getParent(item: TreeItem) {
+        return undefined;
+    }
+
     setView(view: vscode.TreeView<TreeItem>) {
         this.view = view;
     }
