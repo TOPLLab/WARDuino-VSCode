@@ -36,6 +36,10 @@ export class DebuggingTimeline {
         return true;
     }
 
+    public getStartState() {
+        return this.getStateFromIndex(0);
+    }
+
     public getStateFromIndex(idx: number): RuntimeState | undefined {
         if (idx < 0 || idx >= this.runtimes.length || this.runtimes.length == 0) {
             return undefined;
@@ -69,6 +73,10 @@ export class DebuggingTimeline {
 
     public isActiveStatePresent(): boolean {
         return this.activeStateIdx == (this.runtimes.length - 1)
+    }
+
+    public isActiveStateTheStart(): boolean {
+        return this.activeStateIdx === 0;
     }
 
     public getRuntimesChronologically(): RuntimeState[] {
