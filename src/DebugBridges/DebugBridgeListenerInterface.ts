@@ -24,6 +24,8 @@ export interface DebugBridgeListenerInterface {
 
     notifyException(message: string): void;
 
+    notifyDisallowedOperation(message: string): void;
+
     notifyInfoMessage(message: string): void;
 
     notifyConnected(): void;

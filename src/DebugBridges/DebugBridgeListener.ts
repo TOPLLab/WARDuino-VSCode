@@ -105,6 +105,10 @@ export class BridgeListener implements DebugBridgeListenerInterface {
         this.debugSession.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
     }
 
+    public notifyDisallowedOperation(message: string): void {
+        vscode.window.showErrorMessage(message);
+    }
+
     public notifyInfoMessage(message: string) {
         vscode.window.showInformationMessage(message);
     }
