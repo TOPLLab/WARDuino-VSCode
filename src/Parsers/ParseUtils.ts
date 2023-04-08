@@ -177,7 +177,7 @@ export function getFunctionInfos(input: String): FunctionInfo[] {
                 locals.push({index: index, name: local, type: "undefined", mutable: true, value: ""});
             });
             const typeIdx = metadata.get(index);
-            if(!!!typeIdx){
+            if(typeIdx === undefined){
                 throw Error(`Parsing Error function ${index} has no typesignature`);
             }
             functions.push({index: index, name: func.name, locals: locals, type: typeIdx});
