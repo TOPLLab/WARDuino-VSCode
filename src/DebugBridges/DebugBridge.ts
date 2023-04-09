@@ -33,7 +33,7 @@ export interface DebugBridge {
 
   stepBack(): void;
 
-  run(): void;
+  run(): Promise<void>;
 
   pause(): void;
 
