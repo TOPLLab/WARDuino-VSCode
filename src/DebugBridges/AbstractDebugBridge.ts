@@ -5,18 +5,15 @@ import { SourceMap } from "../State/SourceMap";
 import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { ExecutionStateType, StateRequest, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
-import { Writable } from "stream";
-import { EventItem, EventsProvider } from "../Views/EventsProvider";
 import { FunctionInfo } from "../State/FunctionInfo";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { RuntimeState } from "../State/RuntimeState";
 import { Breakpoint, BreakpointPolicy, UniqueSet } from "../State/Breakpoint";
 import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
-import { ClientSideSocket } from "../Channels/ClientSideSocket";
-import { StackProvider } from "../Views/StackProvider";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
+import { ChannelInterface, Request } from "../Channels/ChannelInterface";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -60,8 +57,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Interfaces
     protected listener: DebugBridgeListenerInterface;
-    protected abstract client: Writable | undefined;
-    public socketConnection?: ClientSideSocket;
+    protected abstract client: ChannelInterface | undefined;
 
     // History (time-travel)
     protected timeline: DebuggingTimeline = new DebuggingTimeline();
@@ -97,7 +93,6 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     abstract proxify(): void;
 
     public run(): void {
-        // this.resetHistory();
         console.log("Bridge: Running no longer resets history");
         this.sendInterrupt(InterruptTypes.interruptRUN);
     }
@@ -111,20 +106,21 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.listener.notifyBreakpointHit();
     }
 
-    public step(): void {
+    public async step(): Promise<void> {
         const runtimeState = this.timeline.advanceTimeline();
         if (!!runtimeState) {
             // Time travel forward
             const doNotSave = { includeInTimeline: false };
             this.updateRuntimeState(runtimeState, doNotSave);
         } else {
-            // Normal step forward
-            this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
-                console.log('Plugin: Step');
-                if (err) {
-                    return console.log('Error on write: ', err.message);
-                }
+            await this.client?.request({
+                dataToSend: InterruptTypes.interruptSTEP + "\n",
+                responseMatchCheck: (line) => {
+                    return line.includes("STEP");
+                },
             });
+            // Normal step forward
+            await this.refresh();
         }
     }
 
@@ -137,7 +133,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
     }
 
-    abstract refresh(): void;
+    abstract refresh(): Promise<void>;
 
 
 
@@ -145,17 +141,17 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.breakpoints.forEach(bp => this.unsetBreakPoint(bp));
     }
 
-    public unsetBreakPoint(breakpoint: Breakpoint | number) {
+    public async unsetBreakPoint(breakpoint: Breakpoint | number) {
         let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint instanceof Breakpoint ? breakpoint.id : breakpoint);
-        let command = `${InterruptTypes.interruptBPRem}${breakPointAddress} \n`;
-        console.log(`Plugin: sent ${command}`);
-        if (!!this.client) {
-            this.client?.write(command);
-        }
-        else {
-            this.socketConnection?.write(command);
-        }
         const bp = breakpoint instanceof Breakpoint ? breakpoint : this.getBreakpointFromAddr(breakpoint);
+        const req: Request = {
+            dataToSend: `${InterruptTypes.interruptBPRem}${breakPointAddress}\n`,
+            responseMatchCheck: (line: string) => {
+                return line === `BP ${bp!.id}!`;
+            }
+        };
+        await this.client?.request(req);
+        console.log(`BP removed at line ${bp!.line} (Addr ${bp!.id})`)
         this.breakpoints.delete(bp);
     }
 
@@ -163,17 +159,46 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return Array.from(this.breakpoints).find(bp => bp.id === addr);
     }
 
-    private setBreakPoint(breakpoint: Breakpoint) {
+    private async setBreakPoint(breakpoint: Breakpoint): Promise<void> {
+        const breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
+        const req: Request = {
+            dataToSend: `${InterruptTypes.interruptBPAdd}${breakPointAddress}\n`,
+            responseMatchCheck: (line: string) => {
+                return line === `BP ${breakpoint.id}!`;
+            }
+        };
+        await this.client?.request(req);
+        console.log(`BP added at line ${breakpoint.line} (Addr ${breakpoint.id})`)
         this.breakpoints.add(breakpoint);
-        let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
-        let command = `${InterruptTypes.interruptBPAdd}${breakPointAddress} \n`;
-        console.log(`Plugin: sent ${command}`);
-        if (!!this.client) {
-            this.client?.write(command);
+    }
+
+
+    private async onBreakpointReached(line: string) {
+        let breakpointInfo = line.match(/AT ([0-9]+)!/);
+        if (!!breakpointInfo && breakpointInfo.length > 1) {
+            await this.refresh();
+
+            let bpAddress = parseInt(breakpointInfo[1]);
+            if (this.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
+                this.getListener().notifyInfoMessage(`Enforcing '${BreakpointPolicy.singleStop}' breakpoint policy`);
+                await this.unsetAllBreakpoints();
+                await this.run();
+            } else if (this.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed) {
+                this.getListener().notifyInfoMessage(`Enforcing '${BreakpointPolicy.removeAndProceed}' breakpoint policy`);
+                await this.unsetBreakPoint(bpAddress);
+                await this.run();
+            }
         }
-        else {
-            this.socketConnection?.write(command);
-        }
+    }
+
+    public registerCallbacks() {
+        this.client?.addCallback(
+            (line: string) => !!line.match(/AT ([0-9]+)!/),
+            (line: string) => {
+                this.onBreakpointReached(line);
+            }
+        );
+
     }
 
     public setBreakPoints(lines: number[]): Breakpoint[] {
@@ -237,22 +262,24 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Helper functions
 
+    //TODO remove
     protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
         if (!!this.client) {
             return this.client?.write(`${i} \n`, callback);
         }
-        else {
-            return this.socketConnection?.write(`${i} \n`, callback);
-        }
+        // else {
+        //     return this.socketConnection?.write(`${i} \n`, callback);
+        // }
     }
 
+    //TODO remove
     protected sendData(d: string, callback?: (error: Error | null | undefined) => void) {
         if (!!this.client) {
             return this.client?.write(`${d}\n`, callback);
         }
-        else {
-            return this.socketConnection?.write(`${d}\n`, callback);
-        }
+        // else {
+        //     return this.socketConnection?.write(`${d}\n`, callback);
+        // }
     }
 
 
