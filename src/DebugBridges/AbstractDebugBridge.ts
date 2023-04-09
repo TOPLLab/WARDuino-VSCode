@@ -14,7 +14,7 @@ import { DeviceConfig } from "../DebuggerConfig";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
-import { Request, StateRequest } from "./APIRequest";
+import { Request, RunRequest, StateRequest } from "./APIRequest";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -93,9 +93,9 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract proxify(): void;
 
-    public run(): void {
-        console.log("Bridge: Running no longer resets history");
-        this.sendInterrupt(InterruptTypes.interruptRUN);
+    public async run(): Promise<void> {
+        await this.client?.request(RunRequest);
+        this.listener.runEvent();
     }
 
     public pause(): void {
