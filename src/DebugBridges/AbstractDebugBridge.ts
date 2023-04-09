@@ -312,19 +312,22 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Getters and Setters
 
-    requestMissingState(): void {
+    async requestMissingState(): Promise<void> {
         const missing: ExecutionStateType[] = this.getCurrentState()?.getMissingState() ?? [];
         const stateRequest = StateRequest.fromList(missing);
         if (stateRequest.isRequestEmpty()) {
-            return;
+            // promise that resolves instantly
+            return new Promise((res) => {
+                res();
+            });
         }
-        const req = stateRequest.generateInterrupt();
-        const cberr = (err: any) => {
-            if (err) {
-                console.error(`AbstractDebubBridge: requestMissingstate error ${err}`);
-            }
-        };
-        this.sendData(req, cberr);
+        const req = stateRequest.generateRequest();
+        const response = await this.client!.request(req);
+        const missingState = new RuntimeState(response, this.sourceMap);
+        const state = this.getCurrentState();
+        state!.copyMissingState(missingState);
+        console.log(`PC=${state!.getProgramCounter()} (Hexa ${state!.getProgramCounter().toString(16)})`);
+        return;
     }
 
     getDeviceConfig() {
