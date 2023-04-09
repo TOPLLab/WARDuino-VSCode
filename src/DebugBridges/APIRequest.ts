@@ -1,4 +1,4 @@
-import { ExecutionStateType, numberExecutionStateTypes } from "../State/WOODState";
+import { ExecutionStateType, WOODDumpResponse, numberExecutionStateTypes } from "../State/WOODState";
 import { HexaEncoder } from "../Util/hexaEncoding";
 import { InterruptTypes } from "./InterruptTypes";
 
@@ -80,6 +80,58 @@ export class StateRequest {
         return `${InterruptTypes.interruptDumpExecutionState}${numberBytes}${stateToReq}`;
     }
 
+    public generateRequest(): Request {
+        return {
+            dataToSend: this.generateInterrupt() + "\n",
+            responseMatchCheck: (line: string) => {
+                return this.isExpectedState(line);
+            }
+        }
+    }
+
+    private isExpectedState(line: string): boolean {
+        try {
+            const response: WOODDumpResponse = JSON.parse(line);
+            for (let i = 0; i < this.state.length; i++) {
+                const s = this.state[i];
+                if (s === ExecutionStateType.pcState && response.pc === undefined) {
+                    return false;
+                }
+                else if (s === ExecutionStateType.breakpointState && response.breakpoints === undefined) {
+                    return false;
+                }
+                else if (s === ExecutionStateType.callstackState && response.callstack === undefined) {
+                    return false;
+                }
+                else if (s === ExecutionStateType.globalsState && response.globals === undefined) {
+                    return false;
+                }
+                else if (s === ExecutionStateType.tableState && response.table === undefined) {
+                    return false;
+                }
+                else if (s === ExecutionStateType.memState && response.memory === undefined) {
+                    return false;
+                }
+                else if (s === ExecutionStateType.branchingTableState && response.br_table === undefined) {
+                    return false;
+                }
+                else if (s === ExecutionStateType.stackState && response.stack === undefined) {
+                    return false;
+                }
+                else if (s === ExecutionStateType.callbacksState && response.callbacks === undefined) {
+                    return false;
+                }
+
+                else if (s === ExecutionStateType.eventsState && response.events === undefined) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        catch (err) {
+            return false;
+        }
+    }
 
     private pushState(s: string): void {
         const present = this.state.find(s2 => s === s2);
