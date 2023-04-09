@@ -13,11 +13,13 @@ import { LoggingSerialMonitor } from "../Channels/SerialConnection";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
 import { StackProvider } from "../Views/StackProvider";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
+import { ChannelInterface } from "../Channels/ChannelInterface";
+import { SerialChannel } from "../Channels/SerialChannel";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser;
     private wasmPath: string;
-    protected client: SerialPort | undefined;
+    protected client: ChannelInterface | undefined;
     protected readonly portAddress: string;
     protected readonly fqbn: string;
     protected readonly sdk: string;
@@ -83,55 +85,56 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     protected async openSocketPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
-        this.socketConnection = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
+        this.client = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
         // TODO fix only on a newline handle the line
-        this.socketConnection.on('data', (data) => { this.handleLine(data); });
-        const maxConnectionAttempts = 5;
-        if (await this.socketConnection.openConnection(maxConnectionAttempts)) {
+        // this.client.on('data', (data) => { this.handleLine(data); });
+        try {
+            const maxConnectionAttempts = 5;
+            if (!await this.client.openConnection(maxConnectionAttempts)) {
+                return `Could not connect to socket ${this.deviceConfig.ip}:${this.deviceConfig.port}`;
+            }
             this.listener.notifyProgress(Messages.connected);
-            this.client = undefined;
-            resolve(`${this.deviceConfig.ip}:${this.deviceConfig.port}`);
+            return `127.0.0.1:${this.deviceConfig.port}`;
         }
-        else {
-            reject(`Could not connect to socket ${this.deviceConfig.ip}:${this.deviceConfig.port}`);
+        catch (err) {
+            this.listener.notifyError("Lost connection to the board");
+            console.error(err);
+            throw err;
         }
     }
 
-    protected openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
-        this.client = new SerialPort({ path: this.portAddress, baudRate: 115200 },
-            (error) => {
-                if (error) {
-                    reject(`Could not connect to serial port: ${this.portAddress}`);
-                } else {
-                    this.listener.notifyProgress(Messages.connected);
-                    resolve(this.portAddress);
-                }
-            }
-        );
+    protected async openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
+        const baudrate = 115200;
+        this.client = new SerialChannel(this.portAddress, baudrate);
+        if (!await this.client.openConnection()) {
+            return `Could not connect to serial port: ${this.portAddress}`
+        }
+        this.listener.notifyProgress(Messages.connected);
+        return this.portAddress;
     }
 
     protected installInputStreamListener() {
-        const parser = new ReadlineParser();
-        this.client?.pipe(parser);
-        let buff = '';
-        parser.on("data", (line: string) => {
-            try {
-                if (buff === '') {
-                    this.handleLine(line);
-                }
-                else {
-                    this.handleLine(buff + line);
-                }
-            }
-            catch (e) {
-                if (e instanceof SyntaxError) {
-                    buff += line;
-                }
-                else {
-                    buff = '';
-                }
-            }
-        });
+        // const parser = new ReadlineParser();
+        // this.client?.pipe(parser);
+        // let buff = '';
+        // parser.on("data", (line: string) => {
+        //     try {
+        //         if (buff === '') {
+        //             this.handleLine(line);
+        //         }
+        //         else {
+        //             this.handleLine(buff + line);
+        //         }
+        //     }
+        //     catch (e) {
+        //         if (e instanceof SyntaxError) {
+        //             buff += line;
+        //         }
+        //         else {
+        //             buff = '';
+        //         }
+        //     }
+        // });
     }
 
     protected handleLine(line: string) {
@@ -154,19 +157,9 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     public disconnect(): void {
+        this.client?.disconnect();
         console.error("CLOSED!");
-        if (!!this.client) {
-            this.client?.close((e) => {
-                console.log(e);
-                this.listener.notifyProgress(Messages.disconnected);
-            });
-        }
-        else {
-            // this.socketConnection?.close((e)=>{
-            //     console.log(e);
-            this.listener.notifyProgress(Messages.disconnected);
-            // });
-        }
+        this.listener.notifyProgress(Messages.disconnected);
     }
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
@@ -264,7 +257,8 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);
     }
 
-    refresh(): void {
+    refresh(): Promise<void> {
+        throw Error("not implemented");
         console.log("Plugin: Refreshing");
         const req = new StateRequest();
         req.includePC();
@@ -278,5 +272,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
                 return console.log('Error on write: ', err.message);
             }
         });
+
     }
 }
