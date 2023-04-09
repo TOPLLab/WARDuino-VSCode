@@ -78,14 +78,9 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         stateRequest.includeCallstack();
         stateRequest.includeBreakpoints();
         stateRequest.includeEvents();
-        const req = stateRequest.generateInterrupt();
+        const req = stateRequest.generateRequest();
         try {
-            const response = await this.client!.request({
-                dataToSend: req + "\n",
-                responseMatchCheck: (line: string) => {
-                    return line.startsWith("{\"pc\"");
-                }
-            });
+            const response = await this.client!.request(req);
             const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
             this.updateRuntimeState(runtimeState);
             const currentState = this.getCurrentState();
