@@ -4,7 +4,7 @@ import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
 import { InterruptTypes } from './InterruptTypes';
 import { DebugInfoParser } from "../Parsers/DebugInfoParser";
 import { AbstractDebugBridge } from "./AbstractDebugBridge";
-import { StateRequest, WOODState } from "../State/WOODState";
+import { WOODState } from "../State/WOODState";
 import { SourceMap } from "../State/SourceMap";
 import { EventsProvider } from "../Views/EventsProvider";
 import { Readable } from 'stream';
@@ -16,6 +16,7 @@ import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 import { ClientSideSocket } from '../Channels/ClientSideSocket';
 import { RuntimeState } from '../State/RuntimeState';
 import { ChannelInterface } from '../Channels/ChannelInterface';
+import { StateRequest } from './APIRequest';
 
 // export const EMULATOR_PORT: number = 8300;
 

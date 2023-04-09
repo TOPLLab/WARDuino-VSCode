@@ -3,7 +3,7 @@ import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "../State/VariableInfo";
 import { SourceMap } from "../State/SourceMap";
 import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
-import { ExecutionStateType, StateRequest, WOODState } from "../State/WOODState";
+import { ExecutionStateType, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { FunctionInfo } from "../State/FunctionInfo";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
@@ -14,7 +14,7 @@ import { DeviceConfig } from "../DebuggerConfig";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
-import { Request } from "./APIRequest";
+import { Request, StateRequest } from "./APIRequest";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
