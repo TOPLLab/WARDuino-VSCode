@@ -10,7 +10,7 @@ import { DeviceConfig } from "../DebuggerConfig";
 
 export interface DebugBridge {
 
-  requestMissingState(): void;
+  requestMissingState(): Promise<void>;
 
   refreshViews(): void;
 

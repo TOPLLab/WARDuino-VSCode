@@ -374,7 +374,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
 
-    public saveRuntimeState(item: TimelineItem) {
+    public async saveRuntimeState(item: TimelineItem) {
         const itemIdx = item.getTimelineIndex();
         const timeline = this.debugBridge?.getDebuggingTimeline();
         const numberStates = timeline?.size();
@@ -382,10 +382,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         // only save the present state
         if (savingPresentState && !!timeline?.isActiveStatePresent()) {
-            this.debugBridge?.getListener().notifyInfoMessage(`Retrieving and saving state from ${this.debugBridge!.getDeviceConfig().name}`);
-            this.timelineProvider?.showItemAsBeingSaved(item);
-            this.timelineProvider?.refreshView();
-            this.debugBridge?.requestMissingState();
+            this.debugBridge?.getListener().notifyInfoMessage(`Retrieving and saving state from ${this.debugBridge!.getDeviceConfig().name}...`);
+            await this.debugBridge?.requestMissingState();
+            this.debugBridge?.refreshViews();
         }
     }
 
