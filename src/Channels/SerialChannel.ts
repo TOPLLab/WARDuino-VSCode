@@ -1,5 +1,6 @@
 import { ReadlineParser, SerialPort } from 'serialport';
-import { ChannelInterface, Request } from './ChannelInterface';
+import { ChannelInterface } from './ChannelInterface';
+import { Request } from '../DebugBridges/APIRequest';
 
 export class SerialChannel implements ChannelInterface {
 

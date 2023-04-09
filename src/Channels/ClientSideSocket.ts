@@ -1,5 +1,6 @@
 import * as net from 'net';
-import { ChannelInterface, Request } from './ChannelInterface';
+import { ChannelInterface } from './ChannelInterface';
+import { Request } from '../DebugBridges/APIRequest';
 
 type FutureResolver = (value: string | PromiseLike<string>) => void;
 
