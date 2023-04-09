@@ -96,3 +96,10 @@ export class StateRequest {
         return request;
     }
 }
+
+export const RunRequest: Request = {
+    dataToSend: InterruptTypes.interruptRUN + "\n",
+    responseMatchCheck: (line: string) => {
+        return line === "GO!";
+    }
+}
