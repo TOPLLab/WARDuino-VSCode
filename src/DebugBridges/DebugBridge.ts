@@ -29,7 +29,7 @@ export interface DebugBridge {
 
   proxify(): void;
 
-  step(): void;
+  step(): Promise<void>;
 
   stepBack(): void;
 
@@ -59,7 +59,7 @@ export interface DebugBridge {
 
   unsetBreakPoint(breakpoint: Breakpoint | number): void;
 
-  refresh(): void;
+  refresh(): Promise<void>;
 
   notifyNewEvent(): void;
 
@@ -84,4 +84,5 @@ export interface DebugBridge {
 
   getListener(): DebugBridgeListenerInterface;
 
+  registerCallbacks(): void;
 }
