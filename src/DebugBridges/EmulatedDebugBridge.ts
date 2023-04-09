@@ -13,11 +13,14 @@ import { DeviceConfig } from '../DebuggerConfig';
 import { StackProvider } from '../Views/StackProvider';
 import * as vscode from 'vscode';
 import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
+import { ClientSideSocket } from '../Channels/ClientSideSocket';
+import { RuntimeState } from '../State/RuntimeState';
+import { ChannelInterface } from '../Channels/ChannelInterface';
 
 // export const EMULATOR_PORT: number = 8300;
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
-    public client: net.Socket | undefined;
+    public client: ChannelInterface | undefined;
     protected readonly tmpdir: string;
     private wasmPath: string;
     protected readonly sdk: string;
@@ -34,6 +37,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
         this.parser = new DebugInfoParser(sourceMap);
+        this.client = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
     }
 
     public proxify(): void {
@@ -53,47 +57,21 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
 
-    private initClient(): Promise<string> {
-        return new Promise<string>((resolve, reject) => {
-            let that = this;
-            let address = { port: this.deviceConfig.port, host: "127.0.0.1" };  // TODO config
-            if (this.client === undefined) {
-                this.client = new net.Socket();
-                this.client.connect(address, () => {
-                    this.listener.notifyProgress("Connected to socket");
-                    resolve(`${address.host}:${address.port}`);
-                });
-
-                this.client.on("error", err => {
-                    this.listener.notifyError("Lost connection to the board");
-                    console.error(err);
-                    reject(err);
-                }
-                );
-
-                this.client.on("data", data => {
-                    this.buffer += data.toString();
-                    let idx = this.buffer.indexOf("\n");
-                    while (idx !== -1) {
-                        const line = this.buffer.slice(0, idx);
-                        this.buffer = this.buffer.slice(idx + 1); // skip newline
-                        console.log(`emulator: ${line}`);
-                        try {
-                            that.parser.parse(that, line);
-                        } catch (e) {
-                            console.log(`Emulator: failed to parse ${line}`);
-                        }
-                        idx = this.buffer.indexOf("\n");
-                    };
-                }
-                );
-            } else {
-                resolve(`${address.host}:${address.port}`);
-            }
-        });
+    private async initClient(): Promise<string> {
+        try {
+            await this.client!.openConnection();
+            this.listener.notifyProgress("Connected to socket");
+            this.registerCallbacks();
+            return `127.0.0.1:${this.deviceConfig.port}`;
+        }
+        catch (err) {
+            this.listener.notifyError("Lost connection to the board");
+            console.error(err);
+            throw err;
+        }
     }
 
-    public refresh() {
+    public async refresh() {
         const stateRequest = new StateRequest();
         stateRequest.includePC();
         stateRequest.includeStack();
@@ -102,12 +80,21 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         stateRequest.includeBreakpoints();
         stateRequest.includeEvents();
         const req = stateRequest.generateInterrupt();
-        const cberr = (err: any) => {
-            if (err) {
-                console.error(`Emulated: refresh Error ${err}`);
-            }
-        };
-        this.sendData(req, cberr);
+        try {
+            const response = await this.client!.request({
+                dataToSend: req + "\n",
+                responseMatchCheck: (line: string) => {
+                    return line.startsWith("{\"pc\"");
+                }
+            });
+            const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
+            this.updateRuntimeState(runtimeState);
+            const currentState = this.getCurrentState();
+            console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
+        }
+        catch (err) {
+            console.error(`Emulated: refresh Error ${err}`);
+        }
     }
 
     public pullSession() {
@@ -120,11 +107,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
             }
         };
         this.sendData(req, cberr);
-    }
-
-    private executeCommand(command: InterruptTypes) {
-        console.log(command.toString());
-        this.client?.write(command.toString + '\n');
     }
 
     private startEmulator(): Promise<string> {
@@ -170,7 +152,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     public disconnect(): void {
         console.error("Disconnected emulator");
         this.cp?.kill();
-        this.client?.destroy();
+        this.client!.disconnect();
     }
 
     protected spawnEmulatorProcess(): ChildProcess {
