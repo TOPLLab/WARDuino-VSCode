@@ -4,7 +4,7 @@ import { ReadlineParser, SerialPort } from 'serialport';
 import { DebugInfoParser } from "../Parsers/DebugInfoParser";
 import { InterruptTypes } from "./InterruptTypes";
 import { exec, spawn } from "child_process";
-import { StateRequest, WOODState } from "../State/WOODState";
+import { WOODState } from "../State/WOODState";
 import { SourceMap } from "../State/SourceMap";
 import { EventsProvider } from "../Views/EventsProvider";
 import { DeviceConfig } from "../DebuggerConfig";
@@ -15,6 +15,7 @@ import { StackProvider } from "../Views/StackProvider";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
 import { SerialChannel } from "../Channels/SerialChannel";
+import { StateRequest } from "./APIRequest";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     private parser: DebugInfoParser;
