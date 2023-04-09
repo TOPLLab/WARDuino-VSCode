@@ -13,7 +13,8 @@ import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
-import { ChannelInterface, Request } from "../Channels/ChannelInterface";
+import { ChannelInterface } from "../Channels/ChannelInterface";
+import { Request } from "./APIRequest";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
