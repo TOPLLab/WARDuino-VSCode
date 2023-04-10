@@ -118,7 +118,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         } else {
             await this.client?.request({
                 dataToSend: InterruptTypes.interruptSTEP + "\n",
-                responseMatchCheck: (line) => {
+                expectedResponse: (line) => {
                     return line.includes("STEP");
                 },
             });
@@ -149,7 +149,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         const bp = breakpoint instanceof Breakpoint ? breakpoint : this.getBreakpointFromAddr(breakpoint);
         const req: Request = {
             dataToSend: `${InterruptTypes.interruptBPRem}${breakPointAddress}\n`,
-            responseMatchCheck: (line: string) => {
+            expectedResponse: (line: string) => {
                 return line === `BP ${bp!.id}!`;
             }
         };
@@ -166,7 +166,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         const breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
         const req: Request = {
             dataToSend: `${InterruptTypes.interruptBPAdd}${breakPointAddress}\n`,
-            responseMatchCheck: (line: string) => {
+            expectedResponse: (line: string) => {
                 return line === `BP ${breakpoint.id}!`;
             }
         };
