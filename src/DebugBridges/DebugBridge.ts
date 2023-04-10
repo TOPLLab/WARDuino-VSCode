@@ -74,7 +74,7 @@ export interface DebugBridge {
 
   updateLocal(local: VariableInfo): Promise<string>;
 
-  updateGlobal(updateGlobal: VariableInfo): Promise<string>;
+  updateGlobal(updateGlobal: VariableInfo): Promise<void>;
 
   getBreakpointPolicy(): BreakpointPolicy;
 
