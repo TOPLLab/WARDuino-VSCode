@@ -24,9 +24,9 @@ const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
 const listener: DebugBridgeListenerInterface = {
     notifyDisallowedOperation(message: string) {
     },
-    setBridge(debugBridge: DebugBridge){
+    setBridge(debugBridge: DebugBridge) {
     },
-    notifyProgressInNotification(title: string, message:string){
+    notifyProgressInNotification(title: string, message: string) {
     },
     notifyConnected(): void {
     },
@@ -146,7 +146,7 @@ suite("Debug API Test Suite (emulated)", () => {
     test("Test `pause` command", async function (done) {
         const pauseRequest = PauseRequest;
         const response = await bridge.client?.request(pauseRequest);
-        if(response === "PAUSE!") {
+        if (response === "PAUSE!") {
             done()
         }
     });
