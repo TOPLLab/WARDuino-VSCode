@@ -1,32 +1,24 @@
 import { AbstractDebugBridge, Messages } from "./AbstractDebugBridge";
 import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
-import { ReadlineParser, SerialPort } from 'serialport';
-import { DebugInfoParser } from "../Parsers/DebugInfoParser";
 import { InterruptTypes } from "./InterruptTypes";
 import { exec, spawn } from "child_process";
-import { WOODState } from "../State/WOODState";
 import { SourceMap } from "../State/SourceMap";
-import { EventsProvider } from "../Views/EventsProvider";
 import { DeviceConfig } from "../DebuggerConfig";
 import * as path from 'path';
 import { LoggingSerialMonitor } from "../Channels/SerialConnection";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
-import { StackProvider } from "../Views/StackProvider";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
 import { SerialChannel } from "../Channels/SerialChannel";
 import { StateRequest } from "./APIRequest";
+import { RuntimeState } from "../State/RuntimeState";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
-    private parser: DebugInfoParser;
-    private wasmPath: string;
     protected client: ChannelInterface | undefined;
     protected readonly portAddress: string;
     protected readonly fqbn: string;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
-    private woodState?: WOODState;
-    private woodDumpDetected: boolean = false;
 
     private logginSerialConnection?: LoggingSerialMonitor;
 
@@ -47,7 +39,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.fqbn = fqbn;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
-        this.parser = new DebugInfoParser(sourceMap);
     }
 
 
@@ -56,39 +47,38 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     async connect(): Promise<string> {
-        return new Promise(async (resolve, reject) => {
-            this.listener.notifyProgress(Messages.compiling);
-            if (this.deviceConfig.onStartConfig.flash) {
-                await this.compileAndUpload();
+        this.listener.notifyProgress(Messages.compiling);
+        if (this.deviceConfig.onStartConfig.flash) {
+            await this.compileAndUpload();
+        }
+        this.listener.notifyProgress(Messages.connecting);
+        if (this.deviceConfig.usesWiFi()) {
+            await this.openSocketPort();
+            this.registerCallbacks();
+            if (!!!this.logginSerialConnection) {
+                const loggername = this.deviceConfig.name;
+                const port = this.portAddress;
+                const baudRate = 115200;
+                this.logginSerialConnection = new LoggingSerialMonitor(loggername, port, baudRate);
             }
-            this.listener.notifyProgress(Messages.connecting);
-            if (this.deviceConfig.usesWiFi()) {
-                await this.openSocketPort(reject, resolve);
-                if (!!!this.logginSerialConnection) {
-                    const loggername = this.deviceConfig.name;
-                    const port = this.portAddress;
-                    const baudRate = 115200;
-                    this.logginSerialConnection = new LoggingSerialMonitor(loggername, port, baudRate);
-                }
-                this.logginSerialConnection.openConnection().catch((err) => {
-                    console.log(`Plugin: could not monitor serial port ${this.portAddress} reason: ${err}`);
-                });
-            }
-            else {
-                this.openSerialPort(reject, resolve);
-                this.installInputStreamListener();
-            }
-        });
+            this.logginSerialConnection.openConnection().catch((err) => {
+                console.log(`Plugin: could not monitor serial port ${this.portAddress} reason: ${err}`);
+            });
+        }
+        else {
+            await this.openSerialPort();
+            this.registerCallbacks();
+        }
+
+        return "";
     }
 
     public async upload() {
         await this.compileAndUpload();
     }
 
-    protected async openSocketPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
+    protected async openSocketPort() {
         this.client = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
-        // TODO fix only on a newline handle the line
-        // this.client.on('data', (data) => { this.handleLine(data); });
         try {
             const maxConnectionAttempts = 5;
             if (!await this.client.openConnection(maxConnectionAttempts)) {
@@ -104,7 +94,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         }
     }
 
-    protected async openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
+    protected async openSerialPort() {
         const baudrate = 115200;
         this.client = new SerialChannel(this.portAddress, baudrate);
         if (!await this.client.openConnection()) {
@@ -112,49 +102,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         }
         this.listener.notifyProgress(Messages.connected);
         return this.portAddress;
-    }
-
-    protected installInputStreamListener() {
-        // const parser = new ReadlineParser();
-        // this.client?.pipe(parser);
-        // let buff = '';
-        // parser.on("data", (line: string) => {
-        //     try {
-        //         if (buff === '') {
-        //             this.handleLine(line);
-        //         }
-        //         else {
-        //             this.handleLine(buff + line);
-        //         }
-        //     }
-        //     catch (e) {
-        //         if (e instanceof SyntaxError) {
-        //             buff += line;
-        //         }
-        //         else {
-        //             buff = '';
-        //         }
-        //     }
-        // });
-    }
-
-    protected handleLine(line: string) {
-        if (this.woodDumpDetected && this.outOfPlaceActive) {
-            // Next line will be a WOOD dump
-            // TODO receive state from WOOD Dump and call bridge.pushSession(state)
-            this.woodState = WOODState.fromLine(line);
-            this.requestCallbackmapping();
-            this.woodDumpDetected = false;
-            return;
-        }
-
-        if (this.woodState !== undefined && line.startsWith('{"callbacks": ')) {
-            this.woodState.callbacks = line;
-            //this.pushSession();
-        }
-        this.woodDumpDetected = line.includes('DUMP!');
-        console.log(`hardware: ${line}`);
-        this.parser.parse(this, line);
     }
 
     public disconnect(): void {
@@ -245,34 +192,27 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.sendInterrupt(InterruptTypes.interruptProxify);
     }
 
-    // pushSession(): void {
-    //     if (this.woodState === undefined) {
-    //         return;
-    //     }
-    //     console.log("Plugin: transfer state received.");
-    //     this.sendInterrupt(InterruptTypes.interruptProxify);
-    //     this.listener.startMultiverseDebugging(this.woodState);
-    // }
-
     requestCallbackmapping() {
         this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);
     }
 
-    refresh(): Promise<void> {
-        throw Error("not implemented");
-        console.log("Plugin: Refreshing");
-        const req = new StateRequest();
-        req.includePC();
-        req.includeStack();
-        req.includeCallstack();
-        req.includeBreakpoints();
-        req.includeGlobals();
-        const data = req.generateInterrupt();
-        this.sendData(data, (err: any) => {
-            if (err) {
-                return console.log('Error on write: ', err.message);
-            }
-        });
-
+    async refresh(): Promise<void> {
+        const stateRequest = new StateRequest();
+        stateRequest.includePC();
+        stateRequest.includeStack();
+        stateRequest.includeCallstack();
+        stateRequest.includeBreakpoints();
+        stateRequest.includeGlobals();
+        const req = stateRequest.generateRequest();
+        try {
+            const response = await this.client!.request(req);
+            const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
+            this.updateRuntimeState(runtimeState);
+            const currentState = this.getCurrentState();
+            console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
+        }
+        catch (err) {
+            console.error(`Hardware: refresh Error ${err}`);
+        }
     }
 }
