@@ -194,7 +194,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
     }
 
-    public registerCallbacks() {
+    protected registerCallbacks() {
         this.client?.addCallback(
             (line: string) => !!line.match(/AT ([0-9]+)!/),
             (line: string) => {

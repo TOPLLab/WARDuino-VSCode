@@ -86,5 +86,4 @@ export interface DebugBridge {
 
   getListener(): DebugBridgeListenerInterface;
 
-  registerCallbacks(): void;
 }
