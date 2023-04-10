@@ -225,12 +225,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
     }
 
-    protected async continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
+    protected async continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): Promise<void> {
         await this.debugBridge?.run();
         this.sendResponse(response);
     }
 
-    protected async pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments, request?: DebugProtocol.Request): void {
+    protected async pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments, request?: DebugProtocol.Request): Promise<void> {
         await this.debugBridge?.pause();
         this.sendResponse(response);
         this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
