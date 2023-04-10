@@ -155,3 +155,10 @@ export const RunRequest: Request = {
         return line === "GO!";
     }
 }
+
+export const PauseRequest: Request = {
+    dataToSend: InterruptTypes.interruptPAUSE + "\n",
+    responseMatchCheck: (line: string) => {
+        return line === "PAUSE!";
+    }
+}
