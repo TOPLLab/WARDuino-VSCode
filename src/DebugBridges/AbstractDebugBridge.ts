@@ -417,7 +417,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     async updateGlobal(global: VariableInfo): Promise<void> {
         const state = this.getCurrentState()?.getWasmState();
-        const command = state?.serializeGlobalValueUpdate(global.index) + "\n";
+        const command = state?.serializeGlobalValueUpdate(global.index);
         if (!!!command) {
             return;
         }

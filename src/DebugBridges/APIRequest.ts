@@ -165,7 +165,7 @@ export const PauseRequest: Request = {
 
 export function UpdateGlobalRequest(globalIdx: number, dataToSend: string) {
     return {
-        dataToSend: dataToSend,
+        dataToSend: dataToSend + "\n",
         responseMatchCheck: (line: string) => {
             return line === `Updated Global ${globalIdx}`;
         }
