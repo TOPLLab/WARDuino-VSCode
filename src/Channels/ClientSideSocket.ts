@@ -116,7 +116,7 @@ export class ClientSideSocket implements ChannelInterface {
         let resultIndex: number | undefined = undefined
         while (resultIndex === undefined && i < this.requests.length) {
             const checkForMatch = this.requests[i][0];
-            if (checkForMatch.responseMatchCheck(line)) {
+            if (checkForMatch.expectedResponse(line)) {
                 resultIndex = i;
             }
             i += 1;

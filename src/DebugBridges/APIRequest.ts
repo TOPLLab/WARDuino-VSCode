@@ -4,7 +4,7 @@ import { InterruptTypes } from "./InterruptTypes";
 
 export type Request = {
     dataToSend: string;
-    responseMatchCheck: (line: string) => boolean;
+    expectedResponse: (line: string) => boolean;
 }
 
 export class StateRequest {
@@ -83,7 +83,7 @@ export class StateRequest {
     public generateRequest(): Request {
         return {
             dataToSend: this.generateInterrupt() + "\n",
-            responseMatchCheck: (line: string) => {
+            expectedResponse: (line: string) => {
                 return this.isExpectedState(line);
             }
         }
@@ -151,14 +151,14 @@ export class StateRequest {
 
 export const RunRequest: Request = {
     dataToSend: InterruptTypes.interruptRUN + "\n",
-    responseMatchCheck: (line: string) => {
+    expectedResponse: (line: string) => {
         return line === "GO!";
     }
 }
 
 export const PauseRequest: Request = {
     dataToSend: InterruptTypes.interruptPAUSE + "\n",
-    responseMatchCheck: (line: string) => {
+    expectedResponse: (line: string) => {
         return line === "PAUSE!";
     }
 }
@@ -166,7 +166,7 @@ export const PauseRequest: Request = {
 export function UpdateGlobalRequest(globalIdx: number, dataToSend: string) {
     return {
         dataToSend: dataToSend + "\n",
-        responseMatchCheck: (line: string) => {
+        expectedResponse: (line: string) => {
             return line === `Updated Global ${globalIdx}`;
         }
     }
@@ -175,7 +175,7 @@ export function UpdateGlobalRequest(globalIdx: number, dataToSend: string) {
 export function StackValueUpdateRequest(stackValueIdx: number, dataToSend: string) {
     return {
         dataToSend: dataToSend + "\n",
-        responseMatchCheck: (line: string) => {
+        expectedResponse: (line: string) => {
             return line === `Updated StackValue ${stackValueIdx}`;
         }
     }
@@ -186,7 +186,7 @@ export function UpdateStateRequest(stateToSend: string[]): Request[] {
     return stateToSend.map((state, stateIdx) => {
         return {
             dataToSend: state + "\n",
-            responseMatchCheck: (line: string) => {
+            expectedResponse: (line: string) => {
                 if (finalStateIdx === stateIdx) {
                     return line === "done!";
                 }
