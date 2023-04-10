@@ -11,4 +11,6 @@ export interface ChannelInterface {
     request(req: Request): Promise<string>;
 
     addCallback(dataCheck: (line: string) => boolean, cb: (line: string) => void): void;
+
+    removeDataHandlers(): void
 }

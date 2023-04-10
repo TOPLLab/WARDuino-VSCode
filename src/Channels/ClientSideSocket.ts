@@ -27,6 +27,10 @@ export class ClientSideSocket implements ChannelInterface {
         this.callbacks.push([dataCheck, cb]);
     }
 
+    public removeDataHandlers() {
+        this.requests = [];
+        this.callbacks = [];
+    }
 
     public setCatchAllHandler(cb: (line: string) => void) {
         this.catchAllHandler = cb;
@@ -91,7 +95,6 @@ export class ClientSideSocket implements ChannelInterface {
     }
 
     private handleLines(lines: string[]) {
-        const newRequests: [Request, FutureResolver][] = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const index = this.findFutureResolver(line);
