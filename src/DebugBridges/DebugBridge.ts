@@ -41,7 +41,7 @@ export interface DebugBridge {
 
   pullSession(): void;
 
-  pushSession(woodState: WOODState): void;
+  pushSession(woodState: WOODState): Promise<void>;
 
 
   popEvent(): void;

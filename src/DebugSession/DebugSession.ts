@@ -248,7 +248,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 newvariable = state.updateLocal(args.name, args.value);
                 if (!!newvariable) {
                     if (!!!isPresent) {
-                        db.pushSession(state.getSendableState());
+                        await db.pushSession(state.getSendableState());
                         db.getDebuggingTimeline().makeCurrentStateNewPresent();
                         this.timelineProvider?.refreshView();
                     }
@@ -267,7 +267,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 newvariable = state?.updateGlobal(args.name, args.value);
                 if (!!newvariable) {
                     if (!!!isPresent) {
-                        db.pushSession(state.getSendableState());
+                        await db.pushSession(state.getSendableState());
                         db.getDebuggingTimeline().makeCurrentStateNewPresent();
                         this.timelineProvider?.refreshView();
                     }
@@ -286,7 +286,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 newvariable = state?.updateArgument(args.name, args.value);
                 if (!!newvariable) {
                     if (!!!isPresent) {
-                        db.pushSession(state.getSendableState());
+                        await db.pushSession(state.getSendableState());
                         db.getDebuggingTimeline().makeCurrentStateNewPresent();
                         this.timelineProvider?.refreshView();
                     }

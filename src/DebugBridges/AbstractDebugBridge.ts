@@ -14,7 +14,7 @@ import { DeviceConfig } from "../DebuggerConfig";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
-import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest } from "./APIRequest";
+import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateStateRequest } from "./APIRequest";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -240,13 +240,14 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     abstract pullSession(): void;
 
-    public async pushSession(woodState: WOODState) {
-        console.log("Plugin: pusing state");
+    public async pushSession(woodState: WOODState): Promise<void> {
         const messages: string[] = woodState.toBinary();
+        const requests: Request[] = UpdateStateRequest(messages);
         console.log(`sending ${messages.length} messages as new State\n`);
-        for (let i = 0; i < messages.length; i++) {
-            this.client?.write(messages[i]);
-        }
+        const promises = requests.map(req => {
+            return this.client!.request(req);
+        })
+        await Promise.all(promises);
     }
 
     public notifyNewEvent(): void {
