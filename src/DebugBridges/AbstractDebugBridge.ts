@@ -425,6 +425,9 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         await this.client!.request(req);
     }
 
+    async updateArgument(argument: VariableInfo): Promise<void> {
+        await this.updateLocal(argument);
+    }
 
 
     updateSourceMapper(newSourceMap: SourceMap): void {
