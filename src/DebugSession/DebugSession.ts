@@ -224,13 +224,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
     }
 
-    protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-        this.debugBridge?.run();
+    protected async continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
+        await this.debugBridge?.run();
         this.sendResponse(response);
     }
 
-    protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments, request?: DebugProtocol.Request): void {
-        this.debugBridge?.pause();
+    protected async pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments, request?: DebugProtocol.Request): void {
+        await this.debugBridge?.pause();
         this.sendResponse(response);
         this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
     }
