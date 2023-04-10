@@ -72,6 +72,8 @@ export interface DebugBridge {
 
   updateSourceMapper(newSourceMap: SourceMap): void;
 
+  updateArgument(argument: VariableInfo): Promise<void>;
+
   updateLocal(local: VariableInfo): Promise<void>;
 
   updateGlobal(updateGlobal: VariableInfo): Promise<void>;
