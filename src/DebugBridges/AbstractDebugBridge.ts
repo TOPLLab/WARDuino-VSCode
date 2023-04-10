@@ -14,7 +14,7 @@ import { DeviceConfig } from "../DebuggerConfig";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
-import { Request, RunRequest, StateRequest } from "./APIRequest";
+import { PauseRequest, Request, RunRequest, StateRequest } from "./APIRequest";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -98,8 +98,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         this.listener.runEvent();
     }
 
-    public pause(): void {
-        this.sendInterrupt(InterruptTypes.interruptPAUSE);
+    public async pause(): Promise<void> {
+        const req = PauseRequest;
+        await this.client?.request(req);
+        await this.refresh();
         this.listener.notifyPaused();
     }
 

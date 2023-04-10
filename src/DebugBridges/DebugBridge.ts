@@ -35,7 +35,7 @@ export interface DebugBridge {
 
   run(): Promise<void>;
 
-  pause(): void;
+  pause(): Promise<void>;
 
   hitBreakpoint(): void;
 
