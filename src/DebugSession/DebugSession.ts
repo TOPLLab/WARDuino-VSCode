@@ -290,7 +290,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         db.getDebuggingTimeline().makeCurrentStateNewPresent();
                         this.timelineProvider?.refreshView();
                     }
-                    await this.debugBridge?.updateLocal(newvariable);
+                    await this.debugBridge?.updateArgument(newvariable);
                 }
                 else {
                     newvariable = state?.getArgument(args.name);
