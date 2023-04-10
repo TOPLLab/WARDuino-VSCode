@@ -180,3 +180,20 @@ export function StackValueUpdateRequest(stackValueIdx: number, dataToSend: strin
         }
     }
 }
+
+export function UpdateStateRequest(stateToSend: string[]): Request[] {
+    const finalStateIdx = stateToSend.length - 1;
+    return stateToSend.map((state, stateIdx) => {
+        return {
+            dataToSend: state + "\n",
+            responseMatchCheck: (line: string) => {
+                if (finalStateIdx === stateIdx) {
+                    return line === "done!";
+                }
+                else {
+                    return line === "ack!";
+                }
+            }
+        }
+    });
+}
