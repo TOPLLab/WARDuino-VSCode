@@ -1,45 +1,25 @@
 import { ReadlineParser, SerialPort } from 'serialport';
 import { ChannelInterface } from './ChannelInterface';
-import { Request } from '../DebugBridges/APIRequest';
+import { AbstractChannel } from './AbstractChannel';
 
-export class SerialChannel implements ChannelInterface {
+
+export class SerialChannel extends AbstractChannel implements ChannelInterface {
 
     public readonly baudrate: number;
     public readonly port: string;
-    private connection: any;
 
     constructor(port: string, baudrate: number) {
+        super(`SerialConnection (${port})`)
         this.baudrate = baudrate;
         this.port = port;
     }
 
 
-    public addCallback(dataCheck: (line: string) => boolean, cb: (line: string) => void): void {
-        throw Error("not implemented");
+    public write(data: string, cb?: ((err?: Error | undefined) => void) | undefined): boolean {
+        return !!this.connection && this.connection.write(data);
     }
 
-
-    addPriorityCallback(matchCheck: (line: string) => boolean, cb: (line: string) => void): void {
-        throw Error("To implement");
-    }
-
-    public removeDataHandlers() {
-        throw Error("not implemented");
-    }
-
-    write(data: string, cb?: ((err?: Error | undefined) => void) | undefined): boolean {
-        return false;
-    }
-
-    request(req: Request): Promise<string> {
-        throw Error("To implement");
-    }
-
-    disconnect(): void {
-        this.connection?.close();
-    }
-
-    openConnection(maxAttempts?: number): Promise<boolean> {
+    public openConnection(maxAttempts?: number): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             let con = new SerialPort({ path: this.port, baudRate: this.baudrate },
                 (error) => {
@@ -47,6 +27,9 @@ export class SerialChannel implements ChannelInterface {
                         reject(error);
                     } else {
                         this.connection = con;
+                        this.connection.on('data', (data: Buffer) => {
+                            return this.onDataHandler(data)
+                        })
                         resolve(true);
                     }
                 });
