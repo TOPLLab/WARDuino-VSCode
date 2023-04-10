@@ -171,3 +171,12 @@ export function UpdateGlobalRequest(globalIdx: number, dataToSend: string) {
         }
     }
 }
+
+export function StackValueUpdateRequest(stackValueIdx: number, dataToSend: string) {
+    return {
+        dataToSend: dataToSend + "\n",
+        responseMatchCheck: (line: string) => {
+            return line === `Updated StackValue ${stackValueIdx}`;
+        }
+    }
+}

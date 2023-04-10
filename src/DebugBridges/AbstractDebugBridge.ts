@@ -14,7 +14,7 @@ import { DeviceConfig } from "../DebuggerConfig";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
-import { PauseRequest, Request, RunRequest, StateRequest, UpdateGlobalRequest } from "./APIRequest";
+import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest } from "./APIRequest";
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -404,18 +404,15 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     }
 
 
-    updateLocal(local: VariableInfo): Promise<string> {
+    async updateLocal(local: VariableInfo): Promise<void> {
         const state = this.getCurrentState()?.getWasmState();
         const command = state?.serializeStackValueUpdate(local.index);
-        return new Promise<string>((resolve, reject) => {
-            console.log(`setting ${local.name} ${local.value}`);
-            if (!!!command) {
-                reject("Local not found.");
-                return;
-            }
-            this.client?.write(`${command}\n`);
-            resolve("updated");
-        });
+        if (!!!command) {
+            return;
+        }
+
+        const req = StackValueUpdateRequest(local.index, command);
+        await this.client!.request(req);
     }
 
     async updateGlobal(global: VariableInfo): Promise<void> {
