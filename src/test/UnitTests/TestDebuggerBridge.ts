@@ -15,6 +15,7 @@ import { DeviceConfig } from "../../DebuggerConfig";
 import { EmptySourceMap } from "../../State/SourceMap";
 import { RuntimeViewsRefresher } from "../../Views/ViewsRefresh";
 import { DebugBridge } from "../../DebugBridges/DebugBridge";
+import { PauseRequest, RunRequest, StateRequest } from "../../DebugBridges/APIRequest";
 
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
@@ -139,64 +140,44 @@ suite("Debug API Test Suite (emulated)", () => {
     });
 
     beforeEach(() => {
-        bridge.client?.removeAllListeners("data");
+        bridge.client?.removeDataHandlers();
     });
 
-    test("Test `pause` command", function (done) {
-        bridge.client?.on("data", (data: Buffer) => {
-            const text = data.toString();
-            console.log(text);
-            if (text.includes("PAUSE!")) {
-                done();
-            }
-        });
-        bridge.pause();
+    test("Test `pause` command", async function (done) {
+        const pauseRequest = PauseRequest;
+        const response = await bridge.client?.request(pauseRequest);
+        if(response === "PAUSE!") {
+            done()
+        }
     });
 
-    test("Test `step` command", function (done) {
-        bridge.client?.on("data", (data: Buffer) => {
-            const text = data.toString();
-            console.log(text);
-            if (text.includes("STEP!")) {
-                done();
-            }
-        });
-        bridge.step();
+    test("Test `step` command", async function (done) {
+        await bridge.step();
+        done();
     });
 
-    test("Test `dump` command", function (done) {
+    test("Test `dump` command", async function (done) {
         this.timeout(3000);
-        let json = "";
-
-        bridge.client?.on("data", (data: Buffer) => {
-            const text = data.toString();
-            console.log(text);
-            if (receivingDumpData(json, text)) {
-                let lines = text.split("\n");
-                for (let i = 0; i < lines.length; i++) {
-                    if (receivingDumpData(json, lines[i])) {
-                        json += lines[i].trimEnd();
-                        if (isValidJSON(json)) {
-                            json = "";
-                            done();
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-        bridge.refresh();
+        const stateRequest = new StateRequest();
+        stateRequest.includePC();
+        stateRequest.includeStack();
+        stateRequest.includeGlobals();
+        stateRequest.includeCallstack();
+        stateRequest.includeBreakpoints();
+        stateRequest.includeEvents();
+        const req = stateRequest.generateRequest();
+        const response = await bridge.client!.request(req);
+        if (isValidJSON(response)) {
+            done();
+        }
     });
 
-    test("Test `run` command", function (done) {
-        bridge.client?.on("data", (data: Buffer) => {
-            const text = data.toString();
-            console.log(text);
-            if (text.includes("GO!")) {
-                done();
-            }
-        });
-        bridge.run();
+    test("Test `run` command", async function (done) {
+        const runRequest = RunRequest;
+        const response = await bridge.client?.request(runRequest);
+        if (response === "GO!") {
+            done();
+        }
     });
 
     after(async function () {
@@ -216,19 +197,11 @@ suite("WOOD Debug API Test Suite (emulated)", () => {
     });
 
     beforeEach(() => {
-        bridge.client?.removeAllListeners("data");
+        bridge.client?.removeDataHandlers();
     });
 
-    test("Test `WOODDUMP` command", function (done) {
+    test("Test `WOODDUMP` command", async function (done) {
         this.timeout(10000);
-        bridge.client?.on("data", (data: Buffer) => {
-            const text = data.toString();
-            console.log(text);
-            if (text.includes("done")) {
-                done();
-            }
-        });
-
         class DummyState extends WOODState {
             constructor() {
                 super("", JSON.parse(""));
@@ -245,7 +218,8 @@ suite("WOOD Debug API Test Suite (emulated)", () => {
             }
         }
 
-        bridge.pushSession(new DummyState());
+        await bridge.pushSession(new DummyState());
+        done();
     });
 
     after(async function () {
