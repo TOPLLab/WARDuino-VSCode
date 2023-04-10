@@ -23,6 +23,10 @@ export class SerialChannel implements ChannelInterface {
         throw Error("To implement");
     }
 
+    public removeDataHandlers() {
+        throw Error("not implemented");
+    }
+
     write(data: string, cb?: ((err?: Error | undefined) => void) | undefined): boolean {
         return false;
     }
