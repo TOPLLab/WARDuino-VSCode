@@ -653,6 +653,32 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         debugBridge.on(EventsMessages.enforcingBreakpointPolicy, (policy: BreakpointPolicy) => {
             this.onEnforcingBPPolicy(policy);
         });
+        debugBridge.on(EventsMessages.emulatorStarted, (db: DebugBridge) => {
+            const name = db.getDeviceConfig().name;
+            const msg = `Emulator for ${name} spawned`;
+            this.notifyProgress(msg);
+        });
+        debugBridge.on(EventsMessages.emulatorClosed, (db: DebugBridge, reason: number | null) => {
+            const name = db.getDeviceConfig().name;
+            let msg = `Emulator for ${name} closed`;
+            if (reason !== null) {
+                msg += ` reason: ${reason}`;
+            }
+            this.notifyProgress(msg);
+        });
+        debugBridge.on(EventsMessages.connected, (db: DebugBridge) => {
+            const name = db.getDeviceConfig().name;
+            const msg = `Connected to ${name}`;
+            this.notifyProgress(msg);
+        });
+        debugBridge.on(EventsMessages.connectionError, (db: DebugBridge, err: number | null) => {
+            const name = db.getDeviceConfig().name;
+            let msg = `Connection to ${name} failed`;
+            if (err !== null) {
+                msg += ` reason: ${err}`;
+            }
+            this.notifyProgress(msg);
+        });
     }
 
     private onNewState(runtimeState: RuntimeState) {
@@ -681,5 +707,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private onEnforcingBPPolicy(policy: BreakpointPolicy) {
         const msg = `Enforcing '${policy}' breakpoint policy`
         vscode.window.showInformationMessage(msg);
+    }
+
+    private notifyProgress(msg: string) {
+        this.notifier.text = msg;
     }
 }

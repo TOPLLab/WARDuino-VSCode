@@ -1,6 +1,6 @@
 import { ChildProcess, spawn } from 'child_process';
 import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
-import { AbstractDebugBridge } from "./AbstractDebugBridge";
+import { AbstractDebugBridge, EventsMessages } from "./AbstractDebugBridge";
 import { SourceMap } from "../State/SourceMap";
 import { Readable } from 'stream';
 import { ReadlineParser } from 'serialport';
@@ -49,13 +49,13 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     private async initClient(): Promise<string> {
         try {
             await this.client!.openConnection();
-            this.listener.notifyProgress("Connected to socket");
+            this.emit(EventsMessages.connected, this);
             this.registerCallbacks();
             return `127.0.0.1:${this.deviceConfig.port}`;
         }
         catch (err) {
-            this.listener.notifyError("Lost connection to the board");
-            console.error(err);
+            this.emit(EventsMessages.connectionError, this, err);
+            console.error(`Connection error: ${err}`);
             throw err;
         }
     }
@@ -95,7 +95,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         return new Promise((resolve, reject) => {
             this.cp = this.spawnEmulatorProcess();
 
-            this.listener.notifyProgress('Started emulator');
+            this.emit(EventsMessages.emulatorStarted, this);
             while (this.cp.stdout === undefined) {
             }
             if (isReadable(this.cp.stdout) && isReadable(this.cp.stderr)) {
@@ -120,7 +120,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
                 });
 
                 this.cp.on('close', (code) => {
-                    this.listener.notifyProgress('Disconnected from emulator');
+                    this.emit(EventsMessages.emulatorClosed, this, code);
                     this.cp?.kill();
                     this.cp = undefined;
                 });
