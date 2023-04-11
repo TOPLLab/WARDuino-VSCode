@@ -197,3 +197,18 @@ export function UpdateStateRequest(stateToSend: string[]): Request[] {
         }
     });
 }
+
+export function UpdateModuleRequest(wasm: Buffer): Request {
+    const w = new Uint8Array(wasm);
+    const sizeHex = HexaEncoder.convertToLEB128(w.length);
+    const sizeBuffer = Buffer.allocUnsafe(4);
+    sizeBuffer.writeUint32BE(w.length);
+    const wasmHex = Buffer.from(w).toString("hex");
+    const dataToSend = `${InterruptTypes.interruptUPDATEMod}${sizeHex}${wasmHex}`;
+    return {
+        dataToSend: dataToSend + "\n",
+        expectedResponse: (line: string) => {
+            return line === "CHANGE Module!";
+        }
+    }
+}
