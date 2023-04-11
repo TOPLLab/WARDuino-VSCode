@@ -65,7 +65,7 @@ async function init(target: RunTimeTarget) {
                 tmpdir = dir;
                 switch (target) {
                     case RunTimeTarget.wood:
-                        bridge = new WOODDebugBridge("",
+                        bridge = new WOODDebugBridge(
                             //TODO fix
                             DeviceConfig.defaultDeviceConfig("wood"),
                             EmptySourceMap(),
@@ -76,7 +76,7 @@ async function init(target: RunTimeTarget) {
                         break;
                     case RunTimeTarget.emulator:
                     default:
-                        bridge = new EmulatedDebugBridge("",
+                        bridge = new EmulatedDebugBridge(
                             DeviceConfig.defaultDeviceConfig("emulated"),
                             EmptySourceMap(),
                             tmpdir,

@@ -20,7 +20,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     protected readonly sdk: string;
     private cp?: ChildProcess;
 
-    constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, tmpdir: string, listener: DebugBridgeListenerInterface,
+    constructor(config: DeviceConfig, sourceMap: SourceMap, tmpdir: string, listener: DebugBridgeListenerInterface,
         warduinoSDK: string) {
         super(config, sourceMap, listener);
 
