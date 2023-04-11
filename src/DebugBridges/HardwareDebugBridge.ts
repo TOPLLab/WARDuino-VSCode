@@ -22,7 +22,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     private logginSerialConnection?: LoggingSerialMonitor;
 
-    constructor(wasmPath: string,
+    constructor(
         deviceConfig: DeviceConfig,
         sourceMap: SourceMap,
         tmpdir: string,

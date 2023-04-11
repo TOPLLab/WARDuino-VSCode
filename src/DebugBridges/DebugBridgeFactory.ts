@@ -30,14 +30,14 @@ export class DebugBridgeFactory {
                 switch (target) {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:
-                        bridge = new EmulatedDebugBridge(file, deviceConfig, sourceMap, tmpdir, listener, warduinoSDK);
+                        bridge = new EmulatedDebugBridge(deviceConfig, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.wood:
-                        bridge = new WOODDebugBridge(file, deviceConfig, sourceMap, tmpdir, listener, warduinoSDK);
+                        bridge = new WOODDebugBridge(deviceConfig, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                         // Hardware runtimes
                     case RunTimeTarget.embedded:
-                        bridge = new HardwareDebugBridge(file, deviceConfig, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridge = new HardwareDebugBridge(deviceConfig, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                 }
 
