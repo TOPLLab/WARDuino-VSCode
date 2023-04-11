@@ -88,7 +88,7 @@ export abstract class AbstractChannel implements ChannelInterface {
             if (line.length > 0 && line.charAt(line.length - 1) === '\r') {
                 line = line.slice(0, line.length - 1);
             }
-            console.log(`ClientSideSocket.parseLines: ${line}`);
+            console.log(`ClientSideSocket.parsedLine: ${line}`);
             lines.push(line);
             idx = this.dataBuffered.indexOf("\n");
         };
