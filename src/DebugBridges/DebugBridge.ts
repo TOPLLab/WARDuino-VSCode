@@ -38,8 +38,6 @@ export interface DebugBridge extends EventEmitter {
 
   pause(): Promise<void>;
 
-  pullSession(): void;
-
   pushSession(woodState: WOODState): Promise<void>;
 
 

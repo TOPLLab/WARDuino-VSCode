@@ -79,18 +79,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         }
     }
 
-    public pullSession() {
-        const stateRequest = new StateRequest();
-        stateRequest.includeAll();
-        const req = stateRequest.generateInterrupt();
-        const cberr = (err: any) => {
-            if (err) {
-                console.error(`Emulated: pullSession error ${err}`);
-            }
-        };
-        this.sendData(req, cberr);
-    }
-
     private startEmulator(): Promise<string> {
         return new Promise((resolve, reject) => {
             this.cp = this.spawnEmulatorProcess();

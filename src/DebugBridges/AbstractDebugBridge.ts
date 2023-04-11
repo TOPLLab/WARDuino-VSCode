@@ -243,8 +243,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     }
 
 
-    abstract pullSession(): void;
-
     public async pushSession(woodState: WOODState): Promise<void> {
         const messages: string[] = woodState.toBinary();
         const requests: Request[] = UpdateStateRequest(messages);
