@@ -30,11 +30,11 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     public proxify(): void {
-        throw new Error("Method not supported.");
+        throw new Error("EmulatedDebugBridge.proxify: Method not supported.");
     }
 
     upload(): void {
-        throw new Error('Method not implemented.');
+        throw new Error("EmulatedDebugBridge.upload: Method not implemented.");
     }
 
     setStartAddress(startAddress: number) {
