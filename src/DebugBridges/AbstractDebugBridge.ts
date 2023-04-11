@@ -16,6 +16,7 @@ import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
 import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateStateRequest } from "./APIRequest";
 import { EventItem } from "../Views/EventsProvider";
+import EventEmitter = require("events");
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -47,7 +48,7 @@ function convertToLEB128(a: number): string { // TODO can only handle 32 bit
     }
 }
 
-export abstract class AbstractDebugBridge implements DebugBridge {
+export abstract class AbstractDebugBridge extends EventEmitter implements DebugBridge {
     // State
     protected sourceMap: SourceMap;
     protected startAddress: number = 0;
@@ -71,6 +72,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     private viewsRefresher: RuntimeViewsRefresher;
 
     protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, viewRefresher: RuntimeViewsRefresher, listener: DebugBridgeListenerInterface) {
+        super();
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
