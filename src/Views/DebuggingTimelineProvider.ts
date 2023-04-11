@@ -109,6 +109,9 @@ export class TimelineItem extends vscode.TreeItem {
         this.allowedAction = allowedAction;
         this.contextValue = allowedAction;
         this.view = view;
+        if (runtimeState.hasException()) {
+            this.iconPath = new vscode.ThemeIcon("bug");
+        }
     }
 
     public select() {
