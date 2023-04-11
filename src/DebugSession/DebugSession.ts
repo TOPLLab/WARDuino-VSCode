@@ -392,6 +392,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         if (!!state) {
             const doNotSave = { includeInTimeline: false };
             this.debugBridge?.updateRuntimeState(state, doNotSave);
+            this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
         }
     }
 
