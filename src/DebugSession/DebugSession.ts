@@ -40,8 +40,9 @@ import { DebuggingTimelineProvider, TimelineItem } from '../Views/DebuggingTimel
 import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 import { DevicesManager } from '../DebugBridges/DevicesManager';
 import { BridgeListener } from '../DebugBridges/DebugBridgeListener';
-import { Messages } from '../DebugBridges/AbstractDebugBridge';
+import { EventsMessages, Messages } from '../DebugBridges/AbstractDebugBridge';
 import { DebugBridgeListenerInterface } from '../DebugBridges/DebugBridgeListenerInterface';
+import { RuntimeState } from '../State/RuntimeState';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
@@ -187,6 +188,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         const listener: DebugBridgeListenerInterface = new BridgeListener(this, this.THREAD_ID, this.notifier);
         const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, this.viewsRefresher, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir, listener);
+        this.registerGUICallbacks(debugBridge);
 
         try {
             await debugBridge.connect();
@@ -631,4 +633,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.sendEvent(new StoppedEvent('step', this.THREAD_ID));
     }
 
+    private registerGUICallbacks(debugBridge: DebugBridge) {
+        debugBridge.on(EventsMessages.stateUpdated, (newState: RuntimeState) => {
+            this.onNewState(newState);
+        })
+    }
+
+    private onNewState(runtimeState: RuntimeState) {
+        this.viewsRefresher.refreshViews(runtimeState);
+    }
 }
