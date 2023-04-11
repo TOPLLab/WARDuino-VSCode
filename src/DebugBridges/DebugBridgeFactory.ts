@@ -18,7 +18,7 @@ function getConfig(id: string): string {
 }
 
 export class DebugBridgeFactory {
-    static makeDebugBridge(file: string, deviceConfig: DeviceConfig, sourceMap: SourceMap, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListenerInterface): DebugBridge {
+    static makeDebugBridge(file: string, deviceConfig: DeviceConfig, sourceMap: SourceMap, target: RunTimeTarget, tmpdir: string): DebugBridge {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
