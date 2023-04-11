@@ -1,16 +1,10 @@
 import { ChildProcess, spawn } from 'child_process';
-import * as net from 'net';
 import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
-import { InterruptTypes } from './InterruptTypes';
-import { DebugInfoParser } from "../Parsers/DebugInfoParser";
 import { AbstractDebugBridge } from "./AbstractDebugBridge";
-import { WOODState } from "../State/WOODState";
 import { SourceMap } from "../State/SourceMap";
-import { EventsProvider } from "../Views/EventsProvider";
 import { Readable } from 'stream';
 import { ReadlineParser } from 'serialport';
 import { DeviceConfig } from '../DebuggerConfig';
-import { StackProvider } from '../Views/StackProvider';
 import * as vscode from 'vscode';
 import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 import { ClientSideSocket } from '../Channels/ClientSideSocket';
@@ -25,8 +19,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     protected readonly tmpdir: string;
     protected readonly sdk: string;
     private cp?: ChildProcess;
-    private parser: DebugInfoParser;
-    private buffer: string = '';
 
     constructor(wasmPath: string, config: DeviceConfig, sourceMap: SourceMap, viewsRefresher: RuntimeViewsRefresher, tmpdir: string, listener: DebugBridgeListenerInterface,
         warduinoSDK: string) {
@@ -35,7 +27,6 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.sdk = warduinoSDK;
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
-        this.parser = new DebugInfoParser(sourceMap);
         this.client = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
     }
 
