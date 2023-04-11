@@ -2,7 +2,6 @@ import { DebugBridge } from "./DebugBridge";
 import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "../State/VariableInfo";
 import { SourceMap } from "../State/SourceMap";
-import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { ExecutionStateType, WOODDumpResponse, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { FunctionInfo } from "../State/FunctionInfo";
@@ -74,7 +73,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     protected breakpointPolicy: BreakpointPolicy;
 
     // Interfaces
-    protected listener: DebugBridgeListenerInterface;
     protected abstract client: ChannelInterface | undefined;
 
     // History (time-travel)
@@ -83,16 +81,14 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     public readonly deviceConfig: DeviceConfig;
     public outOfPlaceActive = false;
 
-    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, listener: DebugBridgeListenerInterface) {
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap) {
         super();
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
             ?? new Set<ProxyCallItem>();
-        this.listener = listener;
         this.deviceConfig = deviceConfig;
         this.breakpointPolicy = BreakpointPolicy.default;
-        this.listener.setBridge(this);
     }
 
     // General Bridge functionality

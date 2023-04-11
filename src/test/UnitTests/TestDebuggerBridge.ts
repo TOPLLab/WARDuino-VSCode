@@ -9,51 +9,15 @@ import { EmulatedDebugBridge } from "../../DebugBridges/EmulatedDebugBridge";
 import { WASMCompilerBridge } from "../../CompilerBridges/WASMCompilerBridge";
 import { RunTimeTarget } from "../../DebugBridges/RunTimeTarget";
 import { WOODDebugBridge } from "../../DebugBridges/WOODDebugBridge";
-import { DebugBridgeListenerInterface } from "../../DebugBridges/DebugBridgeListenerInterface";
 import ErrnoException = NodeJS.ErrnoException;
 import { DeviceConfig } from "../../DebuggerConfig";
 import { EmptySourceMap } from "../../State/SourceMap";
-import { RuntimeViewsRefresher } from "../../Views/ViewsRefresh";
-import { DebugBridge } from "../../DebugBridges/DebugBridge";
 import { PauseRequest, RunRequest, StateRequest } from "../../DebugBridges/APIRequest";
 
 const runPath = process.cwd();
 const warduinoSDK = `${require('os').homedir()}/Arduino/libraries/WARDuino`;
 const wabtSDK = `${runPath}/WABT/build`;
 const wasmDirectoryPath = `${runPath}/src/test/UnitTests/TestSource`;
-const listener: DebugBridgeListenerInterface = {
-    notifyDisallowedOperation(message: string) {
-    },
-    setBridge(debugBridge: DebugBridge) {
-    },
-    notifyProgressInNotification(title: string, message: string) {
-    },
-    notifyConnected(): void {
-    },
-    notifyError(): void {
-    },
-    connected(): void {
-    },
-    startMultiverseDebugging(woodState: WOODState): void {
-    },
-    notifyPaused(): void {
-    },
-    notifyBreakpointHit(): void {
-    },
-    disconnected(): void {
-    },
-    notifyProgress(message: string): void {
-        console.log(message);
-    },
-    notifyStateUpdate() {
-    },
-    notifyException(message: string): void {
-    },
-    notifyInfoMessage(message) {
-    },
-    runEvent() {
-    }
-};
 
 let tmpdir: string = "";
 let bridge: EmulatedDebugBridge;
@@ -70,7 +34,6 @@ async function init(target: RunTimeTarget) {
                             DeviceConfig.defaultDeviceConfig("wood"),
                             EmptySourceMap(),
                             tmpdir,
-                            listener,
                             warduinoSDK
                         );
                         break;
@@ -80,7 +43,6 @@ async function init(target: RunTimeTarget) {
                             DeviceConfig.defaultDeviceConfig("emulated"),
                             EmptySourceMap(),
                             tmpdir,
-                            listener,
                             warduinoSDK
                         );
                         break;

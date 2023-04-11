@@ -8,7 +8,6 @@ import * as vscode from "vscode";
 import { SourceMap } from "../State/SourceMap";
 import { WOODDebugBridge } from "./WOODDebugBridge";
 import { DeviceConfig } from "../DebuggerConfig";
-import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 
 function getConfig(id: string): string {
     const config: string | undefined = vscode.workspace.getConfiguration().get(id);
@@ -30,14 +29,14 @@ export class DebugBridgeFactory {
                 switch (target) {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:
-                        bridge = new EmulatedDebugBridge(deviceConfig, sourceMap, tmpdir, listener, warduinoSDK);
+                        bridge = new EmulatedDebugBridge(deviceConfig, sourceMap, tmpdir, warduinoSDK);
                         break;
                     case RunTimeTarget.wood:
-                        bridge = new WOODDebugBridge(deviceConfig, sourceMap, tmpdir, listener, warduinoSDK);
+                        bridge = new WOODDebugBridge(deviceConfig, sourceMap, tmpdir, warduinoSDK);
                         break;
                         // Hardware runtimes
                     case RunTimeTarget.embedded:
-                        bridge = new HardwareDebugBridge(deviceConfig, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridge = new HardwareDebugBridge(deviceConfig, sourceMap, tmpdir, portAddress, fqbn, warduinoSDK);
                         break;
                 }
 
