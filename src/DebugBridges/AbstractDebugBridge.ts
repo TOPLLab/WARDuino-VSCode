@@ -33,6 +33,9 @@ export class Messages {
 
 export class EventsMessages {
     public static readonly stateUpdated: string = "state updated";
+    public static readonly stepCompleted: string = "stepped";
+    public static readonly running: string = "running";
+    public static readonly paused: string = "paused";
 }
 
 function convertToLEB128(a: number): string { // TODO can only handle 32 bit
@@ -102,14 +105,14 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     public async run(): Promise<void> {
         await this.client?.request(RunRequest);
-        this.listener.runEvent();
+        this.emit(EventsMessages.running);
     }
 
     public async pause(): Promise<void> {
         const req = PauseRequest;
         await this.client?.request(req);
         await this.refresh();
-        this.listener.notifyPaused();
+        this.emit(EventsMessages.paused);
     }
 
     public hitBreakpoint() {
@@ -132,6 +135,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             // Normal step forward
             await this.refresh();
         }
+        this.emit(EventsMessages.stepCompleted);
     }
 
     public stepBack() {
@@ -140,6 +144,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         if (!!rs) {
             const doNotSave = { includeInTimeline: false };
             this.updateRuntimeState(rs, doNotSave);
+            this.emit(EventsMessages.paused);
         }
     }
 
