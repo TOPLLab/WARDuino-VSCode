@@ -639,10 +639,31 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private registerGUICallbacks(debugBridge: DebugBridge) {
         debugBridge.on(EventsMessages.stateUpdated, (newState: RuntimeState) => {
             this.onNewState(newState);
+        });
+        debugBridge.on(EventsMessages.stepCompleted, () => {
+            this.onStepCompleted();
+        });
+        debugBridge.on(EventsMessages.running, () => {
+            this.onRunning();
+        });
+        debugBridge.on(EventsMessages.paused, () => {
+            this.onPause();
         })
     }
 
     private onNewState(runtimeState: RuntimeState) {
         this.viewsRefresher.refreshViews(runtimeState);
+    }
+
+    private onStepCompleted() {
+        this.sendEvent(new StoppedEvent('step', this.THREAD_ID));
+    }
+
+    private onRunning() {
+        this.sendEvent(new ContinuedEvent(this.THREAD_ID));
+    }
+
+    private onPause() {
+        this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
     }
 }
