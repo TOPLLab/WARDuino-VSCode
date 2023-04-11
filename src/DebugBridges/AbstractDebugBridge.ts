@@ -40,8 +40,10 @@ export class EventsMessages {
     public static readonly enforcingBreakpointPolicy: string = "enforcing breakpoint policy";
     public static readonly connected: string = "connected";
     public static readonly connectionError: string = "connectionError";
+    public static readonly disconnected: string = "disconnected";
     public static readonly emulatorStarted: string = "emulator started";
     public static readonly emulatorClosed: string = "emulator closed";
+    public static readonly progress: string = "progress";
 }
 
 function convertToLEB128(a: number): string { // TODO can only handle 32 bit

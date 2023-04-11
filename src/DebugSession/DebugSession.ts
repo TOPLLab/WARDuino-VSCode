@@ -671,6 +671,11 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             const msg = `Connected to ${name}`;
             this.notifyProgress(msg);
         });
+        debugBridge.on(EventsMessages.disconnected, (db: DebugBridge) => {
+            const name = db.getDeviceConfig().name;
+            const msg = `Disconected from ${name}`;
+            this.notifyProgress(msg);
+        });
         debugBridge.on(EventsMessages.connectionError, (db: DebugBridge, err: number | null) => {
             const name = db.getDeviceConfig().name;
             let msg = `Connection to ${name} failed`;
@@ -678,6 +683,11 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 msg += ` reason: ${err}`;
             }
             this.notifyProgress(msg);
+        });
+        debugBridge.on(EventsMessages.progress, (db: DebugBridge, msg: string) => {
+            const name = db.getDeviceConfig().name;
+            const m = `${name}: ${msg}`;
+            this.notifyProgress(m);
         });
     }
 
