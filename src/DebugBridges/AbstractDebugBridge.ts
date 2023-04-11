@@ -379,6 +379,9 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
 
         this.emit(EventsMessages.stateUpdated, currentState);
+        if (currentState?.hasException()) {
+            this.emit(EventsMessages.exceptionOccurred, this, runtimeState);
+        }
     }
 
     public isUpdateOperationAllowed(): boolean {
@@ -533,6 +536,5 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     private onExceptionCallback(line: string) {
         const runtimeState: RuntimeState = new RuntimeState(line, this.sourceMap);
         this.updateRuntimeState(runtimeState);
-        this.emit(EventsMessages.exceptionOccurred, this, runtimeState);
     }
 }
