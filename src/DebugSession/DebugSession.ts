@@ -35,7 +35,7 @@ import { CompileResult } from '../CompilerBridges/CompileBridge';
 import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
 import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBuilder';
 import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/BreakpointPolicyProvider';
-import { BreakpointPolicy } from '../State/Breakpoint';
+import { Breakpoint, BreakpointPolicy } from '../State/Breakpoint';
 import { DebuggingTimelineProvider, TimelineItem } from '../Views/DebuggingTimelineProvider';
 import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 import { DevicesManager } from '../DebugBridges/DevicesManager';
@@ -47,6 +47,14 @@ const debugmodeMap = new Map<string, RunTimeTarget>([
     ["emulated", RunTimeTarget.emulator],
     ["embedded", RunTimeTarget.embedded]
 ]);
+
+interface OnStartBreakpoint {
+    source: {
+        name: string,
+        path: string
+    },
+    linenr: number
+}
 
 // Interface between the debugger and the VS runtime 
 export class WARDuinoDebugSession extends LoggingDebugSession {
@@ -71,11 +79,14 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private devicesManager: DevicesManager = new DevicesManager();
 
+    private startingBPs: OnStartBreakpoint[];
+
     public constructor(notifier: vscode.StatusBarItem, reporter: ErrorReporter) {
         super("debug_log.txt");
         this.notifier = notifier;
         this.reporter = reporter;
         this.tmpdir = "/tmp/";
+        this.startingBPs = [];
     }
 
     protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
@@ -184,6 +195,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.setDebugBridge(debugBridge);
             this.sendResponse(response);
             this.sendEvent(new StoppedEvent('entry', this.THREAD_ID));
+            if (!!this.startingBPs && this.startingBPs.length > 0) {
+                const validBps = this.startingBPs.filter(bp => {
+                    return bp.source.path === args.program;
+                }).map(bp => bp.linenr);
+                await debugBridge.setBreakPoints(validBps);
+                this.startingBPs = [];
+            }
         }
         catch (reason) {
             console.error(reason);
@@ -442,8 +460,26 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {
+        let responseBps: Breakpoint[] = [];
+        if (!!this.debugBridge) {
+            responseBps = this.debugBridge.setBreakPoints(args.lines ?? []);
+        }
+        else if (!!args.lines && !!args.source) {
+            // case where the bridge did not start yet.
+            // Store bps so to set them after connection to bridge
+            const toConcat = args.lines.map((linenr: number) => {
+                return {
+                    "source": {
+                        name: args.source.name!,
+                        path: args.source.path!
+                    },
+                    "linenr": linenr
+                };
+            });
+            this.startingBPs = this.startingBPs.concat(toConcat);
+        }
         response.body = {
-            breakpoints: this.debugBridge?.setBreakPoints(args.lines ?? []) ?? []
+            breakpoints: responseBps
         };
         this.sendResponse(response);
     }
