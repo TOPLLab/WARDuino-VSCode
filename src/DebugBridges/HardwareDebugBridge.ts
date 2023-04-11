@@ -173,10 +173,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.sendInterrupt(InterruptTypes.interruptProxify);
     }
 
-    requestCallbackmapping() {
-        this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);
-    }
-
     async refresh(): Promise<void> {
         const stateRequest = new StateRequest();
         stateRequest.includePC();
