@@ -7,8 +7,9 @@ import { Breakpoint, BreakpointPolicy } from "../State/Breakpoint";
 import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { DeviceConfig } from "../DebuggerConfig";
+import { EventEmitter } from "stream";
 
-export interface DebugBridge {
+export interface DebugBridge extends EventEmitter{
 
   requestMissingState(): Promise<void>;
 
