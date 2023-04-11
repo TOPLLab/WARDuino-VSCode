@@ -650,6 +650,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         debugBridge.on(EventsMessages.exceptionOccurred, (db: DebugBridge, state: RuntimeState) => {
             this.onException(db, state);
         });
+        debugBridge.on(EventsMessages.enforcingBreakpointPolicy, (policy: BreakpointPolicy) => {
+            this.onEnforcingBPPolicy(policy);
+        });
     }
 
     private onNewState(runtimeState: RuntimeState) {
@@ -673,5 +676,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const exception = runtime.getExceptionMsg();
         const msg = `Exception occurred on ${name}: ${exception}`;
         vscode.window.showErrorMessage(msg);
+    }
+
+    private onEnforcingBPPolicy(policy: BreakpointPolicy) {
+        const msg = `Enforcing '${policy}' breakpoint policy`
+        vscode.window.showInformationMessage(msg);
     }
 }
