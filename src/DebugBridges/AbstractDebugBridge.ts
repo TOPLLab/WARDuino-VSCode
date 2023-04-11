@@ -181,9 +181,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     private async onBreakpointReached(line: string) {
         let breakpointInfo = line.match(/AT ([0-9]+)!/);
         if (!!breakpointInfo && breakpointInfo.length > 1) {
+            let bpAddress = parseInt(breakpointInfo[1]);
+            console.log(`BP reached at line ${this.getBreakpointFromAddr(bpAddress)?.line} (addr=${bpAddress})`)
             await this.refresh();
 
-            let bpAddress = parseInt(breakpointInfo[1]);
             if (this.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
                 this.getListener().notifyInfoMessage(`Enforcing '${BreakpointPolicy.singleStop}' breakpoint policy`);
                 await this.unsetAllBreakpoints();
