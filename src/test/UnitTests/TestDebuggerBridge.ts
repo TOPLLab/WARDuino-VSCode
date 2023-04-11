@@ -59,7 +59,6 @@ let tmpdir: string = "";
 let bridge: EmulatedDebugBridge;
 
 async function init(target: RunTimeTarget) {
-    const viewRefresher = new RuntimeViewsRefresher();
     await new Promise(resolve => {
         fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err: ErrnoException | null, dir: string) => {
             if (err === null) {
@@ -70,7 +69,6 @@ async function init(target: RunTimeTarget) {
                             //TODO fix
                             DeviceConfig.defaultDeviceConfig("wood"),
                             EmptySourceMap(),
-                            viewRefresher,
                             tmpdir,
                             listener,
                             warduinoSDK
@@ -81,7 +79,6 @@ async function init(target: RunTimeTarget) {
                         bridge = new EmulatedDebugBridge("",
                             DeviceConfig.defaultDeviceConfig("emulated"),
                             EmptySourceMap(),
-                            viewRefresher,
                             tmpdir,
                             listener,
                             warduinoSDK

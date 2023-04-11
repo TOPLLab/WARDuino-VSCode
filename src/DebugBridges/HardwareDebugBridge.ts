@@ -25,13 +25,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     constructor(wasmPath: string,
         deviceConfig: DeviceConfig,
         sourceMap: SourceMap,
-        viewsRefresher: RuntimeViewsRefresher,
         tmpdir: string,
         listener: DebugBridgeListenerInterface,
         portAddress: string,
         fqbn: string,
         warduinoSDK: string) {
-        super(deviceConfig, sourceMap, viewsRefresher, listener);
+        super(deviceConfig, sourceMap, listener);
 
         this.sourceMap = sourceMap;
         this.listener = listener;

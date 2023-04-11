@@ -188,7 +188,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const deviceConfig = this.debuggerConfig.device;
 
         const listener: DebugBridgeListenerInterface = new BridgeListener(this, this.THREAD_ID, this.notifier);
-        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, this.viewsRefresher, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir, listener);
+        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir, listener);
         this.registerGUICallbacks(debugBridge);
 
         try {
@@ -425,7 +425,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const dc = DeviceConfig.configForProxy(name, config);
         const stateToPush = item.getRuntimeState().deepcopy();
         const listener = new BridgeListener(this, this.THREAD_ID, this.notifier);
-        const newBridge = DebugBridgeFactory.makeDebugBridge(this.program, dc, this.sourceMap as SourceMap, this.viewsRefresher, RunTimeTarget.wood, this.tmpdir, listener);
+        const newBridge = DebugBridgeFactory.makeDebugBridge(this.program, dc, this.sourceMap as SourceMap, RunTimeTarget.wood, this.tmpdir, listener);
 
         bridge.proxify();
         bridge.disconnect();
