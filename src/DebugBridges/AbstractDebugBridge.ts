@@ -11,9 +11,8 @@ import { Breakpoint, BreakpointPolicy, UniqueSet } from "../State/Breakpoint";
 import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
-import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
-import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateStateRequest } from "./APIRequest";
+import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from "./APIRequest";
 import { EventItem } from "../Views/EventsProvider";
 import EventEmitter = require("events");
 
@@ -32,6 +31,7 @@ export class Messages {
 
 export class EventsMessages {
     public static readonly stateUpdated: string = "state updated";
+    public static readonly moduleUpdated: string = "module updated";
     public static readonly stepCompleted: string = "stepped";
     public static readonly running: string = "running";
     public static readonly paused: string = "paused";
@@ -45,22 +45,6 @@ export class EventsMessages {
     public static readonly progress: string = "progress";
 }
 
-function convertToLEB128(a: number): string { // TODO can only handle 32 bit
-    a |= 0;
-    const result = [];
-    while (true) {
-        const byte_ = a & 0x7f;
-        a >>= 7;
-        if (
-            (a === 0 && (byte_ & 0x40) === 0) ||
-            (a === -1 && (byte_ & 0x40) !== 0)
-        ) {
-            result.push(byte_.toString(16).padStart(2, '0'));
-            return result.join('').toUpperCase();
-        }
-        result.push((byte_ | 0x80).toString(16).padStart(2, '0'));
-    }
-}
 
 export abstract class AbstractDebugBridge extends EventEmitter implements DebugBridge {
     // State
@@ -403,13 +387,11 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         this.sourceMap = newSourceMap;
     }
 
-    updateModule(wasm: Buffer): void {
-        const w = new Uint8Array(wasm);
-        const sizeHex: string = convertToLEB128(w.length);
-        const wasmHex = Buffer.from(w).toString('hex');
-        let command = `${InterruptTypes.interruptUPDATEMod}${sizeHex}${wasmHex} \n`;
-        console.log('Plugin: send Update module command');
-        this.client?.write(command);
+    public async updateModule(wasm: Buffer): Promise<void> {
+        const req = UpdateModuleRequest(wasm);
+        await this.client!.request(req);
+        this.getDebuggingTimeline().clear();
+        this.emit(EventsMessages.moduleUpdated, this);
     }
 
     private async refreshEvents() {
