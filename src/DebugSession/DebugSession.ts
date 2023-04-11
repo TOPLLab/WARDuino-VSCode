@@ -648,7 +648,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         });
         debugBridge.on(EventsMessages.paused, () => {
             this.onPause();
-        })
+        });
+        debugBridge.on(EventsMessages.exceptionOccurred, (db: DebugBridge, state: RuntimeState) => {
+            this.onException(db, state);
+        });
     }
 
     private onNewState(runtimeState: RuntimeState) {
@@ -665,5 +668,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private onPause() {
         this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
+    }
+
+    private onException(debugBridge: DebugBridge, runtime: RuntimeState) {
+        const name = debugBridge.getDeviceConfig().name;
+        const exception = runtime.getExceptionMsg();
+        const msg = `Exception occurred on ${name}: ${exception}`;
+        vscode.window.showErrorMessage(msg);
     }
 }

@@ -36,6 +36,7 @@ export class EventsMessages {
     public static readonly stepCompleted: string = "stepped";
     public static readonly running: string = "running";
     public static readonly paused: string = "paused";
+    public static readonly exceptionOccurred: string = "exception occurred";
 }
 
 function convertToLEB128(a: number): string { // TODO can only handle 32 bit
@@ -512,7 +513,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     private registerOnExceptionCallback() {
         this.client?.addCallback(
             (line: string) => {
-                if (!line.startsWith('"{')) {
+                if (!line.startsWith('{"')) {
                     return false;
                 }
                 try {
@@ -532,5 +533,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     private onExceptionCallback(line: string) {
         const runtimeState: RuntimeState = new RuntimeState(line, this.sourceMap);
         this.updateRuntimeState(runtimeState);
+        this.emit(EventsMessages.exceptionOccurred, this, runtimeState);
     }
 }
