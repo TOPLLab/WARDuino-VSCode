@@ -169,21 +169,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-
-    pullSession(): void {
-        this.outOfPlaceActive = true;
-        this.emit(EventsMessages.progress, this, Messages.transfering);
-        const req = new StateRequest();
-        req.includeAll();
-        const data = req.generateInterrupt();
-        this.sendData(data, (err: any) => {
-            console.log("Plugin: WOOD Dump");
-            if (err) {
-                return console.log("Error on write: ", err.message);
-            }
-        });
-    }
-
     public proxify(): void {
         this.sendInterrupt(InterruptTypes.interruptProxify);
     }
