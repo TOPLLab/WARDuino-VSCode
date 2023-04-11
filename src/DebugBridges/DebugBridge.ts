@@ -13,7 +13,7 @@ export interface DebugBridge extends EventEmitter {
 
   requestMissingState(): Promise<void>;
 
-  refreshViews(): void;
+  emitNewStateEvent(): void;
 
   connect(): Promise<string>;
 
@@ -37,8 +37,6 @@ export interface DebugBridge extends EventEmitter {
   run(): Promise<void>;
 
   pause(): Promise<void>;
-
-  hitBreakpoint(): void;
 
   pullSession(): void;
 

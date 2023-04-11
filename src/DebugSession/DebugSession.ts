@@ -409,7 +409,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.timelineProvider?.showItemAsBeingSaved(item);
             this.timelineProvider?.refreshView();
             await this.debugBridge?.requestMissingState();
-            this.debugBridge?.refreshViews();
+            this.debugBridge?.emitNewStateEvent();
         }
     }
 

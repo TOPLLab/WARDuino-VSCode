@@ -116,10 +116,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         this.emit(EventsMessages.paused);
     }
 
-    public hitBreakpoint() {
-        this.listener.notifyBreakpointHit();
-    }
-
     public async step(): Promise<void> {
         const runtimeState = this.timeline.advanceTimeline();
         if (!!runtimeState) {
@@ -375,31 +371,20 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
                 throw new Error("Timeline should be able to advance")
             }
         }
-        const currentState = this.getCurrentState();
-        console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
-
-        this.emit(EventsMessages.stateUpdated, currentState);
-        if (currentState?.hasException()) {
-            this.emit(EventsMessages.exceptionOccurred, this, runtimeState);
-        }
+        this.emitNewStateEvent();
     }
 
     public isUpdateOperationAllowed(): boolean {
         return this.timeline.isActiveStatePresent() || !!this.timeline.getActiveState()?.hasAllState();
     }
 
-    public refreshViews() {
-        const rs = this.getCurrentState();
-        if (!!rs) {
-            this.refreshRuntimeState(rs);
+    public emitNewStateEvent() {
+        const currentState = this.getCurrentState();
+        console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
+        this.emit(EventsMessages.stateUpdated, currentState);
+        if (currentState?.hasException()) {
+            this.emit(EventsMessages.exceptionOccurred, this, currentState);
         }
-    }
-
-    private refreshRuntimeState(runtimeState: RuntimeState) {
-        if (runtimeState.hasException()) {
-            this.listener.notifyException(runtimeState.getExceptionMsg());
-        }
-        this.viewsRefresher.refreshViews(runtimeState);
     }
 
     getProgramCounter(): number {
@@ -459,7 +444,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         const evts = JSON.parse(line).events;
         if (!!rs && !!evts) {
             rs.setEvents(evts.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
-            this.refreshViews();
+            this.emitNewStateEvent();
         }
     }
 
