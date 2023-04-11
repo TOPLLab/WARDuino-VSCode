@@ -76,10 +76,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     public readonly deviceConfig: DeviceConfig;
     public outOfPlaceActive = false;
 
-
-    private viewsRefresher: RuntimeViewsRefresher;
-
-    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, viewRefresher: RuntimeViewsRefresher, listener: DebugBridgeListenerInterface) {
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap, listener: DebugBridgeListenerInterface) {
         super();
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
@@ -88,7 +85,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         this.listener = listener;
         this.deviceConfig = deviceConfig;
         this.breakpointPolicy = BreakpointPolicy.default;
-        this.viewsRefresher = viewRefresher;
         this.listener.setBridge(this);
     }
 

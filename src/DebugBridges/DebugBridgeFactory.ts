@@ -19,7 +19,7 @@ function getConfig(id: string): string {
 }
 
 export class DebugBridgeFactory {
-    static makeDebugBridge(file: string, deviceConfig: DeviceConfig, sourceMap: SourceMap, viewsRefresher: RuntimeViewsRefresher, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListenerInterface): DebugBridge {
+    static makeDebugBridge(file: string, deviceConfig: DeviceConfig, sourceMap: SourceMap, target: RunTimeTarget, tmpdir: string, listener: DebugBridgeListenerInterface): DebugBridge {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
@@ -30,14 +30,14 @@ export class DebugBridgeFactory {
                 switch (target) {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:
-                        bridge = new EmulatedDebugBridge(file, deviceConfig, sourceMap, viewsRefresher, tmpdir, listener, warduinoSDK);
+                        bridge = new EmulatedDebugBridge(file, deviceConfig, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                     case RunTimeTarget.wood:
-                        bridge = new WOODDebugBridge(file, deviceConfig, sourceMap, viewsRefresher, tmpdir, listener, warduinoSDK);
+                        bridge = new WOODDebugBridge(file, deviceConfig, sourceMap, tmpdir, listener, warduinoSDK);
                         break;
                     // Hardware runtimes
                     case RunTimeTarget.embedded:
-                        bridge = new HardwareDebugBridge(file, deviceConfig, sourceMap, viewsRefresher, tmpdir, listener, portAddress, fqbn, warduinoSDK);
+                        bridge = new HardwareDebugBridge(file, deviceConfig, sourceMap, tmpdir, listener, portAddress, fqbn, warduinoSDK);
                         break;
                 }
 
