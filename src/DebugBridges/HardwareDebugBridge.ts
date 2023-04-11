@@ -1,5 +1,4 @@
 import { AbstractDebugBridge, EventsMessages, Messages } from "./AbstractDebugBridge";
-import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { InterruptTypes } from "./InterruptTypes";
 import { exec, spawn } from "child_process";
 import { SourceMap } from "../State/SourceMap";
@@ -25,14 +24,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         deviceConfig: DeviceConfig,
         sourceMap: SourceMap,
         tmpdir: string,
-        listener: DebugBridgeListenerInterface,
         portAddress: string,
         fqbn: string,
         warduinoSDK: string) {
-        super(deviceConfig, sourceMap, listener);
+        super(deviceConfig, sourceMap);
 
         this.sourceMap = sourceMap;
-        this.listener = listener;
         this.portAddress = portAddress;
         this.fqbn = fqbn;
         this.sdk = warduinoSDK;
