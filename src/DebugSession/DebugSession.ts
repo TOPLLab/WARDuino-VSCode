@@ -26,7 +26,6 @@ import { VariableInfo } from "../State/VariableInfo";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { WOODState } from "../State/WOODState";
 import { WOODDebugBridge } from "../DebugBridges/WOODDebugBridge";
 import { EventsProvider } from "../Views/EventsProvider";
 import { StackProvider } from "../Views/StackProvider";
@@ -184,7 +183,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
 
         const debugmode: string = this.debuggerConfig.device.debugMode;
-        const deviceConfig = this.debuggerConfig.device;
 
         const listener: DebugBridgeListenerInterface = new BridgeListener(this, this.THREAD_ID, this.notifier);
         const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir, listener);
