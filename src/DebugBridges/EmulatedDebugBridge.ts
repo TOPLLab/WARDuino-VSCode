@@ -6,7 +6,6 @@ import { Readable } from 'stream';
 import { ReadlineParser } from 'serialport';
 import { DeviceConfig } from '../DebuggerConfig';
 import * as vscode from 'vscode';
-import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 import { ClientSideSocket } from '../Channels/ClientSideSocket';
 import { RuntimeState } from '../State/RuntimeState';
 import { ChannelInterface } from '../Channels/ChannelInterface';
