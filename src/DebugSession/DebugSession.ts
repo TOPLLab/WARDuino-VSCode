@@ -183,19 +183,21 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
 
         const debugmode: string = this.debuggerConfig.device.debugMode;
-
-        const listener: DebugBridgeListenerInterface = new BridgeListener(this, this.THREAD_ID, this.notifier);
-        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir, listener);
+        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir);
         this.registerGUICallbacks(debugBridge);
 
         try {
-            await debugBridge.connect();
-            listener.connected();
             this.devicesManager.addDevice(debugBridge);
             this.setDebugBridge(debugBridge);
             this.sendResponse(response);
             this.sendEvent(new StoppedEvent('entry', this.THREAD_ID));
-            if (!!this.startingBPs && this.startingBPs.length > 0) {
+
+            await debugBridge.connect();
+            if (this.debuggerConfig.device.onStartConfig.pause) {
+                await this.debugBridge?.refresh();
+            }
+
+            if (debugBridge.getBreakpointPolicy() === BreakpointPolicy.default && !!this.startingBPs && this.startingBPs.length > 0) {
                 const validBps = this.startingBPs.filter(bp => {
                     return bp.source.path === args.program;
                 }).map(bp => bp.linenr);
@@ -205,7 +207,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         catch (reason) {
             console.error(reason);
-            listener.notifyError(Messages.connectionFailure);
         }
     }
 
@@ -419,8 +420,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const name = `${config.name} (Emulator)`;
         const dc = DeviceConfig.configForProxy(name, config);
         const stateToPush = item.getRuntimeState().deepcopy();
-        const listener = new BridgeListener(this, this.THREAD_ID, this.notifier);
-        const newBridge = DebugBridgeFactory.makeDebugBridge(this.program, dc, this.sourceMap as SourceMap, RunTimeTarget.wood, this.tmpdir, listener);
+        const newBridge = DebugBridgeFactory.makeDebugBridge(this.program, dc, this.sourceMap as SourceMap, RunTimeTarget.wood, this.tmpdir);
 
         bridge.proxify();
         bridge.disconnect();
@@ -428,7 +428,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         try {
             await newBridge.connect();
-            listener.notifyConnected();
             this.devicesManager.addDevice(newBridge);
             this.setDebugBridge(newBridge);
             newBridge.pushSession(stateToPush.getSendableState());
@@ -437,7 +436,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         catch (reason) {
             console.error(reason);
-            listener.notifyError(Messages.connectionFailure);
         }
     }
 
