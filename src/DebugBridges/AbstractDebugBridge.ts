@@ -205,6 +205,9 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
                 await this.unsetBreakPoint(bpAddress);
                 await this.run();
             }
+            else {
+                this.emit(EventsMessages.paused);
+            }
         }
     }
 
