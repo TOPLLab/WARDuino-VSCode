@@ -15,6 +15,7 @@ import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
 import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateStateRequest } from "./APIRequest";
+import { EventItem } from "../Views/EventsProvider";
 
 export class Messages {
     public static readonly compiling: string = "Compiling the code";
@@ -194,6 +195,29 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
     }
 
+    private onPushedEvents(line: string) {
+        const rs = this.getCurrentState();
+        const evts = JSON.parse(line).events;
+        if (!!rs && !!evts) {
+            rs.setEvents(evts.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
+            this.refreshViews();
+        }
+    }
+
+    private onNotifyNewEvent(line: string) {
+        return line === "new pushed event";
+    }
+
+    private async refreshEvents() {
+        const req = new StateRequest();
+        req.includeEvents();
+        this.sendData(req.generateInterrupt(), (err: any) => {
+            if (err) {
+                console.error(`Request eventdump failed reason: ${err}`);
+            }
+        })
+    }
+
     protected registerCallbacks() {
         this.client?.addCallback(
             (line: string) => !!line.match(/AT ([0-9]+)!/),
@@ -202,6 +226,27 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             }
         );
 
+        this.client?.addCallback(
+            (line: string) => {
+                return this.onNotifyNewEvent(line);
+            },
+            (line: string) => {
+                this.refreshEvents();
+            }
+        );
+
+        this.client?.addCallback(
+            (line: string) => {
+                try {
+                    return line.startsWith("{\"events") && !!JSON.parse(line);
+                }
+                catch (err) {
+                    return false;
+                }
+            },
+            (line: string) => {
+                this.onPushedEvents(line);
+            });
     }
 
     public setBreakPoints(lines: number[]): Breakpoint[] {
