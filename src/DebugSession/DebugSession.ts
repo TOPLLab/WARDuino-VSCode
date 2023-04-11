@@ -357,12 +357,14 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         return 'failed to upload module';
     }
 
-    public startMultiverseDebugging() {
+    public async startMultiverseDebugging() {
         const index = this.debugBridge?.getDebuggingTimeline().getIndexOfActiveState();
         const item = this.timelineProvider?.getItemFromTimeLineIndex(index ?? - 1);
         if (!!item) {
-            this.saveRuntimeState(item);
-            console.info("(TODO) startMultiveDebugging: for now just pulls state but does not spawn yet a local VM");
+            await this.saveRuntimeState(item);
+            const bridge = this.debugBridge;
+            const state = this.debugBridge?.getCurrentState();
+            this.startDebuggingOnEmulatorHelper(bridge!, state!)
         }
     }
 
@@ -420,10 +422,19 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             return;
         }
         const bridge = item.getDebuggerBridge();
+        const stateToUse = item.getRuntimeState();
+        await this.startDebuggingOnEmulatorHelper(bridge, stateToUse);
+    }
+
+    //
+
+    private async startDebuggingOnEmulatorHelper(bridge: DebugBridge, stateToUse: RuntimeState) {
+
         const config = bridge.getDeviceConfig();
         const name = `${config.name} (Emulator)`;
         const dc = DeviceConfig.configForProxy(name, config);
-        const stateToPush = item.getRuntimeState().deepcopy();
+        const state = stateToUse.deepcopy();
+
         const newBridge = DebugBridgeFactory.makeDebugBridge(this.program, dc, this.sourceMap as SourceMap, RunTimeTarget.wood, this.tmpdir);
         this.registerGUICallbacks(newBridge);
 
@@ -435,16 +446,14 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             await newBridge.connect();
             this.devicesManager.addDevice(newBridge);
             this.setDebugBridge(newBridge);
-            newBridge.pushSession(stateToPush.getSendableState());
+            newBridge.pushSession(state.getSendableState());
             (newBridge as WOODDebugBridge).specifyProxyCalls();
-            newBridge.updateRuntimeState(stateToPush);
+            newBridge.updateRuntimeState(state);
         }
         catch (reason) {
             console.error(reason);
         }
     }
-
-    //
 
     private handleCompileError(handleCompileError: CompileTimeError) {
         let range = new vscode.Range(handleCompileError.lineInfo.line - 1,
