@@ -3,7 +3,7 @@ import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "../State/VariableInfo";
 import { SourceMap } from "../State/SourceMap";
 import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
-import { ExecutionStateType, WOODState } from "../State/WOODState";
+import { ExecutionStateType, WOODDumpResponse, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { FunctionInfo } from "../State/FunctionInfo";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
@@ -197,58 +197,10 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         }
     }
 
-    private onPushedEvents(line: string) {
-        const rs = this.getCurrentState();
-        const evts = JSON.parse(line).events;
-        if (!!rs && !!evts) {
-            rs.setEvents(evts.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
-            this.refreshViews();
-        }
-    }
-
-    private onNotifyNewEvent(line: string) {
-        return line === "new pushed event";
-    }
-
-    private async refreshEvents() {
-        const req = new StateRequest();
-        req.includeEvents();
-        this.sendData(req.generateInterrupt(), (err: any) => {
-            if (err) {
-                console.error(`Request eventdump failed reason: ${err}`);
-            }
-        })
-    }
-
     protected registerCallbacks() {
-        this.client?.addCallback(
-            (line: string) => !!line.match(/AT ([0-9]+)!/),
-            (line: string) => {
-                this.onBreakpointReached(line);
-            }
-        );
-
-        this.client?.addCallback(
-            (line: string) => {
-                return this.onNotifyNewEvent(line);
-            },
-            (line: string) => {
-                this.refreshEvents();
-            }
-        );
-
-        this.client?.addCallback(
-            (line: string) => {
-                try {
-                    return line.startsWith("{\"events") && !!JSON.parse(line);
-                }
-                catch (err) {
-                    return false;
-                }
-            },
-            (line: string) => {
-                this.onPushedEvents(line);
-            });
+        this.registerAtBPCallback();
+        this.registerOnNewPushedEventCallback();
+        this.registerOnExceptionCallback();
     }
 
     public async setBreakPoints(lines: number[]): Promise<Breakpoint[]> {
@@ -485,5 +437,91 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         let command = `${InterruptTypes.interruptUPDATEMod}${sizeHex}${wasmHex} \n`;
         console.log('Plugin: send Update module command');
         this.client?.write(command);
+    }
+
+    private onPushedEvents(line: string) {
+        const rs = this.getCurrentState();
+        const evts = JSON.parse(line).events;
+        if (!!rs && !!evts) {
+            rs.setEvents(evts.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
+            this.refreshViews();
+        }
+    }
+
+    private onNotifyNewEvent(line: string) {
+        return line === "new pushed event";
+    }
+
+    private async refreshEvents() {
+        const req = new StateRequest();
+        req.includeEvents();
+        this.sendData(req.generateInterrupt(), (err: any) => {
+            if (err) {
+                console.error(`Request eventdump failed reason: ${err}`);
+            }
+        })
+    }
+
+    private registerAtBPCallback() {
+        this.client?.addCallback(
+            (line: string) => !!line.match(/AT ([0-9]+)!/),
+            (line: string) => {
+                this.onBreakpointReached(line);
+            }
+        );
+    }
+
+    private registerOnNewPushedEventCallback() {
+        //callback that requests the new events
+        this.client?.addCallback(
+            (line: string) => {
+                return this.onNotifyNewEvent(line);
+            },
+            (line: string) => {
+                this.refreshEvents();
+            }
+        );
+
+        //callback that handles the requested events
+        this.client?.addCallback(
+            (line: string) => {
+                try {
+                    return line.startsWith("{\"events") && !!JSON.parse(line);
+                }
+                catch (err) {
+                    return false;
+                }
+            },
+            (line: string) => {
+                this.onPushedEvents(line);
+            }
+        );
+    }
+
+    private registerOnExceptionCallback() {
+        this.client?.addCallback(
+            (line: string) => {
+                if (!line.startsWith('"{')) {
+                    return false;
+                }
+                try {
+                    const parsed: WOODDumpResponse = JSON.parse(line);
+                    return parsed.pc_error !== undefined && parsed.exception_msg !== undefined;
+                }
+                catch (err) {
+                    return false;
+                }
+            },
+            (line: string) => {
+                this.onExceptionCallback(line);
+            }
+        );
+    }
+
+    private onExceptionCallback(line: string) {
+        const runtimeState: RuntimeState = new RuntimeState(line, this.sourceMap);
+        this.updateRuntimeState(runtimeState);
+        const currentState = this.getCurrentState();
+        console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
     }
 }
