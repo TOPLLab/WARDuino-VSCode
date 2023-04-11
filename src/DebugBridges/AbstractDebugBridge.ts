@@ -37,6 +37,7 @@ export class EventsMessages {
     public static readonly running: string = "running";
     public static readonly paused: string = "paused";
     public static readonly exceptionOccurred: string = "exception occurred";
+    public static readonly enforcingBreakpointPolicy: string = "enforcing breakpoint policy";
 }
 
 function convertToLEB128(a: number): string { // TODO can only handle 32 bit
@@ -190,11 +191,11 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             await this.refresh();
 
             if (this.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
-                this.getListener().notifyInfoMessage(`Enforcing '${BreakpointPolicy.singleStop}' breakpoint policy`);
+                this.emit(EventsMessages.enforcingBreakpointPolicy, BreakpointPolicy.singleStop);
                 await this.unsetAllBreakpoints();
                 await this.run();
             } else if (this.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed) {
-                this.getListener().notifyInfoMessage(`Enforcing '${BreakpointPolicy.removeAndProceed}' breakpoint policy`);
+                this.emit(EventsMessages.enforcingBreakpointPolicy, BreakpointPolicy.removeAndProceed);
                 await this.unsetBreakPoint(bpAddress);
                 await this.run();
             }
