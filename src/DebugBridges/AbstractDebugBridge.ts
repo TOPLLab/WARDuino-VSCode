@@ -31,6 +31,10 @@ export class Messages {
     public static readonly connectionFailure: string = 'Failed to connect device';
 }
 
+export class EventsMessages {
+    public static readonly stateUpdated: string = "state updated";
+}
+
 function convertToLEB128(a: number): string { // TODO can only handle 32 bit
     a |= 0;
     const result = [];
@@ -362,13 +366,10 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
                 throw new Error("Timeline should be able to advance")
             }
         }
+        const currentState = this.getCurrentState();
+        console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
 
-        const refresh = opts?.refreshViews ?? true;
-        if (refresh) {
-            this.refreshRuntimeState(runtimeState);
-            this.listener.notifyStateUpdate();
-        }
-
+        this.emit(EventsMessages.stateUpdated, currentState);
     }
 
     public isUpdateOperationAllowed(): boolean {
@@ -523,7 +524,5 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     private onExceptionCallback(line: string) {
         const runtimeState: RuntimeState = new RuntimeState(line, this.sourceMap);
         this.updateRuntimeState(runtimeState);
-        const currentState = this.getCurrentState();
-        console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
     }
 }
