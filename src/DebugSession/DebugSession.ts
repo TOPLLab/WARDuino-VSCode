@@ -336,25 +336,19 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.debugBridge?.upload();
     }
 
-    public updateModule() {
-        this.uploadHelper().then(r => {
-            console.log(r);
-        }).catch(e => {
-            console.error(`upload went wrong ${e}`);
-        });
-    }
-
-    private async uploadHelper(): Promise<string> {
+    public async updateModule(): Promise<void> {
         let res: void | CompileResult = await this.compiler?.compile().catch((reason) => this.handleCompileError(reason));
         if (!!res) {
             this.sourceMap = res.sourceMap;
-            this.debugBridge?.updateSourceMapper(res.sourceMap);
+
             if (!!res.wasm) {
-                this.debugBridge?.updateModule(res.wasm);
-                return 'sent upload module';
+                this.notifyProgress("updating module...");
+                await this.debugBridge?.updateModule(res.wasm);
+                this.debugBridge?.updateSourceMapper(res.sourceMap);
+                await this.debugBridge?.refresh();
+                this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
             }
         }
-        return 'failed to upload module';
     }
 
     public async startMultiverseDebugging() {
@@ -646,6 +640,11 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private registerGUICallbacks(debugBridge: DebugBridge) {
         debugBridge.on(EventsMessages.stateUpdated, (newState: RuntimeState) => {
             this.onNewState(newState);
+        });
+        debugBridge.on(EventsMessages.moduleUpdated, (db: DebugBridge) => {
+            const name = db.getDeviceConfig().name;
+            let msg = `${name}: Module updated`;
+            this.notifyProgress(msg);
         });
         debugBridge.on(EventsMessages.stepCompleted, () => {
             this.onStepCompleted();
