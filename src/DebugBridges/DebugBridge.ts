@@ -9,7 +9,7 @@ import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { DeviceConfig } from "../DebuggerConfig";
 import { EventEmitter } from "stream";
 
-export interface DebugBridge extends EventEmitter{
+export interface DebugBridge extends EventEmitter {
 
   requestMissingState(): Promise<void>;
 
@@ -56,7 +56,7 @@ export interface DebugBridge extends EventEmitter{
 
   setBreakPoints(lines: number[]): Promise<Breakpoint[]>;
 
-  unsetAllBreakpoints(): void;
+  unsetAllBreakpoints(): Promise<void>;
 
   unsetBreakPoint(breakpoint: Breakpoint | number): void;
 
