@@ -426,27 +426,17 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         this.client?.write(command);
     }
 
-    private onPushedEvents(line: string) {
+    private async refreshEvents() {
+        const stateReq = new StateRequest();
+        stateReq.includeEvents();
+        const req = stateReq.generateRequest();
+        const evtsLine = await this.client!.request(req);
         const rs = this.getCurrentState();
-        const evts = JSON.parse(line).events;
+        const evts = JSON.parse(evtsLine).events;
         if (!!rs && !!evts) {
             rs.setEvents(evts.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
             this.emitNewStateEvent();
         }
-    }
-
-    private onNotifyNewEvent(line: string) {
-        return line === "new pushed event";
-    }
-
-    private async refreshEvents() {
-        const req = new StateRequest();
-        req.includeEvents();
-        this.sendData(req.generateInterrupt(), (err: any) => {
-            if (err) {
-                console.error(`Request eventdump failed reason: ${err}`);
-            }
-        })
     }
 
     private registerAtBPCallback() {
@@ -462,25 +452,10 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         //callback that requests the new events
         this.client?.addCallback(
             (line: string) => {
-                return this.onNotifyNewEvent(line);
+                return line === "new pushed event";
             },
             (line: string) => {
                 this.refreshEvents();
-            }
-        );
-
-        //callback that handles the requested events
-        this.client?.addCallback(
-            (line: string) => {
-                try {
-                    return line.startsWith("{\"events") && !!JSON.parse(line);
-                }
-                catch (err) {
-                    return false;
-                }
-            },
-            (line: string) => {
-                this.onPushedEvents(line);
             }
         );
     }
