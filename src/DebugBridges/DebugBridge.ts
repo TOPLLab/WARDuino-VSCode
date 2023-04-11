@@ -60,8 +60,6 @@ export interface DebugBridge extends EventEmitter {
 
   refresh(): Promise<void>;
 
-  notifyNewEvent(): void;
-
   disconnect(): void;
 
 

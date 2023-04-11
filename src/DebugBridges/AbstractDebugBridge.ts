@@ -255,16 +255,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         await Promise.all(promises);
     }
 
-    public notifyNewEvent(): void {
-        const req = new StateRequest();
-        req.includeEvents();
-        this.sendData(req.generateInterrupt(), (err: any) => {
-            if (err) {
-                console.error(`Request eventdump failed reason: ${err}`);
-            }
-        })
-    }
-
     public popEvent(): void {
         this.sendInterrupt(InterruptTypes.interruptPOPEvent);
     }
