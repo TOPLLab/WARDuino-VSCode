@@ -163,7 +163,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return Array.from(this.breakpoints).find(bp => bp.id === addr);
     }
 
-    private async setBreakPoint(breakpoint: Breakpoint): Promise<void> {
+    private async setBreakPoint(breakpoint: Breakpoint): Promise<Breakpoint> {
         const breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
         const req: Request = {
             dataToSend: `${InterruptTypes.interruptBPAdd}${breakPointAddress}\n`,
@@ -174,6 +174,7 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         await this.client?.request(req);
         console.log(`BP added at line ${breakpoint.line} (Addr ${breakpoint.id})`)
         this.breakpoints.add(breakpoint);
+        return breakpoint;
     }
 
 
@@ -249,25 +250,21 @@ export abstract class AbstractDebugBridge implements DebugBridge {
             });
     }
 
-    public setBreakPoints(lines: number[]): Breakpoint[] {
-        if (this.sourceMap === undefined) {
-            console.log('setBreakPointsRequest: no source map');
-            return [];
-        }
-
+    public async setBreakPoints(lines: number[]): Promise<Breakpoint[]> {
         // Delete absent breakpoints
-        Array.from<Breakpoint>(this.breakpoints.values())
+        await Promise.all(Array.from<Breakpoint>(this.breakpoints.values())
             .filter((breakpoint) => !lines.includes(breakpoint.id))
-            .forEach(breakpoint => this.unsetBreakPoint(breakpoint));
+            .map(breakpoint => this.unsetBreakPoint(breakpoint)));
 
         // Add missing breakpoints
-        lines.forEach((line) => {
-            if (this.isNewBreakpoint(line)) {
-                const breakpoint: Breakpoint = new Breakpoint(this.lineToAddress(line), line);
-                this.setBreakPoint(breakpoint);
-            }
-        });
-
+        await Promise.all(
+            lines
+                .filter((line) => { return this.isNewBreakpoint(line); })
+                .map(line => {
+                    const breakpoint: Breakpoint = new Breakpoint(this.lineToAddress(line), line);
+                    return this.setBreakPoint(breakpoint);
+                })
+        );
         return Array.from(this.breakpoints.values());  // return new breakpoints list
     }
 

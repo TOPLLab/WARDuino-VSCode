@@ -462,10 +462,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.sendResponse(response);
     }
 
-    protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {
+    protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): Promise<void> {
         let responseBps: Breakpoint[] = [];
         if (!!this.debugBridge) {
-            responseBps = this.debugBridge.setBreakPoints(args.lines ?? []);
+            responseBps = await this.debugBridge.setBreakPoints(args.lines ?? []);
         }
         else if (!!args.lines && !!args.source) {
             // case where the bridge did not start yet.
