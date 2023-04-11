@@ -152,8 +152,8 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
 
 
-    public unsetAllBreakpoints() {
-        this.breakpoints.forEach(bp => this.unsetBreakPoint(bp));
+    public async unsetAllBreakpoints(): Promise<void> {
+        await Promise.all(Array.from(this.breakpoints).map(bp => this.unsetBreakPoint(bp)));
     }
 
     public async unsetBreakPoint(breakpoint: Breakpoint | number) {
