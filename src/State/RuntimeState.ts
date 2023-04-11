@@ -53,7 +53,7 @@ export class RuntimeState {
     }
 
     public getExceptionMsg(): string {
-        return `Exception occurred on device: ${this.exception_msg}`;
+        return `${this.exception_msg}`;
     }
 
 
