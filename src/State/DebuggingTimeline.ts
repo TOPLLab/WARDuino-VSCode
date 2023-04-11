@@ -2,11 +2,12 @@ import { RuntimeState } from "./RuntimeState";
 
 export class DebuggingTimeline {
 
-    private runtimes: RuntimeState[] = [];
+    private runtimes: RuntimeState[];
     private activeStateIdx: number;
 
     constructor() {
         this.activeStateIdx = -1;
+        this.runtimes = [];
     }
 
     public getActiveState(): RuntimeState | undefined {
@@ -92,5 +93,10 @@ export class DebuggingTimeline {
             return;
         }
         this.runtimes = this.runtimes.slice(0, this.activeStateIdx + 1);
+    }
+
+    public clear(): void {
+        this.activeStateIdx = -1;
+        this.runtimes = [];
     }
 }
