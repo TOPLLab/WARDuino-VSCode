@@ -1,4 +1,4 @@
-import { AbstractDebugBridge, Messages } from "./AbstractDebugBridge";
+import { AbstractDebugBridge, EventsMessages, Messages } from "./AbstractDebugBridge";
 import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { InterruptTypes } from "./InterruptTypes";
 import { exec, spawn } from "child_process";
@@ -7,7 +7,6 @@ import { DeviceConfig } from "../DebuggerConfig";
 import * as path from 'path';
 import { LoggingSerialMonitor } from "../Channels/SerialConnection";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
-import { RuntimeViewsRefresher } from "../Views/ViewsRefresh";
 import { ChannelInterface } from "../Channels/ChannelInterface";
 import { SerialChannel } from "../Channels/SerialChannel";
 import { StateRequest } from "./APIRequest";
@@ -46,11 +45,11 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     async connect(): Promise<string> {
-        this.listener.notifyProgress(Messages.compiling);
+        this.emit(EventsMessages.progress, this, Messages.compiling);
         if (this.deviceConfig.onStartConfig.flash) {
             await this.compileAndUpload();
         }
-        this.listener.notifyProgress(Messages.connecting);
+        this.emit(EventsMessages.progress, this, Messages.connecting);
         if (this.deviceConfig.usesWiFi()) {
             await this.openSocketPort();
             this.registerCallbacks();
@@ -83,11 +82,11 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             if (!await this.client.openConnection(maxConnectionAttempts)) {
                 return `Could not connect to socket ${this.deviceConfig.ip}:${this.deviceConfig.port}`;
             }
-            this.listener.notifyProgress(Messages.connected);
+            this.emit(EventsMessages.connected, this);
             return `127.0.0.1:${this.deviceConfig.port}`;
         }
         catch (err) {
-            this.listener.notifyError("Lost connection to the board");
+            this.emit(EventsMessages.connectionError, this, err);
             console.error(err);
             throw err;
         }
@@ -99,28 +98,29 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         if (!await this.client.openConnection()) {
             return `Could not connect to serial port: ${this.portAddress}`
         }
-        this.listener.notifyProgress(Messages.connected);
+        this.emit(EventsMessages.connected, this);
         return this.portAddress;
     }
 
     public disconnect(): void {
         this.client?.disconnect();
         console.error("CLOSED!");
-        this.listener.notifyProgress(Messages.disconnected);
+        this.emit(EventsMessages.disconnected, this);
     }
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
         let lastStdOut = "";
-        this.listener.notifyProgress(Messages.reset);
+        this.emit(EventsMessages.progress, this, Messages.reset);
 
         const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
             console.error(err);
             lastStdOut = stdout + stderr;
-            this.listener.notifyProgress(Messages.initialisationFailure);
+            this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
+            //this.listener.notifyProgress(Messages.initialisationFailure);
         }
         );
 
-        this.listener.notifyProgress(Messages.uploading);
+        this.emit(EventsMessages.progress, this, Messages.uploading);
 
         upload.on("close", (code) => {
             if (code === 0) {
@@ -142,17 +142,17 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
         compile.stderr.on("data", (data: string) => {
             console.error(`HardwareDebugBridge stderr: ${data}`);
-            this.listener.notifyProgress(Messages.initialisationFailure);
+            this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
             reject(data);
         });
 
         compile.on("close", (code) => {
             console.log(`Arduino compilation exited with code ${code}`);
             if (code === 0) {
-                this.listener.notifyProgress(Messages.compiled);
+                this.emit(EventsMessages.progress, this, Messages.compiled);
                 this.uploadArduino(path, resolver, reject);
             } else {
-                this.listener.notifyProgress(Messages.initialisationFailure);
+                this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
                 reject(false);
             }
         });
@@ -175,7 +175,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     pullSession(): void {
         this.outOfPlaceActive = true;
-        this.listener.notifyProgress(Messages.transfering);
+        this.emit(EventsMessages.progress, this, Messages.transfering);
         const req = new StateRequest();
         req.includeAll();
         const data = req.generateInterrupt();
