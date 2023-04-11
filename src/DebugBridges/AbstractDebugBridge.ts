@@ -269,16 +269,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         // }
     }
 
-    //TODO remove
-    protected sendData(d: string, callback?: (error: Error | null | undefined) => void) {
-        if (!!this.client) {
-            return this.client?.write(`${d}\n`, callback);
-        }
-        // else {
-        //     return this.socketConnection?.write(`${d}\n`, callback);
-        // }
-    }
-
 
     protected getPrimitives(): number[] {
         return this.sourceMap?.importInfos.map((primitive: FunctionInfo) => (primitive.index)) ?? [];
