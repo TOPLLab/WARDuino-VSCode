@@ -189,8 +189,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         try {
             this.devicesManager.addDevice(debugBridge);
             this.setDebugBridge(debugBridge);
-            this.sendResponse(response);
-            this.sendEvent(new StoppedEvent('entry', this.THREAD_ID));
 
             await debugBridge.connect();
             if (this.debuggerConfig.device.onStartConfig.pause) {
@@ -204,6 +202,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 await debugBridge.setBreakPoints(validBps);
                 this.startingBPs = [];
             }
+            this.sendResponse(response);
+            this.sendEvent(new StoppedEvent('entry', this.THREAD_ID));
         }
         catch (reason) {
             console.error(reason);
@@ -421,6 +421,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const dc = DeviceConfig.configForProxy(name, config);
         const stateToPush = item.getRuntimeState().deepcopy();
         const newBridge = DebugBridgeFactory.makeDebugBridge(this.program, dc, this.sourceMap as SourceMap, RunTimeTarget.wood, this.tmpdir);
+        this.registerGUICallbacks(newBridge);
 
         bridge.proxify();
         bridge.disconnect();
