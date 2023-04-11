@@ -391,8 +391,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         const state = this.debugBridge?.getCurrentState();
         if (!!state) {
-            this.viewsRefresher.refreshViews(state);
-            this.notifyStepCompleted();
+            const doNotSave = { includeInTimeline: false };
+            this.debugBridge?.updateRuntimeState(state, doNotSave);
         }
     }
 
