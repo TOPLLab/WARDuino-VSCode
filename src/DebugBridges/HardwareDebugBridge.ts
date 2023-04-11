@@ -185,8 +185,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             const response = await this.client!.request(req);
             const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
             this.updateRuntimeState(runtimeState);
-            const currentState = this.getCurrentState();
-            console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
         }
         catch (err) {
             console.error(`Hardware: refresh Error ${err}`);
