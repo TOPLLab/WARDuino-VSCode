@@ -319,7 +319,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
 
         if (!!!isUpdateAllowed) {
-            this.debugBridge?.getListener().notifyDisallowedOperation("Update value disallowed in viewing mode");
+            this.onDisallowedAction(this.debugBridge!, "Update value disallowed in viewing mode")
         }
 
         response.body = {
@@ -400,7 +400,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         // only save the present state
         if (savingPresentState && !!timeline?.isActiveStatePresent()) {
-            this.debugBridge?.getListener().notifyInfoMessage(`Retrieving and saving state from ${this.debugBridge!.getDeviceConfig().name}...`);
+            this.notifyInfoMessage(this.debugBridge!, `Retrieving and saving state from ${this.debugBridge!.getDeviceConfig().name}...`);
             this.timelineProvider?.showItemAsBeingSaved(item);
             this.timelineProvider?.refreshView();
             await this.debugBridge?.requestMissingState();
@@ -718,5 +718,17 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private notifyProgress(msg: string) {
         this.notifier.text = msg;
+    }
+
+    private onDisallowedAction(db: DebugBridge, msg: string) {
+        const name = db.getDeviceConfig().name;
+        const m = `${name}: ${msg}`;
+        vscode.window.showErrorMessage(m);
+    }
+
+    private notifyInfoMessage(db: DebugBridge, msg: string) {
+        const name = db.getDeviceConfig().name;
+        const m = `${name}: Retrieving and saving state...`;
+        vscode.window.showInformationMessage(m);
     }
 }

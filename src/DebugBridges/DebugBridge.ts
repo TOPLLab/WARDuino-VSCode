@@ -83,6 +83,4 @@ export interface DebugBridge extends EventEmitter {
 
   getDeviceConfig(): DeviceConfig;
 
-  getListener(): DebugBridgeListenerInterface;
-
 }

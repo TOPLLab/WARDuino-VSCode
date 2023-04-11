@@ -346,10 +346,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         return this.deviceConfig;
     }
 
-    getListener(): DebugBridgeListenerInterface {
-        return this.listener;
-    }
-
     getDebuggingTimeline(): DebuggingTimeline {
         return this.timeline;
     }
