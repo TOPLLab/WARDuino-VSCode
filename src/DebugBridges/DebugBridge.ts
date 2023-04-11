@@ -63,7 +63,7 @@ export interface DebugBridge extends EventEmitter {
 
   upload(): void;
 
-  updateModule(wasm: Buffer): void;
+  updateModule(wasm: Buffer): Promise<void>;
 
   updateSourceMapper(newSourceMap: SourceMap): void;
 
