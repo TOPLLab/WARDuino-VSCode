@@ -662,20 +662,22 @@ export class WOODState {
     }
 
     static serializeStackValueUpdate(value: StackValue): string {
+        const includeType = false;
         const stackIDx = HexaEncoder.serializeUInt32BE(value.idx);
-        const valueHex = this.serializeValue(value);
+        const valueHex = this.serializeValue(value, includeType);
         return `${InterruptTypes.interruptUPDATEStackValue}${stackIDx}${valueHex}`;
     }
 
     static serializeGlobalValueUpdate(value: StackValue): string {
+        const includeType = false;
         const stackIDx = HexaEncoder.serializeUInt32BE(value.idx);
-        const valueHex = this.serializeValue(value);
+        const valueHex = this.serializeValue(value, includeType);
         return `${InterruptTypes.interruptUPDATEGlobalValue}${stackIDx}${valueHex}`;
     }
 
     static fromLine(line: string) {
         const trimmed = line.trimEnd();
         const wr: WOODDumpResponse = JSON.parse(trimmed);
-        return new WOODState(trimmed, wr)
+        return new WOODState(trimmed, wr);
     }
 }
