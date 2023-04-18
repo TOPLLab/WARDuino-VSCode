@@ -662,15 +662,15 @@ export class WOODState {
     }
 
     static serializeStackValueUpdate(value: StackValue): string {
-        const includeType = false;
-        const stackIDx = HexaEncoder.serializeUInt32BE(value.idx);
+        const includeType = true;
+        const stackIDx = HexaEncoder.convertToLEB128(value.idx);
         const valueHex = this.serializeValue(value, includeType);
         return `${InterruptTypes.interruptUPDATEStackValue}${stackIDx}${valueHex}`;
     }
 
     static serializeGlobalValueUpdate(value: StackValue): string {
         const includeType = false;
-        const stackIDx = HexaEncoder.serializeUInt32BE(value.idx);
+        const stackIDx = HexaEncoder.convertToLEB128(value.idx);
         const valueHex = this.serializeValue(value, includeType);
         return `${InterruptTypes.interruptUPDATEGlobalValue}${stackIDx}${valueHex}`;
     }
