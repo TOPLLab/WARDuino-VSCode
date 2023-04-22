@@ -320,7 +320,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
 
         if (!!!isUpdateAllowed) {
-            this.onDisallowedAction(this.debugBridge!, "Update value disallowed in viewing mode")
+            this.onDisallowedAction(this.debugBridge!, "Update value disallowed in viewing mode");
         }
 
         response.body = {
@@ -357,7 +357,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             await this.saveRuntimeState(item);
             const bridge = this.debugBridge;
             const state = this.debugBridge?.getCurrentState();
-            this.startDebuggingOnEmulatorHelper(bridge!, state!)
+            this.startDebuggingOnEmulatorHelper(bridge!, state!);
         }
     }
 
@@ -432,7 +432,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.registerGUICallbacks(newBridge);
 
         bridge.proxify();
-        bridge.disconnect();
+        if (!config.usesWiFi()) {
+            bridge.disconnect();
+        }
         console.log("Plugin: transfer state received.");
 
         try {
@@ -722,7 +724,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private onEnforcingBPPolicy(policy: BreakpointPolicy) {
-        const msg = `Enforcing '${policy}' breakpoint policy`
+        const msg = `Enforcing '${policy}' breakpoint policy`;
         vscode.window.showInformationMessage(msg);
     }
 
