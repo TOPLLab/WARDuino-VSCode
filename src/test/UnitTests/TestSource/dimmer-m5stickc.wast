@@ -20,6 +20,9 @@
   (global $up i32 (i32.const 39))
   (global $down i32 (i32.const 37))
 
+  (global $inputPullUp i32 (i32.const 5))
+  ;; pullup
+
   ;; Mutable globals
   (global $delta (mut i32) (i32.const -127))
 
@@ -42,11 +45,21 @@
     global.get $led
     i32.const 0
     call $env.chip_ledc_attach_pin
+
     ;; setup buttons
+    global.get $up
+    global.get $inputPullUp
+    call $env.chip_pin_mode
+
     global.get $up
     i32.const 2
     i32.const 2
     call $env.subscribe_interrupt
+
+    global.get $down
+    global.get $inputPullUp
+    call $env.chip_pin_mode
+
     global.get $down
     i32.const 1
     i32.const 2
