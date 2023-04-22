@@ -93,7 +93,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         const baudrate = 115200;
         this.client = new SerialChannel(this.portAddress, baudrate);
         if (!await this.client.openConnection()) {
-            return `Could not connect to serial port: ${this.portAddress}`
+            return `Could not connect to serial port: ${this.portAddress}`;
         }
         this.emit(EventsMessages.connected, this);
         return this.portAddress;
@@ -180,6 +180,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         stateRequest.includeCallstack();
         stateRequest.includeBreakpoints();
         stateRequest.includeGlobals();
+        stateRequest.includeEvents();
         const req = stateRequest.generateRequest();
         try {
             const response = await this.client!.request(req);
