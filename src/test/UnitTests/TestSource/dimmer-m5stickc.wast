@@ -28,12 +28,10 @@
 
   (func $decrease (type $t3)
     i32.const -127
-    ;; i32.const 127
     global.set $delta)
 
   (func $increase (type $t3)
     i32.const 127
-    ;; i32.const 0
     global.set $delta)
 
   (func $setup (type $t4)
@@ -92,7 +90,11 @@
       local.get $brightness
       i32.const 254
       call $env.chip_analog_write
-
+      
+      ;; resetting delta
+      i32.const 0
+      global.set $delta
+      
       i32.const 100
       call $env.chip_delay
       br $L0
