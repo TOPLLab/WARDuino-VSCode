@@ -204,7 +204,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 this.startingBPs = [];
             }
             this.sendResponse(response);
-            this.sendEvent(new StoppedEvent('entry', this.THREAD_ID));
+            if (debugBridge.getDeviceConfig().onStartConfig.pause) {
+                this.onPause();
+            }
+            else {
+                this.onRunning();
+            }
         }
         catch (reason) {
             console.error(reason);
