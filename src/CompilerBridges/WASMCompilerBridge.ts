@@ -59,7 +59,6 @@ function extractSectionAddressCorrections(lines: string[]): Map<number, number> 
         });
 
         if (foundSection) {
-            console.log(line);
             inSection = true;
             sectionStartIdx = i + 1;
         }
@@ -91,7 +90,7 @@ function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
     for (let i = 0; i < lines.length; i++) {
         if (lines[i].match(/@/)) {
             let addr = parseUtils.extractAddressInformation(lines[i + 1]);
-            if(corrections.has(i)){
+            if (corrections.has(i)) {
                 const offset = corrections.get(i)!;
                 const newAddr = Number(`0x${addr}`) + offset;
                 addr = newAddr.toString(16);
@@ -126,7 +125,7 @@ export class WASMCompilerBridge implements CompileBridge {
         await this.compileHeader();
         const path2Wasm = `${this.tmpdir}/upload.wasm`;
         const w: Buffer = readFileSync(path2Wasm);
-        return {sourceMap:sourceMap, wasm: w};
+        return { sourceMap: sourceMap, wasm: w };
     }
 
     async compileHeader() {
@@ -247,5 +246,5 @@ export class WASMCompilerBridge implements CompileBridge {
     private compileCHeaderFileCommand(): string {
         return `cd ${this.tmpdir} ; xxd -i upload.wasm > upload.c`;
     }
-    
+
 }
