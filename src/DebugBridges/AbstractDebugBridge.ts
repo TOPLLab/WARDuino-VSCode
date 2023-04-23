@@ -1,7 +1,7 @@
 import { DebugBridge } from "./DebugBridge";
 import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "../State/VariableInfo";
-import { SourceMap } from "../State/SourceMap";
+import { SourceMap, getLineNumberForAddress } from "../State/SourceMap";
 import { ExecutionStateType, WOODDumpResponse, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { FunctionInfo } from "../State/FunctionInfo";
@@ -296,7 +296,8 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         const missingState = new RuntimeState(response, this.sourceMap);
         const state = this.getCurrentState();
         state!.copyMissingState(missingState);
-        console.log(`PC=${state!.getProgramCounter()} (Hexa ${state!.getProgramCounter().toString(16)})`);
+        const pc = state!.getProgramCounter();
+        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${getLineNumberForAddress(this.sourceMap, pc)})`);
         return;
     }
 
@@ -337,7 +338,8 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     public emitNewStateEvent() {
         const currentState = this.getCurrentState();
-        console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
+        const pc = currentState!.getProgramCounter();
+        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${getLineNumberForAddress(this.sourceMap, pc)})`);
         this.emit(EventsMessages.stateUpdated, currentState);
         if (currentState?.hasException()) {
             this.emit(EventsMessages.exceptionOccurred, this, currentState);
