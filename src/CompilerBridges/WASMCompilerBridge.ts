@@ -1,14 +1,15 @@
-import {exec, ExecException} from "child_process";
+import { exec, ExecException } from "child_process";
 import * as parseUtils from "../Parsers/ParseUtils";
-import {CompileTimeError} from "./CompileTimeError";
-import {LineInfo} from "../State/LineInfo";
-import {LineInfoPairs} from "../State/LineInfoPairs";
-import {CompileBridge} from "./CompileBridge";
-import {SourceMap} from "../State/SourceMap";
-import {FunctionInfo} from "../State/FunctionInfo";
-import {VariableInfo} from "../State/VariableInfo";
+import { CompileTimeError } from "./CompileTimeError";
+import { LineInfo } from "../State/LineInfo";
+import { LineInfoPairs } from "../State/LineInfoPairs";
+import { CompileBridge } from "./CompileBridge";
+import { SourceMap } from "../State/SourceMap";
+import { FunctionInfo } from "../State/FunctionInfo";
+import { VariableInfo } from "../State/VariableInfo";
 import { TypeInfo } from "../State/TypeInfo";
 import { readFileSync } from "fs";
+import assert = require("assert");
 
 function checkCompileTimeError(errorMessage: string) {
     let regexpr = /:(?<line>(\d+)):(?<column>(\d+)): error: (?<message>(.*))/;
@@ -41,13 +42,63 @@ function extractLineInfo(lineString: string): LineInfo {
     return parseUtils.jsonParse(lineString);
 }
 
+function extractSectionAddressCorrections(lines: string[]): Map<number, number> {
+    const corrections: Map<number, number> = new Map();
+    const sections: string[] =
+        ["Type", "Import", "Function", "Table", "Memory", "Global", "Export", "Elem", "Code"]
+            .map(kind => {
+                return `; section "${kind}" (`;
+            })
+    let candidates: number[] = [];
+    let inSection = false;
+    let sectionStartIdx = -1;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const foundSection = sections.find(s => {
+            return line.startsWith(s);
+        });
+
+        if (foundSection) {
+            console.log(line);
+            inSection = true;
+            sectionStartIdx = i + 1;
+        }
+
+        if (inSection && i >= sectionStartIdx) {
+            candidates.push(i);
+            if (line.includes("; FIXUP section size")) {
+                const hexaAddr = line.match(/: ([a-zA-Z0-9]+)/)?.[1];
+                if (hexaAddr) {
+                    assert(hexaAddr.length % 2 === 0, "hexa address is not even");
+                    const amountBytes = hexaAddr.length / 2;
+                    candidates.forEach(lineNr => {
+                        corrections.set(lineNr, amountBytes - 1);
+                    });
+                }
+                inSection = false;
+                sectionStartIdx = -1;
+                candidates = [];
+            }
+        }
+    }
+    return corrections;
+}
+
 function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
+
+    const corrections = extractSectionAddressCorrections(lines);
     let result = [];
     for (let i = 0; i < lines.length; i++) {
         if (lines[i].match(/@/)) {
+            let addr = parseUtils.extractAddressInformation(lines[i + 1]);
+            if(corrections.has(i)){
+                const offset = corrections.get(i)!;
+                const newAddr = Number(`0x${addr}`) + offset;
+                addr = newAddr.toString(16);
+            }
             result.push({
                 lineInfo: extractLineInfo(lines[i]),
-                lineAddress: parseUtils.extractAddressInformation(lines[i + 1])
+                lineAddress: addr
             });
         }
     }
@@ -146,7 +197,7 @@ export class WASMCompilerBridge implements CompileBridge {
                 let objDump = exec(objDumpCommand, handleObjDumpStreams);
 
                 if (result) {
-                    sourceMap = {lineInfoPairs: result, functionInfos: [], globalInfos: [], importInfos: [], typeInfos: new Map<number, TypeInfo>()};
+                    sourceMap = { lineInfoPairs: result, functionInfos: [], globalInfos: [], importInfos: [], typeInfos: new Map<number, TypeInfo>() };
                     objDump.on('close', (code) => {
                         if (functionInfos && globalInfos) {
                             sourceMap.functionInfos = functionInfos;
@@ -175,7 +226,7 @@ export class WASMCompilerBridge implements CompileBridge {
             let cp = exec(command, handleCompilerStreams);
 
             cp.on('close', (code) => {
-                if(code !== 0 ){
+                if (code !== 0) {
                     console.error(`An error occured when compiling WAT to WASM code ${code}`);
                 }
                 if (sourceMap) {
@@ -196,5 +247,5 @@ export class WASMCompilerBridge implements CompileBridge {
     private compileCHeaderFileCommand(): string {
         return `cd ${this.tmpdir} ; xxd -i upload.wasm > upload.c`;
     }
-
+    
 }
