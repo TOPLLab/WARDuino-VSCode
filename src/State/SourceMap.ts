@@ -1,6 +1,6 @@
-import {LineInfoPairs} from "./LineInfoPairs";
-import {FunctionInfo} from "./FunctionInfo";
-import {VariableInfo} from "./VariableInfo";
+import { LineInfoPairs } from "./LineInfoPairs";
+import { FunctionInfo } from "./FunctionInfo";
+import { VariableInfo } from "./VariableInfo";
 import { TypeInfo } from "./TypeInfo";
 
 export interface SourceMap {
@@ -20,4 +20,15 @@ export function EmptySourceMap(): SourceMap {
         importInfos: [],
         typeInfos: new Map<number, TypeInfo>()
     };
+}
+
+export function getLineNumberForAddress(sourceMap: SourceMap, address: number): number {
+    let line = 0;
+    sourceMap.lineInfoPairs.forEach((info) => {
+        const candidate = parseInt("0x" + info.lineAddress);
+        if (Math.abs(address - candidate) === 0) {
+            line = info.lineInfo.line - 1;
+        }
+    });
+    return line;
 }

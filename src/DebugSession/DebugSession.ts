@@ -21,7 +21,7 @@ import { DebugBridgeFactory } from '../DebugBridges/DebugBridgeFactory';
 import { RunTimeTarget } from "../DebugBridges/RunTimeTarget";
 import { CompileBridgeFactory } from "../CompilerBridges/CompileBridgeFactory";
 import { CompileBridge } from "../CompilerBridges/CompileBridge";
-import { SourceMap } from "../State/SourceMap";
+import { SourceMap, getLineNumberForAddress } from "../State/SourceMap";
 import { VariableInfo } from "../State/VariableInfo";
 import * as fs from "fs";
 import * as os from "os";
@@ -508,19 +508,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private setLineNumberFromPC(pc: number) {
-        this.testCurrentLine = this.getLineNumberForAddress(pc);
+        this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc);
     }
 
-    private getLineNumberForAddress(address: number): number {
-        let line = 0;
-        this.sourceMap?.lineInfoPairs.forEach((info) => {
-            const candidate = parseInt('0x' + info.lineAddress);
-            if (Math.abs(address - candidate) === 0) {
-                line = info.lineInfo.line - 1;
-            }
-        });
-        return line;
-    }
 
     protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
         response.body = {
@@ -587,8 +577,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let frames = Array.from(callstack.reverse(), (frame, index) => {
             // @ts-ignore
             const functionInfo = this.sourceMap.functionInfos[frame.index];
-            let start = (index === 0) ? this.testCurrentLine : this.getLineNumberForAddress(callstack[index - 1].returnAddress);
-            let name = (functionInfo === undefined) ? '<anonymous>' : functionInfo.name;
+            let start = (index === 0) ? this.testCurrentLine : getLineNumberForAddress(this.sourceMap!, callstack[index - 1].returnAddress);
+            let name = (functionInfo === undefined) ? "<anonymous>" : functionInfo.name;
 
             return new StackFrame(index, name,
                 this.createSource(this.program), // TODO
