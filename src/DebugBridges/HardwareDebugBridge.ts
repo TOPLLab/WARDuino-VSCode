@@ -90,6 +90,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         }
     }
 
+    public disconnectMonitor() {
+        this.logginSerialConnection?.disconnect();
+    }
+
     protected async openSerialPort() {
         const baudrate = 115200;
         this.client = new SerialChannel(this.portAddress, baudrate);
@@ -102,6 +106,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public disconnect(): void {
         this.client?.disconnect();
+        this.logginSerialConnection?.disconnect();
         console.error("CLOSED!");
         this.emit(EventsMessages.disconnected, this);
     }

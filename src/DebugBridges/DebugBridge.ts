@@ -20,6 +20,8 @@ export interface DebugBridge extends EventEmitter {
 
   connect(): Promise<string>;
 
+  disconnectMonitor(): void;
+
   getDebuggingTimeline(): DebuggingTimeline;
 
   getCurrentState(): RuntimeState | undefined;

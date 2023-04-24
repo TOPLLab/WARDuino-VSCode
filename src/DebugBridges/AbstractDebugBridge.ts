@@ -81,6 +81,8 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     abstract disconnect(): void;
 
+    abstract disconnectMonitor(): void;
+
     abstract upload(): void;
 
     // Debug API
