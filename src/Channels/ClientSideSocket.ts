@@ -20,6 +20,11 @@ export class ClientSideSocket extends AbstractChannel implements ChannelInterfac
         return !!this.connection && this.connection.write(data);
     }
 
+    public disconnect() {
+        this.connection.destroy();
+        this.connection = undefined;
+    }
+
     public openConnection(maxAttempts: number = 1): Promise<boolean> {
         return new Promise(async (resolve) => {
             const addr = { port: this.port, host: this.host };
