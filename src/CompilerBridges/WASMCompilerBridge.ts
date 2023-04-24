@@ -100,7 +100,9 @@ function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
             if (corrections.has(i)) {
                 const offset = corrections.get(i)!;
                 const newAddr = Number(`0x${addr}`) + offset;
-                addr = newAddr.toString(16);
+                const tmpAddr = newAddr.toString(16);
+                // add padding
+                addr = `${"0".repeat(addr.length - tmpAddr.length)}${tmpAddr}`;
             }
             const li = {
                 line: lastLineInfo!.line,
