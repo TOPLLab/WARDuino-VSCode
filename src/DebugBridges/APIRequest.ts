@@ -61,7 +61,7 @@ export class StateRequest {
 
     public includeAll() {
         let idx = 1;
-        while (idx < numberExecutionStateTypes) {
+        while (idx <= numberExecutionStateTypes) {
             let s = idx.toString(16);
             // pad with zero
             if (s.length <= 1) {
