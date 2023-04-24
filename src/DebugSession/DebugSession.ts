@@ -357,6 +357,36 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
     }
 
+    public async commitChanges(): Promise<void> {
+        const proxyBridge = this.devicesManager.getProxyBridge(this.debugBridge!);
+        const res = await this.compiler?.compile();
+
+        if (!(res && res.wasm)) {
+            return;
+        }
+
+        if (proxyBridge?.getDeviceConfig().usesWiFi()) {
+            proxyBridge?.disconnectMonitor();
+        } else {
+            this.debugBridge?.disconnect();
+            await proxyBridge?.connect();
+        }
+
+        await proxyBridge!.updateModule(res.wasm);
+        proxyBridge!.updateSourceMapper(res.sourceMap);
+        this.sourceMap = res.sourceMap;
+
+        this.setDebugBridge(proxyBridge!);
+
+        if (proxyBridge!.getBreakpointPolicy() === BreakpointPolicy.default) {
+            await proxyBridge?.refresh();
+            this.onPause();
+        }
+        else {
+            this.onRunning();
+        }
+    }
+
     public async startMultiverseDebugging() {
         const index = this.debugBridge?.getDebuggingTimeline().getIndexOfActiveState();
         const item = this.timelineProvider?.getItemFromTimeLineIndex(index ?? - 1);
@@ -451,7 +481,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         try {
             await newBridge.connect();
-            this.devicesManager.addDevice(newBridge);
+            this.devicesManager.addDevice(newBridge, bridge);
             this.setDebugBridge(newBridge);
             await newBridge.pushSession(state.getSendableState());
             await (newBridge as WOODDebugBridge).specifyProxyCalls();
