@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import { ClientSideSocket } from '../Channels/ClientSideSocket';
 import { RuntimeState } from '../State/RuntimeState';
 import { ChannelInterface } from '../Channels/ChannelInterface';
-import { StateRequest } from './APIRequest';
+import { ProxyMode, StateRequest } from './APIRequest';
 
 // export const EMULATOR_PORT: number = 8300;
 
@@ -29,7 +29,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.client = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
     }
 
-    public proxify(): void {
+    public proxify(mode: ProxyMode): Promise<void> {
         throw new Error("EmulatedDebugBridge.proxify: Method not supported.");
     }
 

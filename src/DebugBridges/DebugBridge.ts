@@ -8,6 +8,7 @@ import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { DeviceConfig } from "../DebuggerConfig";
 import { EventEmitter } from "stream";
+import { ProxyMode } from "./APIRequest";
 
 export interface DebugBridge extends EventEmitter {
 
@@ -30,7 +31,7 @@ export interface DebugBridge extends EventEmitter {
   getBreakpointPossibilities(): Breakpoint[];
 
 
-  proxify(): void;
+  proxify(mode: ProxyMode): Promise<void>;
 
   step(): Promise<void>;
 
