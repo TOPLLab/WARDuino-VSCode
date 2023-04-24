@@ -87,19 +87,31 @@ function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
 
     const corrections = extractSectionAddressCorrections(lines);
     let result = [];
+    let lastLineInfo = undefined;
     for (let i = 0; i < lines.length; i++) {
-        if (lines[i].match(/@/)) {
-            let addr = parseUtils.extractAddressInformation(lines[i + 1]);
+        const line = lines[i];
+        const newLine = line.match(/@/);
+        if (newLine) {
+            lastLineInfo = extractLineInfo(line);
+            continue;
+        }
+        try {
+            let addr = parseUtils.extractAddressInformation(line);
             if (corrections.has(i)) {
                 const offset = corrections.get(i)!;
                 const newAddr = Number(`0x${addr}`) + offset;
                 addr = newAddr.toString(16);
             }
-            result.push({
-                lineInfo: extractLineInfo(lines[i]),
-                lineAddress: addr
-            });
+            const li = {
+                line: lastLineInfo!.line,
+                column: lastLineInfo!.column,
+                message: lastLineInfo!.message,
+            }
+            result.push({ lineInfo: li, lineAddress: addr });
         }
+        catch (e) {
+        }
+
     }
     return result;
 }
