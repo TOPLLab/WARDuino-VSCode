@@ -4,9 +4,18 @@ import { InterruptTypes } from "./InterruptTypes";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { ChildProcess, spawn } from "child_process";
 import * as vscode from 'vscode';
+import { Request } from "./APIRequest";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
 
+    private monitorProxiesRequest(primitive: number[]): Request {
+        return {
+            dataToSend: this.monitorProxiesCommand(primitive),
+            expectedResponse: (line: string) => {
+                return line === "done!";
+            }
+        }
+    }
 
     private monitorProxiesCommand(primitives: number[]): string {
         function encode(i: number, byteLength: number, byteorder = 'big'): string {
@@ -19,15 +28,15 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         for (const primitive of primitives) {
             command += encode(primitive, 4);
         }
-        command += ' \n';
+        command += '\n';
         return command.toUpperCase();
     }
 
     // Send new proxy call list to the emulator
     public async specifyProxyCalls() {
         const primitives = this.getSelectedProxiesByIndex();
-        const message: string = this.monitorProxiesCommand(primitives);
-        this.client?.write(message);
+        const req = this.monitorProxiesRequest(primitives);
+        await this.client!.request(req);
     }
 
     async updateSelectedProxies(proxy: ProxyCallItem) {
