@@ -8,8 +8,9 @@ import { LoggingSerialMonitor } from "../Channels/SerialConnection";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
 import { ChannelInterface } from "../Channels/ChannelInterface";
 import { SerialChannel } from "../Channels/SerialChannel";
-import { StateRequest } from "./APIRequest";
+import { Request, StateRequest } from "./APIRequest";
 import { RuntimeState } from "../State/RuntimeState";
+import { BreakpointPolicy } from "../State/Breakpoint";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     protected client: ChannelInterface | undefined;
@@ -174,21 +175,36 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     async refresh(): Promise<void> {
-        const stateRequest = new StateRequest();
-        stateRequest.includePC();
-        stateRequest.includeStack();
-        stateRequest.includeCallstack();
-        stateRequest.includeBreakpoints();
-        stateRequest.includeGlobals();
-        stateRequest.includeEvents();
-        const req = stateRequest.generateRequest();
+        const stateRequest = this.createStateRequest();
         try {
-            const response = await this.client!.request(req);
+            const response = await this.client!.request(stateRequest);
             const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
             this.updateRuntimeState(runtimeState);
         }
         catch (err) {
             console.error(`Hardware: refresh Error ${err}`);
         }
+    }
+
+    private createStateRequest(): Request {
+        const stateRequest = new StateRequest();
+        if (this.breakpointPolicy !== BreakpointPolicy.default) {
+            // non default bp policy is set so debugging on a MCU that cannot
+            // be stopped is in place.
+            // To keep he MCU running and allow local debugging
+            // we must request all the state
+            stateRequest.includeAll();
+        }
+        else {
+            // default bp policy is set so pausing a MCU to debug is allowed
+            // requesting a part of a snapshot suffices
+            stateRequest.includePC();
+            stateRequest.includeStack();
+            stateRequest.includeCallstack();
+            stateRequest.includeBreakpoints();
+            stateRequest.includeGlobals();
+            stateRequest.includeEvents();
+        }
+        return stateRequest.generateRequest();
     }
 }
