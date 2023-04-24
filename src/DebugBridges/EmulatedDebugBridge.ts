@@ -125,6 +125,10 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.client!.disconnect();
     }
 
+    public disconnectMonitor() {
+        throw Error("No monitor to disconnect on emulator");
+    }
+
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
         const baudrate: string = vscode.workspace.getConfiguration().get("warduino.Baudrate") ?? "115200";
