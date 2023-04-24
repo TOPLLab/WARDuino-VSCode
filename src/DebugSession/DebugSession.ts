@@ -196,7 +196,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 await this.debugBridge?.refresh();
             }
 
-            if (debugBridge.getBreakpointPolicy() === BreakpointPolicy.default && !!this.startingBPs && this.startingBPs.length > 0) {
+            if (debugBridge.getBreakpointPolicy() === BreakpointPolicy.default && this.startingBPs.length > 0) {
                 const validBps = this.startingBPs.filter(bp => {
                     return bp.source.path === args.program;
                 }).map(bp => bp.linenr);
