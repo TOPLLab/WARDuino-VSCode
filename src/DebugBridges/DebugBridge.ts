@@ -13,6 +13,8 @@ export interface DebugBridge extends EventEmitter {
 
   requestMissingState(): Promise<void>;
 
+  requestStoredException(): Promise<void>;
+
   emitNewStateEvent(): void;
 
   connect(): Promise<string>;

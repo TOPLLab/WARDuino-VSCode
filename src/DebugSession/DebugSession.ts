@@ -207,6 +207,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 this.onPause();
             }
             else {
+                this.debugBridge!.requestStoredException(); // no need to await
                 this.onRunning();
             }
         }

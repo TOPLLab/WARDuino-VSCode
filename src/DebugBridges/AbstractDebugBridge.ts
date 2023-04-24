@@ -301,6 +301,18 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         return;
     }
 
+    async requestStoredException(): Promise<void> {
+        const stateRequest = new StateRequest();
+        stateRequest.includeError();
+        const req = stateRequest.generateRequest();
+        const response = await this.client!.request(req);
+        const state = new RuntimeState(response, this.sourceMap);
+        if (state.hasException()) {
+            state.setRawProgramCounter(state.getExceptionLocation());
+            this.updateRuntimeState(state);
+        }
+    }
+
     getDeviceConfig() {
         return this.deviceConfig;
     }
