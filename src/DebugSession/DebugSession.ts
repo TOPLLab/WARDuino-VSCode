@@ -447,8 +447,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             await newBridge.connect();
             this.devicesManager.addDevice(newBridge);
             this.setDebugBridge(newBridge);
-            newBridge.pushSession(state.getSendableState());
-            (newBridge as WOODDebugBridge).specifyProxyCalls();
+            await newBridge.pushSession(state.getSendableState());
+            await (newBridge as WOODDebugBridge).specifyProxyCalls();
             newBridge.updateRuntimeState(state);
         }
         catch (reason) {
