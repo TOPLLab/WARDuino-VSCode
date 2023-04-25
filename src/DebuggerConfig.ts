@@ -217,7 +217,15 @@ export class DeviceConfig {
     }
 
     static configForProxy(deviceName: string, mcuConfig: DeviceConfig) {
-        const pc = mcuConfig.usesWiFi() ? { port: mcuConfig.proxyConfig?.port, ip: mcuConfig.ip } : { serial: "lalal" };
+        const pc = {
+            port: mcuConfig.proxyConfig?.port,
+            ip: mcuConfig.ip,
+            serialPort: mcuConfig.serialPort,
+            baudrate: mcuConfig.baudrate
+        };
+        if ((pc.serialPort === "" || pc.baudrate === -1) && pc.ip === "") {
+            throw (new InvalidDebuggerConfiguration("cannot proxy a device without `serialPort` and/or `IP` address"));
+        }
         const flash = false;
         const updateSource = false;
         const pause = true;
