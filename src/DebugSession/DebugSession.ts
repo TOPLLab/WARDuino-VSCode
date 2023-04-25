@@ -77,8 +77,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private variableHandles = new Handles<'locals' | 'globals' | 'arguments'>();
     private compiler?: CompileBridge;
 
-    private debuggerConfig: DebuggerConfig = new DebuggerConfig();
-
     private devicesManager: DevicesManager = new DevicesManager();
 
     private startingBPs: OnStartBreakpoint[];
@@ -150,8 +148,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.reporter.clear();
         this.program = args.program;
 
-        this.debuggerConfig.fillConfig(args);
-
+        const deviceConfig = DebuggerConfig.fromObject(args.device);
         const eventsProvider = new EventsProvider();
         this.viewsRefresher.addViewProvider(eventsProvider);
         vscode.window.registerTreeDataProvider("events", eventsProvider);
@@ -169,12 +166,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 }
             });
         });
-
-        if (this.debuggerConfig.device.isForHardware()) {
-            const dc = this.debuggerConfig.device;
+        if (deviceConfig.isForHardware()) {
             const path2sdk = vscode.workspace.getConfiguration().get("warduino.WARDuinoToolChainPath") as string;
             ArduinoTemplateBuilder.setPath2Templates(path2sdk);
-            ArduinoTemplateBuilder.build(dc);
+            ArduinoTemplateBuilder.build(deviceConfig);
         }
 
         this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
@@ -184,8 +179,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.sourceMap = compileResult.sourceMap;
         }
 
-        const debugmode: string = this.debuggerConfig.device.debugMode;
-        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir);
+        const debugmode: string = deviceConfig.debugMode;
+        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, deviceConfig, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir);
         this.registerGUICallbacks(debugBridge);
 
         try {
@@ -193,7 +188,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.setDebugBridge(debugBridge);
 
             await debugBridge.connect();
-            if (this.debuggerConfig.device.onStartConfig.pause) {
+            if (deviceConfig.onStartConfig.pause) {
                 await this.debugBridge?.refresh();
             }
 

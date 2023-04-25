@@ -244,14 +244,7 @@ export class DeviceConfig {
 
 export class DebuggerConfig {
 
-    public device: DeviceConfig = DeviceConfig.defaultDeviceConfig('emulated-vm');
-
-    constructor() {
-    }
-
-    fillConfig(obj: any) {
-        if (obj.hasOwnProperty('device')) {
-            this.device = new DeviceConfig(obj.device);
-        }
+    static fromObject(obj: any): DeviceConfig {
+        return new DeviceConfig(obj);
     }
 }
