@@ -76,8 +76,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private variableHandles = new Handles<'locals' | 'globals' | 'arguments'>();
     private compiler?: CompileBridge;
 
-    private debuggerConfig: DebuggerConfig = new DebuggerConfig();
-
     private devicesManager: DevicesManager = new DevicesManager();
 
     private startingBPs: OnStartBreakpoint[];
@@ -148,9 +146,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log(args.program);
         this.reporter.clear();
         this.program = args.program;
+        if (!this.isValidStartConfig(args.device)) {
+            response.success = false;
+            response.message = "invalid config";
+            return;
+        }
 
-        this.debuggerConfig.fillConfig(args);
-
+        const deviceConfig = DebuggerConfig.fromObject(args.device);
         const eventsProvider = new EventsProvider();
         this.viewsRefresher.addViewProvider(eventsProvider);
         vscode.window.registerTreeDataProvider("events", eventsProvider);
@@ -168,12 +170,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 }
             });
         });
-
-        if (this.debuggerConfig.device.isForHardware()) {
-            const dc = this.debuggerConfig.device;
+        if (deviceConfig.isForHardware()) {
             const path2sdk = vscode.workspace.getConfiguration().get("warduino.WARDuinoToolChainPath") as string;
             ArduinoTemplateBuilder.setPath2Templates(path2sdk);
-            ArduinoTemplateBuilder.build(dc);
+            ArduinoTemplateBuilder.build(deviceConfig);
         }
 
         this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get("warduino.WABToolChainPath") ?? "");
@@ -183,8 +183,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.sourceMap = compileResult.sourceMap;
         }
 
-        const debugmode: string = this.debuggerConfig.device.debugMode;
-        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, this.debuggerConfig.device, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir);
+        const debugmode: string = deviceConfig.debugMode;
+        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, deviceConfig, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir);
         this.registerGUICallbacks(debugBridge);
 
         try {
@@ -192,7 +192,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.setDebugBridge(debugBridge);
 
             await debugBridge.connect();
-            if (this.debuggerConfig.device.onStartConfig.pause) {
+            if (deviceConfig.onStartConfig.pause) {
                 await this.debugBridge?.refresh();
             }
 
@@ -214,6 +214,17 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         catch (reason) {
             console.error(reason);
+        }
+    }
+
+    private isValidStartConfig(deviceConfig: any): boolean {
+        try {
+            DebuggerConfig.fromObject(deviceConfig);
+            return true;
+        }
+        catch (err) {
+            vscode.window.showErrorMessage(`${err}`);
+            return false;
         }
     }
 
@@ -357,6 +368,36 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
     }
 
+    public async commitChanges(): Promise<void> {
+        const proxyBridge = this.devicesManager.getProxyBridge(this.debugBridge!);
+        const res = await this.compiler?.compile();
+
+        if (!(res && res.wasm)) {
+            return;
+        }
+
+        if (proxyBridge?.getDeviceConfig().usesWiFi()) {
+            proxyBridge?.disconnectMonitor();
+        } else {
+            this.debugBridge?.disconnect();
+            await proxyBridge?.connect();
+        }
+
+        await proxyBridge!.updateModule(res.wasm);
+        proxyBridge!.updateSourceMapper(res.sourceMap);
+        this.sourceMap = res.sourceMap;
+
+        this.setDebugBridge(proxyBridge!);
+
+        if (proxyBridge!.getBreakpointPolicy() === BreakpointPolicy.default) {
+            await proxyBridge?.refresh();
+            this.onPause();
+        }
+        else {
+            this.onRunning();
+        }
+    }
+
     public async startMultiverseDebugging() {
         const index = this.debugBridge?.getDebuggingTimeline().getIndexOfActiveState();
         const item = this.timelineProvider?.getItemFromTimeLineIndex(index ?? - 1);
@@ -451,7 +492,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         try {
             await newBridge.connect();
-            this.devicesManager.addDevice(newBridge);
+            this.devicesManager.addDevice(newBridge, bridge);
             this.setDebugBridge(newBridge);
             await newBridge.pushSession(state.getSendableState());
             await (newBridge as WOODDebugBridge).specifyProxyCalls();

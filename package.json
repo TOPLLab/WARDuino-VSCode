@@ -11,6 +11,7 @@
   ],
   "activationEvents": [
     "onCommand:warduinodebug.upload",
+    "onCommand:warduinodebug.commitChanges",
     "onCommand:warduinodebug.multiverse",
     "onDebugResolve:WARDuinoDBG",
     "onDebugDynamicConfigurations:WARDuinoDBG"
@@ -36,6 +37,12 @@
         "command": "warduinodebug.upload",
         "category": "WARDuino",
         "title": "Upload file",
+        "icon": "$(arrow-circle-up)"
+      },
+      {
+        "command": "warduinodebug.commitChanges",
+        "category": "WARDuino",
+        "title": "Commit changes",
         "icon": "$(arrow-circle-up)"
       },
       {

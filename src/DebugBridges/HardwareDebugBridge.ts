@@ -14,8 +14,6 @@ import { BreakpointPolicy } from "../State/Breakpoint";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     protected client: ChannelInterface | undefined;
-    protected readonly portAddress: string;
-    protected readonly fqbn: string;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
 
@@ -25,14 +23,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         deviceConfig: DeviceConfig,
         sourceMap: SourceMap,
         tmpdir: string,
-        portAddress: string,
-        fqbn: string,
         warduinoSDK: string) {
         super(deviceConfig, sourceMap);
 
         this.sourceMap = sourceMap;
-        this.portAddress = portAddress;
-        this.fqbn = fqbn;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
     }
@@ -53,12 +47,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             this.registerCallbacks();
             if (!!!this.logginSerialConnection) {
                 const loggername = this.deviceConfig.name;
-                const port = this.portAddress;
-                const baudRate = 115200;
+                const port = this.deviceConfig.serialPort;
+                const baudRate = this.deviceConfig.baudrate;
                 this.logginSerialConnection = new LoggingSerialMonitor(loggername, port, baudRate);
             }
             this.logginSerialConnection.openConnection().catch((err) => {
-                console.log(`Plugin: could not monitor serial port ${this.portAddress} reason: ${err}`);
+                console.log(`Plugin: could not monitor serial port ${this.deviceConfig.serialPort} reason: ${err}`);
             });
         }
         else {
@@ -90,18 +84,22 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         }
     }
 
+    public disconnectMonitor() {
+        this.logginSerialConnection?.disconnect();
+    }
+
     protected async openSerialPort() {
-        const baudrate = 115200;
-        this.client = new SerialChannel(this.portAddress, baudrate);
+        this.client = new SerialChannel(this.deviceConfig.serialPort, this.deviceConfig.baudrate);
         if (!await this.client.openConnection()) {
-            return `Could not connect to serial port: ${this.portAddress}`;
+            return `Could not connect to serial port: ${this.deviceConfig.serialPort}`;
         }
         this.emit(EventsMessages.connected, this);
-        return this.portAddress;
+        return this.deviceConfig.serialPort;
     }
 
     public disconnect(): void {
         this.client?.disconnect();
+        this.logginSerialConnection?.disconnect();
         console.error("CLOSED!");
         this.emit(EventsMessages.disconnected, this);
     }
@@ -110,7 +108,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         let lastStdOut = "";
         this.emit(EventsMessages.progress, this, Messages.reset);
 
-        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
+        const upload = exec(`make flash PORT=${this.deviceConfig.serialPort} FQBN=${this.deviceConfig.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
             console.error(err);
             lastStdOut = stdout + stderr;
             this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
@@ -130,7 +128,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        const compile = spawn("make", ["compile", `FQBN=${this.fqbn}`], {
+        const compile = spawn("make", ["compile", `FQBN=${this.deviceConfig.fqbn}`], {
             cwd: path
         });
 

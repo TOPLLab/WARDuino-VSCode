@@ -19,6 +19,11 @@ export class SerialChannel extends AbstractChannel implements ChannelInterface {
         return !!this.connection && this.connection.write(data);
     }
 
+    public disconnect(): void {
+        this.connection?.close();
+        this.connection = undefined;
+    }
+
     public openConnection(maxAttempts?: number): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             let con = new SerialPort({ path: this.port, baudRate: this.baudrate },
