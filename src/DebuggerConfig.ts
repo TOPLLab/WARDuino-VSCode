@@ -197,7 +197,7 @@ export class DeviceConfig {
     }
 
     needsProxyToAnotherVM(): boolean {
-        return !!this.proxyConfig;
+        return !!this.proxyConfig && this.debugMode === DeviceConfig.emulatedDebugMode;
     }
 
     isForHardware(): boolean {
