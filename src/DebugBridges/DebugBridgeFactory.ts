@@ -24,8 +24,6 @@ export class DebugBridgeFactory {
         switch (fileType) {
             case "wast":
                 const warduinoSDK: string = getConfig("warduino.WARDuinoToolChainPath");
-                const portAddress: string = getConfig("warduino.Port");
-                const fqbn: string = getConfig("warduino.Device");
                 switch (target) {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:
@@ -36,7 +34,7 @@ export class DebugBridgeFactory {
                         break;
                         // Hardware runtimes
                     case RunTimeTarget.embedded:
-                        bridge = new HardwareDebugBridge(deviceConfig, sourceMap, tmpdir, portAddress, fqbn, warduinoSDK);
+                        bridge = new HardwareDebugBridge(deviceConfig, sourceMap, tmpdir, warduinoSDK);
                         break;
                 }
 

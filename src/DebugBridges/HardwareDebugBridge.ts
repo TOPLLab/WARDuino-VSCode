@@ -14,8 +14,6 @@ import { BreakpointPolicy } from "../State/Breakpoint";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     protected client: ChannelInterface | undefined;
-    protected readonly portAddress: string;
-    protected readonly fqbn: string;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
 
@@ -25,14 +23,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         deviceConfig: DeviceConfig,
         sourceMap: SourceMap,
         tmpdir: string,
-        portAddress: string,
-        fqbn: string,
         warduinoSDK: string) {
         super(deviceConfig, sourceMap);
 
         this.sourceMap = sourceMap;
-        this.portAddress = portAddress;
-        this.fqbn = fqbn;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
     }
