@@ -147,6 +147,11 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log(args.program);
         this.reporter.clear();
         this.program = args.program;
+        if (!this.isValidStartConfig(args.device)) {
+            response.success = false;
+            response.message = "invalid config";
+            return;
+        }
 
         const deviceConfig = DebuggerConfig.fromObject(args.device);
         const eventsProvider = new EventsProvider();
@@ -210,6 +215,17 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         catch (reason) {
             console.error(reason);
+        }
+    }
+
+    private isValidStartConfig(deviceConfig: any): boolean {
+        try {
+            DebuggerConfig.fromObject(deviceConfig);
+            return true;
+        }
+        catch (err) {
+            vscode.window.showErrorMessage(`${err}`);
+            return false;
         }
     }
 
