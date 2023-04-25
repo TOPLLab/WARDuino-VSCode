@@ -51,17 +51,23 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
 
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
-        const port: string = vscode.workspace.getConfiguration().get("warduino.Port") ?? "/dev/ttyUSB0";
-        const baudrate: string = vscode.workspace.getConfiguration().get("warduino.Baudrate") ?? "115200";
-        const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${this.deviceConfig.port}`];
+        const emulatorPort: number = this.deviceConfig.port;
+        const proxySerialPort = this.deviceConfig.proxyConfig?.serialPort;
+        const proxyBaudrate = this.deviceConfig.proxyConfig?.baudrate;
+        const proxyIP = this.deviceConfig.proxyConfig?.ip;
+        const proxyPort = this.deviceConfig.proxyConfig?.port;
+        const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${emulatorPort}`];
 
         if (this.deviceConfig.needsProxyToAnotherVM()) {
-            const ip = this.deviceConfig.proxyConfig?.ip;
-            if (!!ip && ip !== "") {
-                args.push("--proxy", `${this.deviceConfig.proxyConfig?.ip}:${this.deviceConfig.proxyConfig?.port}`);
+            if (proxyIP && proxyIP !== "") {
+                args.push("--proxy", `${proxyIP}:${proxyPort}`);
+            }
+            else if (proxySerialPort && proxySerialPort !== "") {
+                args.push("--proxy", proxySerialPort, "--baudrate", `${proxyBaudrate}`);
             }
             else {
-                args.push("--proxy", port, "--baudrate", baudrate);
+                throw Error(`cannot spawn emulator in proxy mode without serialPort or IP of target MCU.
+                Given serialPort=${proxySerialPort} baudrate=${proxyBaudrate} IP=${proxyIP} IPPORT=${proxyPort}.`);
             }
         }
 
