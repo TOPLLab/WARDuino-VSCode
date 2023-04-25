@@ -12,7 +12,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
             expectedResponse: (line: string) => {
                 return line === "done!";
             }
-        }
+        };
     }
 
     private monitorProxiesCommand(primitives: number[]): string {
