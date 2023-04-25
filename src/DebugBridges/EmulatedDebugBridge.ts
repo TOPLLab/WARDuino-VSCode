@@ -1,11 +1,9 @@
 import { ChildProcess, spawn } from 'child_process';
-import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
 import { AbstractDebugBridge, EventsMessages } from "./AbstractDebugBridge";
 import { SourceMap } from "../State/SourceMap";
 import { Readable } from 'stream';
 import { ReadlineParser } from 'serialport';
 import { DeviceConfig } from '../DebuggerConfig';
-import * as vscode from 'vscode';
 import { ClientSideSocket } from '../Channels/ClientSideSocket';
 import { RuntimeState } from '../State/RuntimeState';
 import { ChannelInterface } from '../Channels/ChannelInterface';
