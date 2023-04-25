@@ -106,4 +106,17 @@ export abstract class AbstractChannel implements ChannelInterface {
         return resultIndex;
     }
 
+    protected registerListeners() {
+        if (this.connection) {
+            this.connection.on('data', (data: Buffer) => {
+                return this.onDataHandler(data)
+            });
+            this.connection.on('close', () => {
+                console.error(`${this.channelName}: closed`);
+            });
+            this.connection.on('error', (err: any) => {
+                console.error(`${this.channelName}: error occurred ${err}`);
+            });
+        }
+    }
 }

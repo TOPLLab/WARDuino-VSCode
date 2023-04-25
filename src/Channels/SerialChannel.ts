@@ -32,9 +32,7 @@ export class SerialChannel extends AbstractChannel implements ChannelInterface {
                         reject(error);
                     } else {
                         this.connection = con;
-                        this.connection.on('data', (data: Buffer) => {
-                            return this.onDataHandler(data)
-                        })
+                        this.registerListeners();
                         resolve(true);
                     }
                 });
