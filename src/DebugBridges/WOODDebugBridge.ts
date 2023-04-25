@@ -1,9 +1,7 @@
 import { EmulatedDebugBridge } from "./EmulatedDebugBridge";
-import { WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { ProxyCallItem } from "../Views/ProxyCallsProvider";
 import { ChildProcess, spawn } from "child_process";
-import * as vscode from 'vscode';
 import { Request } from "./APIRequest";
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
