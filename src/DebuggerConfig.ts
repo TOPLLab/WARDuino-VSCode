@@ -101,7 +101,8 @@ export class ProxyConfig {
     static defaultPort = 8081;
     public port: number = ProxyConfig.defaultPort;
     public ip: string = "";
-    public serial: string = "";
+    public serialPort: string = "";
+    public baudrate: number = -1;
 
 
     constructor(obj: any) {
@@ -111,8 +112,11 @@ export class ProxyConfig {
         if (obj.hasOwnProperty('ip')) {
             this.ip = obj.ip;
         }
-        if (obj.hasOwnProperty('serial')) {
-            this.serial = obj.serial;
+        if (obj.hasOwnProperty('serialPort')) {
+            this.serialPort = obj.serialPort;
+        }
+        if (obj.hasOwnProperty('baudrate')) {
+            this.baudrate = obj.baudrate;
         }
     }
 }
@@ -128,11 +132,15 @@ export class DeviceConfig {
     public readonly wifiCredentials: WiFiCredentials | undefined;
 
     public name: string = "";
-    public ip: string = "";
     public port: number = -1;
+    public ip: string = "";
     public debugMode: string = DeviceConfig.emulatedDebugMode;
     public proxyConfig: undefined | ProxyConfig;
     public onStartConfig: OnStartConfig;
+
+    public serialPort: string = "";
+    public baudrate: number = -1;
+    public fqbn: string = "";
 
     constructor(obj: any) {
         if (obj.hasOwnProperty('wifiCredentials')) {
@@ -168,6 +176,24 @@ export class DeviceConfig {
         else {
             this.onStartConfig = OnStartConfig.defaultConfig();
         }
+
+        if (this.onStartConfig.flash) {
+            if (!obj.hasOwnProperty("serialPort")) {
+                throw (new InvalidDebuggerConfiguration('serialPort is missing. E.g "serialPort": "/dev/ttyUSB0"'));
+            }
+            if (!obj.hasOwnProperty("fqbn")) {
+                throw (new InvalidDebuggerConfiguration('fqbn is missing from device configuration. E.g. "fqbn": "esp32:esp32:m5stick-c'));
+            }
+            if (!obj.hasOwnProperty("baudrate")) {
+                throw (new InvalidDebuggerConfiguration('baudrate is missing from device configuration. E.g. "baudrate": 115200'));
+            }
+            if (this.ip && this.ip !== "" && !!!this.wifiCredentials) {
+                throw (new InvalidDebuggerConfiguration('`wifiCredentials` entry (path to JSON) is needed when compiling for OTA debugging'));
+            }
+        }
+        this.serialPort = obj.serialPort;
+        this.fqbn = obj.fqbn;
+        this.baudrate = obj.baudrate;
     }
 
     needsProxyToAnotherVM(): boolean {
