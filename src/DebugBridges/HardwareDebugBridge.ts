@@ -36,9 +36,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.startAddress = startAddress;
     }
 
-    async connect(): Promise<string> {
+    async connect(flash?: boolean): Promise<string> {
         this.emit(EventsMessages.progress, this, Messages.compiling);
-        if (this.deviceConfig.onStartConfig.flash) {
+        const doFlash = flash === undefined ? this.deviceConfig.onStartConfig.flash : flash;
+        if (doFlash) {
             await this.compileAndUpload();
         }
         this.emit(EventsMessages.progress, this, Messages.connecting);

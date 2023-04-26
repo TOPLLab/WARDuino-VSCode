@@ -39,7 +39,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.startAddress = startAddress;
     }
 
-    public connect(): Promise<string> {
+    public connect(flash?: boolean): Promise<string> {
         return this.startEmulator();
     }
 

@@ -18,7 +18,7 @@ export interface DebugBridge extends EventEmitter {
 
   emitNewStateEvent(): void;
 
-  connect(): Promise<string>;
+  connect(flash?: boolean): Promise<string>;
 
   disconnectMonitor(): void;
 
