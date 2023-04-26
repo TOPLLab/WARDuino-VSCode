@@ -381,7 +381,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             proxyBridge?.disconnectMonitor();
         } else {
             this.debugBridge?.disconnect();
-            await proxyBridge?.connect();
+            const flash = false;
+            await proxyBridge?.connect(flash);
         }
 
         await proxyBridge!.updateModule(res.wasm);

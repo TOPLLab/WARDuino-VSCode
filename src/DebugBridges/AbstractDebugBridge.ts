@@ -77,7 +77,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     // General Bridge functionality
 
-    abstract connect(): Promise<string>;
+    abstract connect(flash?: boolean): Promise<string>;
 
     abstract disconnect(): void;
 
