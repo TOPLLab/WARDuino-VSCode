@@ -43,6 +43,12 @@ export class EventsMessages {
     public static readonly emulatorStarted: string = "emulator started";
     public static readonly emulatorClosed: string = "emulator closed";
     public static readonly progress: string = "progress";
+    public static readonly errorInProgress: string = "progress error";
+    public static readonly compiling: string = "Compiling the code";
+    public static readonly compiled: string = "Compiled Code";
+    public static readonly compilationFailure: string = "Compilation failure";
+    public static readonly flashing: string = "Flashing Code";
+    public static readonly flashingFailure: string = "Flashing failed";
 }
 
 
