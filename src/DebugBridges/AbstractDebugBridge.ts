@@ -49,6 +49,7 @@ export class EventsMessages {
     public static readonly compilationFailure: string = "Compilation failure";
     public static readonly flashing: string = "Flashing Code";
     public static readonly flashingFailure: string = "Flashing failed";
+    public static readonly atBreakpoint: string = "At breakpoint";
 }
 
 
@@ -181,15 +182,17 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         let breakpointInfo = line.match(/AT ([0-9]+)!/);
         if (!!breakpointInfo && breakpointInfo.length > 1) {
             let bpAddress = parseInt(breakpointInfo[1]);
-            console.log(`BP reached at line ${this.getBreakpointFromAddr(bpAddress)?.line} (addr=${bpAddress})`);
+            const lineBP = this.getBreakpointFromAddr(bpAddress)?.line;
+            console.log(`BP reached at line ${lineBP} (addr=${bpAddress})`);
+            this.emit(EventsMessages.atBreakpoint, this, lineBP);
             await this.refresh();
 
             if (this.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
-                this.emit(EventsMessages.enforcingBreakpointPolicy, BreakpointPolicy.singleStop);
+                this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.singleStop);
                 await this.unsetAllBreakpoints();
                 await this.run();
             } else if (this.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed) {
-                this.emit(EventsMessages.enforcingBreakpointPolicy, BreakpointPolicy.removeAndProceed);
+                this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.removeAndProceed);
                 await this.unsetBreakPoint(bpAddress);
                 await this.run();
             }

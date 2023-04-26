@@ -703,8 +703,17 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         debugBridge.on(EventsMessages.exceptionOccurred, (db: DebugBridge, state: RuntimeState) => {
             this.onException(db, state);
         });
-        debugBridge.on(EventsMessages.enforcingBreakpointPolicy, (policy: BreakpointPolicy) => {
-            this.onEnforcingBPPolicy(policy);
+        debugBridge.on(EventsMessages.enforcingBreakpointPolicy, (db: DebugBridge, policy: BreakpointPolicy) => {
+            this.onEnforcingBPPolicy(db, policy);
+        });
+        debugBridge.on(EventsMessages.atBreakpoint, (db: DebugBridge, line: any) => {
+            if (db.getBreakpointPolicy() !== BreakpointPolicy.default) {
+                let msg = "reached breakpoint";
+                if (line !== undefined) {
+                    msg += ` at line ${line}`;
+                }
+                this.notifyInfoMessage(db, msg);
+            }
         });
         debugBridge.on(EventsMessages.emulatorStarted, (db: DebugBridge) => {
             const name = db.getDeviceConfig().name;
@@ -772,9 +781,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         vscode.window.showErrorMessage(msg);
     }
 
-    private onEnforcingBPPolicy(policy: BreakpointPolicy) {
+    private onEnforcingBPPolicy(db: DebugBridge, policy: BreakpointPolicy) {
         const msg = `Enforcing '${policy}' breakpoint policy`;
-        vscode.window.showInformationMessage(msg);
+        this.notifyInfoMessage(db, msg);
     }
 
     private notifyProgress(msg: string) {
