@@ -59,7 +59,15 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             await this.openSerialPort();
             this.registerCallbacks();
         }
-
+        if (doFlash) {
+            const p = new Promise((res) => {
+                const secs = 2000;
+                setTimeout(() => {
+                    res('done');
+                }, secs);
+            });
+            await p;
+        }
         return "";
     }
 
