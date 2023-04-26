@@ -11,7 +11,7 @@
  (type $int32->int32->void          (func (param i32 i32)))
 
  (import "env" "chip_delay"          (func $delay       (type $i32tovoid)))
- (import "env" "print_int"           (func $print       (type $f32tovoid)))
+ (import "env" "print_float"         (func $print       (type $f32tovoid)))
  (import "env" "req_temp"            (func $reqTemp     (type $i32tof32)))
  (import "env" "subscribe_interrupt" (func $subscribeInterrupt (type $subscribeType)))
  (import "env" "chip_pin_mode"       (func $env.chip_pin_mode (type $int32->int32->void)))
@@ -93,7 +93,8 @@
          (local.get 0)
          (call $reqTemp))
         (else
-          (f32.const 0.0))))
+          (f32.const 0.0))
+    ))
 
 (func $avgTemp (type $voidtof32)
     (global.get $sensorA)
