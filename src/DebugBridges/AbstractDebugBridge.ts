@@ -293,6 +293,10 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     // Getters and Setters
 
+    public getSourceMap(): SourceMap {
+        return this.sourceMap;
+    }
+
     async requestMissingState(): Promise<void> {
         const missing: ExecutionStateType[] = this.getCurrentState()?.getMissingState() ?? [];
         const stateRequest = StateRequest.fromList(missing);
