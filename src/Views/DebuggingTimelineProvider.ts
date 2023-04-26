@@ -3,6 +3,7 @@ import { ProviderResult, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { RuntimeState } from '../State/RuntimeState';
 import { DebugBridge } from '../DebugBridges/DebugBridge';
 import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
+import { getLineNumberForAddress } from '../State/SourceMap';
 
 export enum AllowedAction {
     Save = "save",
@@ -47,7 +48,14 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
                 else if ((idx === states.length - 1) && !this.itemsBeingSaved.has(idx)) {
                     act = AllowedAction.Save;
                 }
-                return new TimelineItem(rs, this.debugBridge, idx, act, this.view!);
+                const sm = this.debugBridge.getSourceMap();
+                const doNotMinusOne = false;
+                const linenr = getLineNumberForAddress(sm, rs.getProgramCounter(), doNotMinusOne);
+                let label = "";
+                if (linenr !== undefined) {
+                    label = `Line ${linenr}`;
+                }
+                return new TimelineItem(label, rs, this.debugBridge, idx, act, this.view!);
             });
             const activeIndex = timeline.getIndexOfActiveState();
             if (activeIndex !== undefined) {
@@ -94,6 +102,7 @@ export class TimelineItem extends vscode.TreeItem {
     private view: vscode.TreeView<TreeItem>;
 
     constructor(
+        sessionlabel: string,
         runtimeState: RuntimeState,
         debuggerBridge: DebugBridge,
         timelineIndex: number,
@@ -101,7 +110,7 @@ export class TimelineItem extends vscode.TreeItem {
         view: vscode.TreeView<TreeItem>,
         treeItemCollapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None
     ) {
-        super(`Session#${timelineIndex} ${runtimeState.getId()}`, treeItemCollapsibleState);
+        super(`Session#${timelineIndex} ${sessionlabel}`, treeItemCollapsibleState);
         this.runtimeState = runtimeState;
         this.debuggerBridge = debuggerBridge;
         this.timelineIndex = timelineIndex;
