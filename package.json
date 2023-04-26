@@ -107,12 +107,12 @@
         },
         {
           "id": "breakpointPolicies",
-          "name":  "breakpoint Policies",
+          "name": "breakpoint Policies",
           "group": "navigation"
         },
         {
           "id": "debuggingTimeline",
-          "name":  "Debugging Timeline",
+          "name": "Debugging Timeline",
           "group": "navigation"
         }
       ]
