@@ -778,7 +778,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const exception = runtime.getExceptionMsg();
         const includeMinusOne = false;
         const loc = getLineNumberForAddress(runtime.getSourceMap(), runtime.getExceptionLocation(), includeMinusOne);
-        const msg = `Exception occurred on ${name} (Line ${loc}): ${exception}`;
+        const msg = `${name}: exception occurred at (Line ${loc}). ${exception}`;
         vscode.window.showErrorMessage(msg);
     }
 
