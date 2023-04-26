@@ -226,6 +226,9 @@ export class DeviceConfig {
         if ((pc.serialPort === "" || pc.baudrate === -1) && pc.ip === "") {
             throw (new InvalidDebuggerConfiguration("cannot proxy a device without `serialPort` and/or `IP` address"));
         }
+        if (pc.ip !== "" && pc.port === undefined) {
+            pc.port = ProxyConfig.defaultPort;
+        }
         const flash = false;
         const updateSource = false;
         const pause = true;
