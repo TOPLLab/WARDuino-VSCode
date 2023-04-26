@@ -166,6 +166,9 @@ export class DeviceConfig {
         if (DeviceConfig.allowedModes.has(obj.debugMode)) {
             this.debugMode = obj.debugMode;
         }
+        else {
+            throw (new InvalidDebuggerConfiguration(`No debugmode provided. Options: '${DeviceConfig.embeddedDebugMode}' or '${DeviceConfig.emulatedDebugMode}'`));
+        }
         if (obj.hasOwnProperty("proxy")) {
             this.proxyConfig = new ProxyConfig(obj.proxy);
         }
