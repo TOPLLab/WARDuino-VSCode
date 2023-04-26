@@ -750,10 +750,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.notifyProgress(msg);
         });
         debugBridge.on(EventsMessages.connected, (db: DebugBridge) => {
-            const name = db.getDeviceConfig().name;
-            const msg = `Connected to ${name}`;
-            this.notifyProgress(msg);
-            this.notifyInfoMessage(db, "Connected");
+            this.onConnected(db);
         });
         debugBridge.on(EventsMessages.disconnected, (db: DebugBridge) => {
             const name = db.getDeviceConfig().name;
@@ -775,6 +772,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         debugBridge.on(EventsMessages.errorInProgress, (db: DebugBridge, msg: string) => {
             this.notifyErrorMessage(db, msg);
         });
+    }
+
+    private onConnected(db: DebugBridge) {
+        const name = db.getDeviceConfig().name;
+        const msg = `Connected to ${name}`;
+        this.notifyProgress(msg);
+        this.notifyInfoMessage(db, "Connected");
     }
 
     private onNewState(runtimeState: RuntimeState) {
