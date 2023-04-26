@@ -450,7 +450,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         // only save the present state
         if (savingPresentState && !!timeline?.isActiveStatePresent()) {
-            this.notifyInfoMessage(this.debugBridge!, `Retrieving and saving state from ${this.debugBridge!.getDeviceConfig().name}...`);
+            this.notifyInfoMessage(this.debugBridge!, `Retrieving and saving state`);
             this.timelineProvider?.showItemAsBeingSaved(item);
             this.timelineProvider?.refreshView();
             await this.debugBridge?.requestMissingState();
@@ -724,11 +724,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             const name = db.getDeviceConfig().name;
             const msg = `Connected to ${name}`;
             this.notifyProgress(msg);
+            this.notifyInfoMessage(db, "Connected");
         });
         debugBridge.on(EventsMessages.disconnected, (db: DebugBridge) => {
             const name = db.getDeviceConfig().name;
             const msg = `Disconected from ${name}`;
             this.notifyProgress(msg);
+            this.notifyInfoMessage(db, "Disconnected");
         });
         debugBridge.on(EventsMessages.connectionError, (db: DebugBridge, err: number | null) => {
             const name = db.getDeviceConfig().name;
@@ -739,9 +741,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.notifyProgress(msg);
         });
         debugBridge.on(EventsMessages.progress, (db: DebugBridge, msg: string) => {
-            const name = db.getDeviceConfig().name;
-            const m = `${name}: ${msg}`;
-            this.notifyProgress(m);
+            this.notifyInfoMessage(db, msg);
+        });
+        debugBridge.on(EventsMessages.errorInProgress, (db: DebugBridge, msg: string) => {
+            this.notifyErrorMessage(db, msg);
         });
     }
 
@@ -787,7 +790,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private notifyInfoMessage(db: DebugBridge, msg: string) {
         const name = db.getDeviceConfig().name;
-        const m = `${name}: Retrieving and saving state...`;
+        const m = `${name}: ${msg}`;
         vscode.window.showInformationMessage(m);
+    }
+
+    private notifyErrorMessage(db: DebugBridge, msg: string) {
+        const name = db.getDeviceConfig().name;
+        const m = `${name}: ${msg}`;
+        vscode.window.showErrorMessage(m);
     }
 }

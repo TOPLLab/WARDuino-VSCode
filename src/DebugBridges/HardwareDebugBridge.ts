@@ -37,7 +37,6 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     async connect(flash?: boolean): Promise<string> {
-        this.emit(EventsMessages.progress, this, Messages.compiling);
         const doFlash = flash === undefined ? this.deviceConfig.onStartConfig.flash : flash;
         if (doFlash) {
             await this.compileAndUpload();
@@ -107,28 +106,31 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
         let lastStdOut = "";
-        this.emit(EventsMessages.progress, this, Messages.reset);
-
+        this.emit(EventsMessages.progress, this, EventsMessages.flashing);
         const upload = exec(`make flash PORT=${this.deviceConfig.serialPort} FQBN=${this.deviceConfig.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
-            console.error(err);
-            lastStdOut = stdout + stderr;
-            this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
-            //this.listener.notifyProgress(Messages.initialisationFailure);
-        }
-        );
+            if (err) {
+                console.error(err);
+                lastStdOut = stdout + stderr;
+                const errMsg = `${EventsMessages.flashingFailure} reason: ${err}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
+            }
+        });
 
-        this.emit(EventsMessages.progress, this, Messages.uploading);
+        this.emit(EventsMessages.progress, this, EventsMessages.flashing);
 
         upload.on('close', (code) => {
             if (code === 0) {
                 resolver(true);
             } else {
+                const errMsg = `${EventsMessages.flashingFailure}. Exit code: ${code}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
                 reject(`Could not flash ended with ${code} \n${lastStdOut}`);
             }
         });
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
+        this.emit(EventsMessages.progress, this, Messages.compiling);
         const compile = spawn("make", ["compile", `FQBN=${this.deviceConfig.fqbn}`], {
             cwd: path
         });
@@ -139,14 +141,14 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
         compile.stderr.on('data', (data: string) => {
             console.error(`HardwareDebugBridge stderr: ${data}`);
-            this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
+            const errMsg = `${EventsMessages.compilationFailure}. Reason: ${data}`;
+            this.emit(EventsMessages.errorInProgress, this, errMsg);
             reject(data);
         });
 
         compile.on('close', (code) => {
             console.log(`Arduino compilation exited with code ${code}`);
             if (code === 0) {
-                this.emit(EventsMessages.progress, this, Messages.compiled);
                 this.uploadArduino(path, resolver, reject);
             } else {
                 this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
@@ -159,9 +161,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         return new Promise<boolean>((resolve, reject) => {
             const arduinoDir = this.deviceConfig.usesWiFi() ? "/platforms/Arduino-socket/" : "/platforms/Arduino/";
             const sdkpath: string = path.join(this.sdk, arduinoDir);
+            this.emit(EventsMessages.progress, this, Messages.compiling);
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
             cp.on("error", err => {
-                reject("Could not store upload file to sdk path.");
+                const errMsg = `Could not store upload file to sdk path. Reason: ${err}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
+                reject(errMsg);
             });
             cp.on("close", (code) => {
                 this.compileArduino(sdkpath, resolve, reject);
