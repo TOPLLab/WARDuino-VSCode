@@ -506,6 +506,25 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
     }
 
+    public async swithDebuggingTarget() {
+        if (!!!this.debugBridge) {
+            return;
+        }
+        let br = undefined;
+        if (this.debugBridge.getDeviceConfig().isForHardware()) {
+            br = this.devicesManager.getEmulatorBridge(this.debugBridge);
+        }
+        else {
+            br = this.devicesManager.getProxyBridge(this.debugBridge);
+        }
+        if (!!br) {
+            this.setDebugBridge(br);
+            this.viewsRefresher.refreshViews();
+            this.notifyInfoMessage(this.debugBridge, "connected");
+            this.onPause();
+        }
+    }
+
     private handleCompileError(handleCompileError: CompileTimeError) {
         let range = new vscode.Range(handleCompileError.lineInfo.line - 1,
             handleCompileError.lineInfo.column,
