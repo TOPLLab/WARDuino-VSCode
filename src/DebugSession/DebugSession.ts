@@ -518,8 +518,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         if (!!br) {
             this.setDebugBridge(br);
-            this.viewsRefresher.refreshViews();
-            this.notifyInfoMessage(this.debugBridge, "connected");
+            const state = br.getDebuggingTimeline().getActiveState();
+            this.viewsRefresher.refreshViews(state);
+            this.onConnected(br);
             this.onPause();
         }
     }
