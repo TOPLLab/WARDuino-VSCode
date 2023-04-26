@@ -499,6 +499,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             await newBridge.pushSession(state.getSendableState());
             await (newBridge as WOODDebugBridge).specifyProxyCalls();
             newBridge.updateRuntimeState(state);
+            this.onPause();
         }
         catch (reason) {
             console.error(reason);
