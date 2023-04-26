@@ -37,6 +37,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.startDebuggingOnEmulator', resource => {
         factory.warduino?.startDebuggingOnEmulator(resource);
     }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.switchBridge', () => {
+        factory.warduino?.swithDebuggingTarget();
+    }));
 }
 
 function installDiagnosticReporting(context: vscode.ExtensionContext) {

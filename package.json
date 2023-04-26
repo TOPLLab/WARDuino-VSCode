@@ -80,6 +80,12 @@
         "category": "WARDuino",
         "title": "Start debugging locally",
         "icon": "$(debug-start)"
+      },
+      {
+        "command": "warduinodebug.switchBridge",
+        "category": "WARDuino",
+        "title": "Swith device view",
+        "icon": "$(debug-start)"
       }
     ],
     "views": {
