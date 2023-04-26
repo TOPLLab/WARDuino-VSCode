@@ -148,7 +148,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             }
         };
         await this.client?.request(req);
-        console.log(`BP removed at line ${bp!.line} (Addr ${bp!.id})`)
+        console.log(`BP removed at line ${bp!.line} (Addr ${bp!.id})`);
         this.breakpoints.delete(bp);
     }
 
@@ -165,7 +165,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             }
         };
         await this.client?.request(req);
-        console.log(`BP added at line ${breakpoint.line} (Addr ${breakpoint.id})`)
+        console.log(`BP added at line ${breakpoint.line} (Addr ${breakpoint.id})`);
         this.breakpoints.add(breakpoint);
         return breakpoint;
     }
@@ -175,7 +175,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         let breakpointInfo = line.match(/AT ([0-9]+)!/);
         if (!!breakpointInfo && breakpointInfo.length > 1) {
             let bpAddress = parseInt(breakpointInfo[1]);
-            console.log(`BP reached at line ${this.getBreakpointFromAddr(bpAddress)?.line} (addr=${bpAddress})`)
+            console.log(`BP reached at line ${this.getBreakpointFromAddr(bpAddress)?.line} (addr=${bpAddress})`);
             await this.refresh();
 
             if (this.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
@@ -235,7 +235,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         console.log(`sending ${messages.length} messages as new State\n`);
         const promises = requests.map(req => {
             return this.client!.request(req);
-        })
+        });
         await Promise.all(promises);
     }
 
@@ -340,7 +340,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         if (includeInTimeline && this.timeline.isActiveStatePresent()) {
             this.timeline.addRuntime(runtimeState.deepcopy());
             if (!!!this.timeline.advanceTimeline()) {
-                throw new Error("Timeline should be able to advance")
+                throw new Error("Timeline should be able to advance");
             }
         }
         this.emitNewStateEvent();
