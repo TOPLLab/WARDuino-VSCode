@@ -71,6 +71,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private proxyCallsProvider?: ProxyCallsProvider;
     private breakpointPolicyProvider?: BreakpointPolicyProvider;
     private timelineProvider?: DebuggingTimelineProvider;
+    private stackProvider?: StackProvider;
 
     private viewsRefresher: RuntimeViewsRefresher = new RuntimeViewsRefresher();
 
@@ -157,9 +158,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const eventsProvider = new EventsProvider();
         this.viewsRefresher.addViewProvider(eventsProvider);
         vscode.window.registerTreeDataProvider("events", eventsProvider);
-        const stackProvider = new StackProvider();
-        this.viewsRefresher.addViewProvider(stackProvider);
-        vscode.window.registerTreeDataProvider("stack", stackProvider);
 
         await new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
@@ -259,6 +257,14 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.timelineProvider.setView(v);
         } else {
             this.timelineProvider.setDebugBridge(next);
+        }
+
+        if (this.stackProvider) {
+            this.stackProvider.setDebugBridge(next);
+        } else {
+            this.stackProvider = new StackProvider(next);
+            this.viewsRefresher.addViewProvider(this.stackProvider);
+            vscode.window.registerTreeDataProvider("stack", this.stackProvider);
         }
     }
 
@@ -363,6 +369,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 this.notifyProgress("updating module...");
                 await this.debugBridge?.updateModule(res.wasm);
                 this.debugBridge?.updateSourceMapper(res.sourceMap);
+                this.viewsRefresher.refreshViews();
                 await this.debugBridge?.refresh();
                 this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
             }
@@ -386,6 +393,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
 
         await proxyBridge!.updateModule(res.wasm);
+        this.viewsRefresher.refreshViews();
         proxyBridge!.updateSourceMapper(res.sourceMap);
         this.sourceMap = res.sourceMap;
 
