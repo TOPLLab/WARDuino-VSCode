@@ -716,9 +716,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.onNewState(newState);
         });
         debugBridge.on(EventsMessages.moduleUpdated, (db: DebugBridge) => {
-            const name = db.getDeviceConfig().name;
-            let msg = `${name}: Module updated`;
-            this.notifyProgress(msg);
+            this.notifyInfoMessage(db, EventsMessages.moduleUpdated);
         });
         debugBridge.on(EventsMessages.stepCompleted, () => {
             this.onStepCompleted();
