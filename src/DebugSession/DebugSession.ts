@@ -31,7 +31,7 @@ import { EventsProvider } from "../Views/EventsProvider";
 import { StackProvider } from "../Views/StackProvider";
 import { ProxyCallItem, ProxyCallsProvider } from "../Views/ProxyCallsProvider";
 import { CompileResult } from '../CompilerBridges/CompileBridge';
-import { DebuggerConfig, DeviceConfig } from '../DebuggerConfig';
+import { DeviceConfig } from '../DebuggerConfig';
 import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBuilder';
 import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/BreakpointPolicyProvider';
 import { Breakpoint, BreakpointPolicy } from '../State/Breakpoint';
@@ -154,7 +154,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             return;
         }
 
-        const deviceConfig = DebuggerConfig.fromObject(args.device);
+        const deviceConfig = DeviceConfig.fromObject(args.device);
         const eventsProvider = new EventsProvider();
         this.viewsRefresher.addViewProvider(eventsProvider);
         vscode.window.registerTreeDataProvider("events", eventsProvider);
@@ -218,7 +218,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private isValidStartConfig(deviceConfig: any): boolean {
         try {
-            DebuggerConfig.fromObject(deviceConfig);
+            DeviceConfig.fromObject(deviceConfig);
             return true;
         }
         catch (err) {
