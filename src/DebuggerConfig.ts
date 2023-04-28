@@ -246,9 +246,6 @@ export class DeviceConfig {
             onStart: os
         });
     }
-}
-
-export class DebuggerConfig {
 
     static fromObject(obj: any): DeviceConfig {
         return new DeviceConfig(obj);
