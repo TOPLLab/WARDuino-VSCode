@@ -22,6 +22,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.updateModule', () => {
         factory.warduino?.updateModule();
     }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.commitChanges', () => {
+        factory.warduino?.commitChanges();
+    }));
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.toggleBreakpointPolicy', resource => {
         factory.warduino?.toggleBreakpointPolicy(resource);
     }));
@@ -33,6 +36,9 @@ export function activate(context: vscode.ExtensionContext) {
     }));
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.startDebuggingOnEmulator', resource => {
         factory.warduino?.startDebuggingOnEmulator(resource);
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.switchBridge', () => {
+        factory.warduino?.swithDebuggingTarget();
     }));
 }
 

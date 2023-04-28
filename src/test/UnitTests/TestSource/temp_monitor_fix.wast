@@ -26,6 +26,8 @@
  (global $connected (mut f32) (f32.const 0))
  (global $wifiBtn i32 (i32.const 37))
  (global $inputPullUp i32 (i32.const 5))
+
+ (global $cachedAvg (mut f32) (f32.const 0))
  
  ;; LED
  (global $led i32 (i32.const 10))
@@ -97,13 +99,28 @@
     ))
 
 (func $avgTemp (type $voidtof32)
+    (local $sum f32)
     (global.get $sensorA)
     (call $getTemp)
     (global.get $sensorB)
     (call $getTemp)
     f32.add
-    (global.get $connected)
-    f32.div)
+    (local.set $sum)
+    
+    (f32.eq
+        (global.get $connected)
+        (f32.const 0))
+    (if (result f32)
+        (then
+        (global.get $cachedAvg))
+        (else
+            (local.get $sum)
+            (global.get $connected)
+            f32.div
+            (global.set $cachedAvg)
+            (global.get $cachedAvg)
+            )))
+    
 
 
  (func $main (type $voidtovoid)

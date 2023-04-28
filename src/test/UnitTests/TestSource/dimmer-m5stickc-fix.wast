@@ -28,10 +28,14 @@
 
   (func $decrease (type $t3)
     i32.const -127
+    global.get $delta
+    i32.add
     global.set $delta)
 
   (func $increase (type $t3)
     i32.const 127
+    global.get $delta
+    i32.add
     global.set $delta)
 
   (func $setup (type $t4)

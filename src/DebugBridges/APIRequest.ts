@@ -61,7 +61,7 @@ export class StateRequest {
 
     public includeAll() {
         let idx = 1;
-        while (idx < numberExecutionStateTypes) {
+        while (idx <= numberExecutionStateTypes) {
             let s = idx.toString(16);
             // pad with zero
             if (s.length <= 1) {
@@ -209,6 +209,21 @@ export function UpdateModuleRequest(wasm: Buffer): Request {
         dataToSend: dataToSend + "\n",
         expectedResponse: (line: string) => {
             return line === "CHANGE Module!";
+        }
+    }
+}
+
+export enum ProxyMode {
+    ProxyNotUsed = '01',
+    ProxyRedirect = '02',
+    ProxyCopy = '03'
+}
+
+export function ProxifyRequest(mode: ProxyMode) {
+    return {
+        dataToSend: `${InterruptTypes.interruptProxify}${mode}\n`,
+        expectedResponse: (line: string) => {
+            return line === "Proxify!";
         }
     }
 }

@@ -1,7 +1,7 @@
 import { DebugBridge } from "./DebugBridge";
 import { Frame } from "../Parsers/Frame";
 import { VariableInfo } from "../State/VariableInfo";
-import { SourceMap } from "../State/SourceMap";
+import { SourceMap, getLineNumberForAddress } from "../State/SourceMap";
 import { ExecutionStateType, WOODDumpResponse, WOODState } from "../State/WOODState";
 import { InterruptTypes } from "./InterruptTypes";
 import { FunctionInfo } from "../State/FunctionInfo";
@@ -12,7 +12,7 @@ import { HexaEncoder } from "../Util/hexaEncoding";
 import { DeviceConfig } from "../DebuggerConfig";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { ChannelInterface } from "../Channels/ChannelInterface";
-import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from "./APIRequest";
+import { PauseRequest, ProxyMode, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from "./APIRequest";
 import { EventItem } from "../Views/EventsProvider";
 import EventEmitter = require("events");
 
@@ -43,6 +43,13 @@ export class EventsMessages {
     public static readonly emulatorStarted: string = "emulator started";
     public static readonly emulatorClosed: string = "emulator closed";
     public static readonly progress: string = "progress";
+    public static readonly errorInProgress: string = "progress error";
+    public static readonly compiling: string = "Compiling the code";
+    public static readonly compiled: string = "Compiled Code";
+    public static readonly compilationFailure: string = "Compilation failure";
+    public static readonly flashing: string = "Flashing Code";
+    public static readonly flashingFailure: string = "Flashing failed";
+    public static readonly atBreakpoint: string = "At breakpoint";
 }
 
 
@@ -77,15 +84,17 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     // General Bridge functionality
 
-    abstract connect(): Promise<string>;
+    abstract connect(flash?: boolean): Promise<string>;
 
     abstract disconnect(): void;
+
+    abstract disconnectMonitor(): void;
 
     abstract upload(): void;
 
     // Debug API
 
-    abstract proxify(): void;
+    abstract proxify(mode: ProxyMode): Promise<void>;
 
     public async run(): Promise<void> {
         await this.client?.request(RunRequest);
@@ -146,7 +155,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             }
         };
         await this.client?.request(req);
-        console.log(`BP removed at line ${bp!.line} (Addr ${bp!.id})`)
+        console.log(`BP removed at line ${bp!.line} (Addr ${bp!.id})`);
         this.breakpoints.delete(bp);
     }
 
@@ -163,7 +172,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             }
         };
         await this.client?.request(req);
-        console.log(`BP added at line ${breakpoint.line} (Addr ${breakpoint.id})`)
+        console.log(`BP added at line ${breakpoint.line} (Addr ${breakpoint.id})`);
         this.breakpoints.add(breakpoint);
         return breakpoint;
     }
@@ -173,15 +182,17 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         let breakpointInfo = line.match(/AT ([0-9]+)!/);
         if (!!breakpointInfo && breakpointInfo.length > 1) {
             let bpAddress = parseInt(breakpointInfo[1]);
-            console.log(`BP reached at line ${this.getBreakpointFromAddr(bpAddress)?.line} (addr=${bpAddress})`)
+            const lineBP = this.getBreakpointFromAddr(bpAddress)?.line;
+            console.log(`BP reached at line ${lineBP} (addr=${bpAddress})`);
+            this.emit(EventsMessages.atBreakpoint, this, lineBP);
             await this.refresh();
 
             if (this.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
-                this.emit(EventsMessages.enforcingBreakpointPolicy, BreakpointPolicy.singleStop);
+                this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.singleStop);
                 await this.unsetAllBreakpoints();
                 await this.run();
             } else if (this.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed) {
-                this.emit(EventsMessages.enforcingBreakpointPolicy, BreakpointPolicy.removeAndProceed);
+                this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.removeAndProceed);
                 await this.unsetBreakPoint(bpAddress);
                 await this.run();
             }
@@ -233,7 +244,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         console.log(`sending ${messages.length} messages as new State\n`);
         const promises = requests.map(req => {
             return this.client!.request(req);
-        })
+        });
         await Promise.all(promises);
     }
 
@@ -282,6 +293,10 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     // Getters and Setters
 
+    public getSourceMap(): SourceMap {
+        return this.sourceMap;
+    }
+
     async requestMissingState(): Promise<void> {
         const missing: ExecutionStateType[] = this.getCurrentState()?.getMissingState() ?? [];
         const stateRequest = StateRequest.fromList(missing);
@@ -296,8 +311,21 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         const missingState = new RuntimeState(response, this.sourceMap);
         const state = this.getCurrentState();
         state!.copyMissingState(missingState);
-        console.log(`PC=${state!.getProgramCounter()} (Hexa ${state!.getProgramCounter().toString(16)})`);
+        const pc = state!.getProgramCounter();
+        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${getLineNumberForAddress(this.sourceMap, pc)})`);
         return;
+    }
+
+    async requestStoredException(): Promise<void> {
+        const stateRequest = new StateRequest();
+        stateRequest.includeError();
+        const req = stateRequest.generateRequest();
+        const response = await this.client!.request(req);
+        const state = new RuntimeState(response, this.sourceMap);
+        if (state.hasException()) {
+            state.setRawProgramCounter(state.getExceptionLocation());
+            this.updateRuntimeState(state);
+        }
     }
 
     getDeviceConfig() {
@@ -325,7 +353,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         if (includeInTimeline && this.timeline.isActiveStatePresent()) {
             this.timeline.addRuntime(runtimeState.deepcopy());
             if (!!!this.timeline.advanceTimeline()) {
-                throw new Error("Timeline should be able to advance")
+                throw new Error("Timeline should be able to advance");
             }
         }
         this.emitNewStateEvent();
@@ -337,7 +365,8 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     public emitNewStateEvent() {
         const currentState = this.getCurrentState();
-        console.log(`PC=${currentState!.getProgramCounter()} (Hexa ${currentState!.getProgramCounter().toString(16)})`);
+        const pc = currentState!.getProgramCounter();
+        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${getLineNumberForAddress(this.sourceMap, pc)})`);
         this.emit(EventsMessages.stateUpdated, currentState);
         if (currentState?.hasException()) {
             this.emit(EventsMessages.exceptionOccurred, this, currentState);

@@ -40,6 +40,10 @@ export class RuntimeState {
         this.fillState();
     }
 
+    public getSourceMap(): SourceMap {
+        return this.sourceMap;
+    }
+
     public getId(): number {
         return this.id;
     }
@@ -56,6 +60,9 @@ export class RuntimeState {
         return `${this.exception_msg}`;
     }
 
+    public getExceptionLocation(): number {
+        return this.pcerror;
+    }
 
     public getProgramCounter(): number {
         return this.programCounter;
@@ -179,9 +186,6 @@ export class RuntimeState {
         if (this.hasException()) {
             this.pcerror = this.wasmState.getPCError();
             this.exception_msg = this.wasmState.getExceptionMsg();
-            if (!this.oldException()) {
-                this.programCounter = this.pcerror;
-            }
         }
     }
 
@@ -218,9 +222,5 @@ export class RuntimeState {
         // PC ERROR may never be set when no error occured
         const missingState = this.wasmState.getMissingState();
         return missingState.length === 0 || (missingState.length === 1 && missingState[0] === ExecutionStateType.errorState);
-    }
-
-    private oldException(): boolean {
-        return false;
     }
 }

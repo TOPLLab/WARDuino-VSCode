@@ -8,18 +8,25 @@ import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
 import { DebuggingTimeline } from "../State/DebuggingTimeline";
 import { DeviceConfig } from "../DebuggerConfig";
 import { EventEmitter } from "stream";
+import { ProxyMode } from "./APIRequest";
 
 export interface DebugBridge extends EventEmitter {
 
   requestMissingState(): Promise<void>;
 
+  requestStoredException(): Promise<void>;
+
   emitNewStateEvent(): void;
 
-  connect(): Promise<string>;
+  connect(flash?: boolean): Promise<string>;
+
+  disconnectMonitor(): void;
 
   getDebuggingTimeline(): DebuggingTimeline;
 
   getCurrentState(): RuntimeState | undefined;
+
+  getSourceMap(): SourceMap;
 
   updateRuntimeState(runtimeState: RuntimeState, opts?: { refreshViews?: boolean, includeInTimeline?: boolean }): void;
 
@@ -28,7 +35,7 @@ export interface DebugBridge extends EventEmitter {
   getBreakpointPossibilities(): Breakpoint[];
 
 
-  proxify(): void;
+  proxify(mode: ProxyMode): Promise<void>;
 
   step(): Promise<void>;
 

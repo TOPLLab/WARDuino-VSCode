@@ -28,6 +28,8 @@ export abstract class AbstractChannel implements ChannelInterface {
 
     public abstract openConnection(maxAttempts?: number): Promise<boolean>;
 
+    public abstract disconnect(): void;
+
     public addCallback(dataCheck: (line: string) => boolean, cb: (line: string) => void): void {
         this.callbacks.push([dataCheck, cb]);
     }
@@ -42,11 +44,6 @@ export abstract class AbstractChannel implements ChannelInterface {
             this.requests.push([request, res]);
             this.write(request.dataToSend, rej);
         });
-    }
-
-    public disconnect(): void {
-        this.connection?.close();
-        this.connection = undefined;
     }
 
     private catchAllLogger(line: string) {
@@ -109,4 +106,17 @@ export abstract class AbstractChannel implements ChannelInterface {
         return resultIndex;
     }
 
+    protected registerListeners() {
+        if (this.connection) {
+            this.connection.on('data', (data: Buffer) => {
+                return this.onDataHandler(data)
+            });
+            this.connection.on('close', () => {
+                console.error(`${this.channelName}: closed`);
+            });
+            this.connection.on('error', (err: any) => {
+                console.error(`${this.channelName}: error occurred ${err}`);
+            });
+        }
+    }
 }

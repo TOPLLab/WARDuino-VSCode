@@ -8,13 +8,12 @@ import { LoggingSerialMonitor } from "../Channels/SerialConnection";
 import { ClientSideSocket } from "../Channels/ClientSideSocket";
 import { ChannelInterface } from "../Channels/ChannelInterface";
 import { SerialChannel } from "../Channels/SerialChannel";
-import { StateRequest } from "./APIRequest";
+import { ProxifyRequest, ProxyMode, Request, StateRequest } from "./APIRequest";
 import { RuntimeState } from "../State/RuntimeState";
+import { BreakpointPolicy } from "../State/Breakpoint";
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     protected client: ChannelInterface | undefined;
-    protected readonly portAddress: string;
-    protected readonly fqbn: string;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
 
@@ -24,14 +23,10 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         deviceConfig: DeviceConfig,
         sourceMap: SourceMap,
         tmpdir: string,
-        portAddress: string,
-        fqbn: string,
         warduinoSDK: string) {
         super(deviceConfig, sourceMap);
 
         this.sourceMap = sourceMap;
-        this.portAddress = portAddress;
-        this.fqbn = fqbn;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
     }
@@ -41,9 +36,9 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.startAddress = startAddress;
     }
 
-    async connect(): Promise<string> {
-        this.emit(EventsMessages.progress, this, Messages.compiling);
-        if (this.deviceConfig.onStartConfig.flash) {
+    async connect(flash?: boolean): Promise<string> {
+        const doFlash = flash === undefined ? this.deviceConfig.onStartConfig.flash : flash;
+        if (doFlash) {
             await this.compileAndUpload();
         }
         this.emit(EventsMessages.progress, this, Messages.connecting);
@@ -52,19 +47,27 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             this.registerCallbacks();
             if (!!!this.logginSerialConnection) {
                 const loggername = this.deviceConfig.name;
-                const port = this.portAddress;
-                const baudRate = 115200;
+                const port = this.deviceConfig.serialPort;
+                const baudRate = this.deviceConfig.baudrate;
                 this.logginSerialConnection = new LoggingSerialMonitor(loggername, port, baudRate);
             }
             this.logginSerialConnection.openConnection().catch((err) => {
-                console.log(`Plugin: could not monitor serial port ${this.portAddress} reason: ${err}`);
+                console.log(`Plugin: could not monitor serial port ${this.deviceConfig.serialPort} reason: ${err}`);
             });
         }
         else {
             await this.openSerialPort();
             this.registerCallbacks();
         }
-
+        if (doFlash) {
+            const p = new Promise((res) => {
+                const secs = 2000;
+                setTimeout(() => {
+                    res('done');
+                }, secs);
+            });
+            await p;
+        }
         return "";
     }
 
@@ -89,47 +92,54 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         }
     }
 
+    public disconnectMonitor() {
+        this.logginSerialConnection?.disconnect();
+    }
+
     protected async openSerialPort() {
-        const baudrate = 115200;
-        this.client = new SerialChannel(this.portAddress, baudrate);
+        this.client = new SerialChannel(this.deviceConfig.serialPort, this.deviceConfig.baudrate);
         if (!await this.client.openConnection()) {
-            return `Could not connect to serial port: ${this.portAddress}`
+            return `Could not connect to serial port: ${this.deviceConfig.serialPort}`;
         }
         this.emit(EventsMessages.connected, this);
-        return this.portAddress;
+        return this.deviceConfig.serialPort;
     }
 
     public disconnect(): void {
         this.client?.disconnect();
+        this.logginSerialConnection?.disconnect();
         console.error("CLOSED!");
         this.emit(EventsMessages.disconnected, this);
     }
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
         let lastStdOut = "";
-        this.emit(EventsMessages.progress, this, Messages.reset);
+        this.emit(EventsMessages.progress, this, EventsMessages.flashing);
+        const upload = exec(`make flash PORT=${this.deviceConfig.serialPort} FQBN=${this.deviceConfig.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
+            if (err) {
+                console.error(err);
+                lastStdOut = stdout + stderr;
+                const errMsg = `${EventsMessages.flashingFailure} reason: ${err}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
+            }
+        });
 
-        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
-            console.error(err);
-            lastStdOut = stdout + stderr;
-            this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
-            //this.listener.notifyProgress(Messages.initialisationFailure);
-        }
-        );
-
-        this.emit(EventsMessages.progress, this, Messages.uploading);
+        this.emit(EventsMessages.progress, this, EventsMessages.flashing);
 
         upload.on("close", (code) => {
             if (code === 0) {
                 resolver(true);
             } else {
+                const errMsg = `${EventsMessages.flashingFailure}. Exit code: ${code}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
                 reject(`Could not flash ended with ${code} \n${lastStdOut}`);
             }
         });
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        const compile = spawn("make", ["compile", `FQBN=${this.fqbn}`], {
+        this.emit(EventsMessages.progress, this, Messages.compiling);
+        const compile = spawn("make", ["compile", `FQBN=${this.deviceConfig.fqbn}`], {
             cwd: path
         });
 
@@ -139,14 +149,14 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
         compile.stderr.on("data", (data: string) => {
             console.error(`HardwareDebugBridge stderr: ${data}`);
-            this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
+            const errMsg = `${EventsMessages.compilationFailure}. Reason: ${data}`;
+            this.emit(EventsMessages.errorInProgress, this, errMsg);
             reject(data);
         });
 
         compile.on("close", (code) => {
             console.log(`Arduino compilation exited with code ${code}`);
             if (code === 0) {
-                this.emit(EventsMessages.progress, this, Messages.compiled);
                 this.uploadArduino(path, resolver, reject);
             } else {
                 this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
@@ -159,9 +169,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         return new Promise<boolean>((resolve, reject) => {
             const arduinoDir = this.deviceConfig.usesWiFi() ? "/platforms/Arduino-socket/" : "/platforms/Arduino/";
             const sdkpath: string = path.join(this.sdk, arduinoDir);
+            this.emit(EventsMessages.progress, this, Messages.compiling);
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
             cp.on("error", err => {
-                reject("Could not store upload file to sdk path.");
+                const errMsg = `Could not store upload file to sdk path. Reason: ${err}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
+                reject(errMsg);
             });
             cp.on("close", (code) => {
                 this.compileArduino(sdkpath, resolve, reject);
@@ -169,25 +182,42 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    public proxify(): void {
-        this.sendInterrupt(InterruptTypes.interruptProxify);
+    public async proxify(mode: ProxyMode): Promise<void> {
+        const req = ProxifyRequest(mode);
+        await this.client!.request(req);
     }
 
     async refresh(): Promise<void> {
-        const stateRequest = new StateRequest();
-        stateRequest.includePC();
-        stateRequest.includeStack();
-        stateRequest.includeCallstack();
-        stateRequest.includeBreakpoints();
-        stateRequest.includeGlobals();
-        const req = stateRequest.generateRequest();
+        const stateRequest = this.createStateRequest();
         try {
-            const response = await this.client!.request(req);
+            const response = await this.client!.request(stateRequest);
             const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
             this.updateRuntimeState(runtimeState);
         }
         catch (err) {
             console.error(`Hardware: refresh Error ${err}`);
         }
+    }
+
+    private createStateRequest(): Request {
+        const stateRequest = new StateRequest();
+        if (this.breakpointPolicy !== BreakpointPolicy.default) {
+            // non default bp policy is set so debugging on a MCU that cannot
+            // be stopped is in place.
+            // To keep he MCU running and allow local debugging
+            // we must request all the state
+            stateRequest.includeAll();
+        }
+        else {
+            // default bp policy is set so pausing a MCU to debug is allowed
+            // requesting a part of a snapshot suffices
+            stateRequest.includePC();
+            stateRequest.includeStack();
+            stateRequest.includeCallstack();
+            stateRequest.includeBreakpoints();
+            stateRequest.includeGlobals();
+            stateRequest.includeEvents();
+        }
+        return stateRequest.generateRequest();
     }
 }
