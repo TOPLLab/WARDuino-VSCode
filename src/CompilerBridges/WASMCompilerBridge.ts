@@ -177,7 +177,7 @@ export class WASMCompilerBridge implements CompileBridge {
             function handleCompilerStreams(error: ExecException | null, stdout: String, stderr: any) {
                 that.handleStdError(stderr, reject);
                 that.handleError(error, reject);
-                lineInfoPairs = parseUtils.getLineInfos(stdout);
+                lineInfoPairs = makeLineInfoPairs(stdout);
             }
 
             // TODO here make source mapping better
@@ -233,7 +233,7 @@ export class WASMCompilerBridge implements CompileBridge {
             function handleCompilerStreams(error: ExecException | null, stdout: String, stderr: any) {
                 that.handleStdError(stderr, reject);
                 that.handleError(error, reject);
-                sourceMap = parseUtils.getLineInfos(stdout);
+                sourceMap = makeLineInfoPairs(stdout);
             }
 
             let cp = exec(command, handleCompilerStreams);
