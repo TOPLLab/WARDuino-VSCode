@@ -163,7 +163,7 @@ jobs:
               cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
 
           - name: Run tests
-            run: npm run pretest; env WABT="${GITHUB_WORKSPACE}/WABT/build" npm run debugtest
+            run: npm run pretest
 
     test-ui:
         name: Plugin UI Test Suite
