@@ -211,10 +211,7 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run gen-examples",
     "gen-examples": "./src/test/suite/examples/build.sh",
-    "test": "npm run debugtest && npm run primtest",
-    "debugtest": "WABT='WABT/build' node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/debugger.test.ts",
-    "spectest": "WABT='WABT/build' CORESUITE='core/' node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/spec.test.ts",
-    "primtest": "WABT='WABT/build' node ./node_modules/mocha/bin/mocha --exit --reporter src/test/framework/MochaReporter.ts --require ts-node/register --ui bdd ./src/test/suite/primitives.test.ts",
+    "test": "npm run plugintest",
     "plugintest": "node ./out/test/runTest.js",
     "check": "node ./out/test.js",
     "lint": "eslint src --ext ts"
