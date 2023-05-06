@@ -1,20 +1,20 @@
-import { DebugBridge } from "./DebugBridge";
-import { Frame } from "../Parsers/Frame";
-import { VariableInfo } from "../State/VariableInfo";
-import { SourceMap, getLineNumberForAddress } from "../State/SourceMap";
-import { ExecutionStateType, WOODDumpResponse, WOODState } from "../State/WOODState";
-import { InterruptTypes } from "./InterruptTypes";
-import { FunctionInfo } from "../State/FunctionInfo";
-import { ProxyCallItem } from "../Views/ProxyCallsProvider";
-import { RuntimeState } from "../State/RuntimeState";
-import { Breakpoint, BreakpointPolicy, UniqueSet } from "../State/Breakpoint";
-import { HexaEncoder } from "../Util/hexaEncoding";
-import { DeviceConfig } from "../DebuggerConfig";
-import { DebuggingTimeline } from "../State/DebuggingTimeline";
-import { ChannelInterface } from "../Channels/ChannelInterface";
-import { PauseRequest, ProxyMode, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from "./APIRequest";
-import { EventItem } from "../Views/EventsProvider";
-import EventEmitter = require("events");
+import { DebugBridge } from './DebugBridge';
+import { Frame } from '../Parsers/Frame';
+import { VariableInfo } from '../State/VariableInfo';
+import { SourceMap, getLineNumberForAddress } from '../State/SourceMap';
+import { ExecutionStateType, WOODDumpResponse, WOODState } from '../State/WOODState';
+import { InterruptTypes } from './InterruptTypes';
+import { FunctionInfo } from '../State/FunctionInfo';
+import { ProxyCallItem } from '../Views/ProxyCallsProvider';
+import { RuntimeState } from '../State/RuntimeState';
+import { Breakpoint, BreakpointPolicy, UniqueSet } from '../State/Breakpoint';
+import { HexaEncoder } from '../Util/hexaEncoding';
+import { DeviceConfig } from '../DebuggerConfig';
+import { DebuggingTimeline } from '../State/DebuggingTimeline';
+import { ChannelInterface } from '../Channels/ChannelInterface';
+import { PauseRequest, ProxyMode, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from './APIRequest';
+import { EventItem } from '../Views/EventsProvider';
+import EventEmitter = require('events');
 
 export class Messages {
     public static readonly compiling: string = 'Compiling the code';
@@ -30,26 +30,26 @@ export class Messages {
 }
 
 export class EventsMessages {
-    public static readonly stateUpdated: string = "state updated";
-    public static readonly moduleUpdated: string = "module updated";
-    public static readonly stepCompleted: string = "stepped";
-    public static readonly running: string = "running";
-    public static readonly paused: string = "paused";
-    public static readonly exceptionOccurred: string = "exception occurred";
-    public static readonly enforcingBreakpointPolicy: string = "enforcing breakpoint policy";
-    public static readonly connected: string = "connected";
-    public static readonly connectionError: string = "connectionError";
-    public static readonly disconnected: string = "disconnected";
-    public static readonly emulatorStarted: string = "emulator started";
-    public static readonly emulatorClosed: string = "emulator closed";
-    public static readonly progress: string = "progress";
-    public static readonly errorInProgress: string = "progress error";
-    public static readonly compiling: string = "Compiling the code";
-    public static readonly compiled: string = "Compiled Code";
-    public static readonly compilationFailure: string = "Compilation failure";
-    public static readonly flashing: string = "Flashing Code";
-    public static readonly flashingFailure: string = "Flashing failed";
-    public static readonly atBreakpoint: string = "At breakpoint";
+    public static readonly stateUpdated: string = 'state updated';
+    public static readonly moduleUpdated: string = 'module updated';
+    public static readonly stepCompleted: string = 'stepped';
+    public static readonly running: string = 'running';
+    public static readonly paused: string = 'paused';
+    public static readonly exceptionOccurred: string = 'exception occurred';
+    public static readonly enforcingBreakpointPolicy: string = 'enforcing breakpoint policy';
+    public static readonly connected: string = 'connected';
+    public static readonly connectionError: string = 'connectionError';
+    public static readonly disconnected: string = 'disconnected';
+    public static readonly emulatorStarted: string = 'emulator started';
+    public static readonly emulatorClosed: string = 'emulator closed';
+    public static readonly progress: string = 'progress';
+    public static readonly errorInProgress: string = 'progress error';
+    public static readonly compiling: string = 'Compiling the code';
+    public static readonly compiled: string = 'Compiled Code';
+    public static readonly compilationFailure: string = 'Compilation failure';
+    public static readonly flashing: string = 'Flashing Code';
+    public static readonly flashingFailure: string = 'Flashing failed';
+    public static readonly atBreakpoint: string = 'At breakpoint';
 }
 
 
@@ -116,9 +116,9 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             this.updateRuntimeState(runtimeState, doNotSave);
         } else {
             await this.client?.request({
-                dataToSend: InterruptTypes.interruptSTEP + "\n",
+                dataToSend: InterruptTypes.interruptSTEP + '\n',
                 expectedResponse: (line) => {
-                    return line.includes("STEP");
+                    return line.includes('STEP');
                 },
             });
             // Normal step forward
@@ -353,7 +353,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         if (includeInTimeline && this.timeline.isActiveStatePresent()) {
             this.timeline.addRuntime(runtimeState.deepcopy());
             if (!!!this.timeline.advanceTimeline()) {
-                throw new Error("Timeline should be able to advance");
+                throw new Error('Timeline should be able to advance');
             }
         }
         this.emitNewStateEvent();
@@ -449,7 +449,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         //callback that requests the new events
         this.client?.addCallback(
             (line: string) => {
-                return line === "new pushed event";
+                return line === 'new pushed event';
             },
             (line: string) => {
                 this.refreshEvents();

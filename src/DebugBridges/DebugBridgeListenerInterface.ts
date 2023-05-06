@@ -1,5 +1,5 @@
-import { WOODState } from "../State/WOODState";
-import { DebugBridge } from "./DebugBridge";
+import { WOODState } from '../State/WOODState';
+import { DebugBridge } from './DebugBridge';
 
 export interface DebugBridgeListenerInterface {
     setBridge(debugBridge: DebugBridge): void;

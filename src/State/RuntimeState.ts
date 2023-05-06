@@ -1,9 +1,9 @@
-import { EventItem } from "../Views/EventsProvider";
-import { Frame } from "../Parsers/Frame";
-import { VariableInfo } from "./VariableInfo";
-import { WasmState } from "./AllState";
-import { SourceMap } from "./SourceMap";
-import { ExecutionStateType, InterruptEvent } from "./WOODState";
+import { EventItem } from '../Views/EventsProvider';
+import { Frame } from '../Parsers/Frame';
+import { VariableInfo } from './VariableInfo';
+import { WasmState } from './AllState';
+import { SourceMap } from './SourceMap';
+import { ExecutionStateType, InterruptEvent } from './WOODState';
 
 function hash(s: string) {
     let h: number = 0;
@@ -24,16 +24,16 @@ export class RuntimeState {
     private globals: VariableInfo[] = [];
     private arguments: VariableInfo[] = [];
     private pcerror: number = -1;
-    private exception_msg: string = "";
+    private exception_msg: string = '';
 
     private wasmState: WasmState;
 
-    private source: string = "";
+    private source: string = '';
     private sourceMap: SourceMap;
 
 
     constructor(source: string, sourceMap: SourceMap) {
-        this.id = hash(source ?? "");
+        this.id = hash(source ?? '');
         this.sourceMap = sourceMap;
         this.source = source;
         this.wasmState = WasmState.fromLine(source, sourceMap);

@@ -1,5 +1,5 @@
-import { RuntimeState } from "../State/RuntimeState";
-import { RuntimeViewRefreshInterface } from "./RuntimeViewRefreshInterface";
+import { RuntimeState } from '../State/RuntimeState';
+import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
 
 export class RuntimeViewsRefresher {
 

@@ -6,9 +6,9 @@ import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
 import { getLineNumberForAddress } from '../State/SourceMap';
 
 export enum AllowedAction {
-    Save = "save",
-    DebugExternally = "debug-externally",
-    None = "none"
+    Save = 'save',
+    DebugExternally = 'debug-externally',
+    None = 'none'
 }
 
 export class DebuggingTimelineProvider implements vscode.TreeDataProvider<TimelineItem>, RuntimeViewRefreshInterface {
@@ -51,7 +51,7 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
                 const sm = this.debugBridge.getSourceMap();
                 const doNotMinusOne = false;
                 const linenr = getLineNumberForAddress(sm, rs.getProgramCounter(), doNotMinusOne);
-                let label = "";
+                let label = '';
                 if (linenr !== undefined) {
                     label = `Line ${linenr}`;
                 }
@@ -119,7 +119,7 @@ export class TimelineItem extends vscode.TreeItem {
         this.contextValue = allowedAction;
         this.view = view;
         if (runtimeState.hasException()) {
-            this.iconPath = new vscode.ThemeIcon("bug");
+            this.iconPath = new vscode.ThemeIcon('bug');
         }
     }
 

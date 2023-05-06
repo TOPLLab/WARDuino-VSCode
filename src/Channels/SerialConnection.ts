@@ -36,7 +36,7 @@ export class LoggingSerialMonitor {
     private installLogger(): void {
         const parser = new ReadlineParser();
         this.connection?.pipe(parser);
-        parser.on("data", (line: string) => {
+        parser.on('data', (line: string) => {
             console.log(`${this.loggername}: ${line}`);
         });
     }

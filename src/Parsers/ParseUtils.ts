@@ -1,6 +1,6 @@
-import {FunctionInfo} from "../State/FunctionInfo";
-import { string2WASMType, TypeInfo } from "../State/TypeInfo";
-import {VariableInfo} from "../State/VariableInfo";
+import {FunctionInfo} from '../State/FunctionInfo';
+import { string2WASMType, TypeInfo } from '../State/TypeInfo';
+import {VariableInfo} from '../State/VariableInfo';
 
 export function jsonParse(obj: string) {
     return new Function(`return ${obj}`)();
@@ -84,7 +84,7 @@ function fillInExportInfos() {
 function extractTypeInfo(line: String): TypeInfo {
     let typeInfo = {} as TypeInfo;
     // string of the form "type[3] (i32, i64) -> i32"
-    const [leftSidearrow, rightSideArrow] = line.split("->"); // 
+    const [leftSidearrow, rightSideArrow] = line.split('->'); // 
 
     const matchTypeIdx = leftSidearrow.match(/type\[([0-9]+)\]/);
     if(matchTypeIdx === null){
@@ -102,7 +102,7 @@ function extractTypeInfo(line: String): TypeInfo {
     }
 
     // string of the form "type (i32, i64) "
-    const paramstypes = leftSidearrow.split("(")[1].split(")")[0].split(",").map(s=>s.trim()).filter(s=>s!=="");
+    const paramstypes = leftSidearrow.split('(')[1].split(')')[0].split(',').map(s=>s.trim()).filter(s=>s!=='');
 
     typeInfo.parameters = paramstypes.map(t=>string2WASMType(t));
     return typeInfo;
@@ -137,7 +137,7 @@ function extractImportInfo(line: String): FunctionInfo {
 }
 
 export function getTypeInfos(input: String): Map<number, TypeInfo> {
-    let lines: String[] = extractDetailedSection("Type[", input);
+    let lines: String[] = extractDetailedSection('Type[', input);
     const typesInfos: Map<number,TypeInfo> = new Map<number, TypeInfo>();
     lines.forEach((line) => {
         const typeInfo = extractTypeInfo(line);
@@ -147,7 +147,7 @@ export function getTypeInfos(input: String): Map<number, TypeInfo> {
 }
 
 export function getFunctionInfos(input: String): FunctionInfo[] {
-    const functionSection: String[] = extractDetailedSection("Function[", input);
+    const functionSection: String[] = extractDetailedSection('Function[', input);
     const metadata: Map<number,number> = new Map<number,number>();
     let firstNonPrimiveFunc = -1;
     functionSection.forEach(s=>{
@@ -161,7 +161,7 @@ export function getFunctionInfos(input: String): FunctionInfo[] {
         }
     });
 
-    let functionLines: String[] = extractMajorSection("Sourcemap JSON:", input);
+    let functionLines: String[] = extractMajorSection('Sourcemap JSON:', input);
 
     if (functionLines.length === 0) {
         throw Error("Could not parse 'sourcemap' section of objdump");
@@ -174,7 +174,7 @@ export function getFunctionInfos(input: String): FunctionInfo[] {
         if(index >= firstNonPrimiveFunc){
             let locals: VariableInfo[] = [];
             func.locals.forEach((local: string, index: number) => {
-                locals.push({index: index, name: local, type: "undefined", mutable: true, value: ""});
+                locals.push({index: index, name: local, type: 'undefined', mutable: true, value: ''});
             });
             const typeIdx = metadata.get(index);
             if(typeIdx === undefined){

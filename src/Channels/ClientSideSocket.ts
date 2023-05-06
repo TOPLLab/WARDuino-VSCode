@@ -13,7 +13,7 @@ export class ClientSideSocket extends AbstractChannel implements ChannelInterfac
     constructor(port: number, host: string) {
         super(`ClientSideSocket(${host}:${port})`);
         this.port = port;
-        this.host = host === "" ? "127.0.0.1" : host;
+        this.host = host === '' ? '127.0.0.1' : host;
     }
 
     public write(data: string, cb?: ((err?: Error | undefined) => void) | undefined): boolean {

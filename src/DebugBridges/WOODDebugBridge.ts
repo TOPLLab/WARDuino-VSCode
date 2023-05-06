@@ -1,8 +1,8 @@
-import { EmulatedDebugBridge } from "./EmulatedDebugBridge";
-import { InterruptTypes } from "./InterruptTypes";
-import { ProxyCallItem } from "../Views/ProxyCallsProvider";
-import { ChildProcess, spawn } from "child_process";
-import { Request } from "./APIRequest";
+import { EmulatedDebugBridge } from './EmulatedDebugBridge';
+import { InterruptTypes } from './InterruptTypes';
+import { ProxyCallItem } from '../Views/ProxyCallsProvider';
+import { ChildProcess, spawn } from 'child_process';
+import { Request } from './APIRequest';
 
 export class WOODDebugBridge extends EmulatedDebugBridge {
 
@@ -10,7 +10,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         return {
             dataToSend: this.monitorProxiesCommand(primitive),
             expectedResponse: (line: string) => {
-                return line === "done!";
+                return line === 'done!';
             }
         };
     }
@@ -57,11 +57,11 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${emulatorPort}`];
 
         if (this.deviceConfig.needsProxyToAnotherVM()) {
-            if (proxyIP && proxyIP !== "") {
-                args.push("--proxy", `${proxyIP}:${proxyPort}`);
+            if (proxyIP && proxyIP !== '') {
+                args.push('--proxy', `${proxyIP}:${proxyPort}`);
             }
-            else if (proxySerialPort && proxySerialPort !== "") {
-                args.push("--proxy", proxySerialPort, "--baudrate", `${proxyBaudrate}`);
+            else if (proxySerialPort && proxySerialPort !== '') {
+                args.push('--proxy', proxySerialPort, '--baudrate', `${proxyBaudrate}`);
             }
             else {
                 throw Error(`cannot spawn emulator in proxy mode without serialPort or IP of target MCU.
@@ -70,7 +70,7 @@ export class WOODDebugBridge extends EmulatedDebugBridge {
         }
 
         if (this.deviceConfig.onStartConfig.pause) {
-            args.push("--paused");
+            args.push('--paused');
         }
         return spawn(`${this.sdk}/build-emu/wdcli`, args);
         // return spawn(`echo`, ['"Listening"']);

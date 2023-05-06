@@ -1,14 +1,14 @@
-import { VariableInfo } from "../State/VariableInfo";
-import { WOODState } from "../State/WOODState";
-import { SourceMap } from "../State/SourceMap";
-import { ProxyCallItem } from "../Views/ProxyCallsProvider";
-import { RuntimeState } from "../State/RuntimeState";
-import { Breakpoint, BreakpointPolicy } from "../State/Breakpoint";
-import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
-import { DebuggingTimeline } from "../State/DebuggingTimeline";
-import { DeviceConfig } from "../DebuggerConfig";
-import { EventEmitter } from "stream";
-import { ProxyMode } from "./APIRequest";
+import { VariableInfo } from '../State/VariableInfo';
+import { WOODState } from '../State/WOODState';
+import { SourceMap } from '../State/SourceMap';
+import { ProxyCallItem } from '../Views/ProxyCallsProvider';
+import { RuntimeState } from '../State/RuntimeState';
+import { Breakpoint, BreakpointPolicy } from '../State/Breakpoint';
+import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
+import { DebuggingTimeline } from '../State/DebuggingTimeline';
+import { DeviceConfig } from '../DebuggerConfig';
+import { EventEmitter } from 'stream';
+import { ProxyMode } from './APIRequest';
 
 export interface DebugBridge extends EventEmitter {
 

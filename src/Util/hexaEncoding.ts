@@ -142,7 +142,7 @@ export class HexaEncoder {
     }
 
     static serializeString(s: string): string {
-        return s.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+        return s.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
     }
 
     static convertToLEB128(a: number): string { // TODO can only handle 32 bit
@@ -155,10 +155,10 @@ export class HexaEncoder {
                 (a === 0 && (byte_ & 0x40) === 0) ||
                 (a === -1 && (byte_ & 0x40) !== 0)
             ) {
-                result.push(byte_.toString(16).padStart(2, "0"));
-                return result.join("").toUpperCase();
+                result.push(byte_.toString(16).padStart(2, '0'));
+                return result.join('').toUpperCase();
             }
-            result.push((byte_ | 0x80).toString(16).padStart(2, "0"));
+            result.push((byte_ | 0x80).toString(16).padStart(2, '0'));
         }
     }
 }

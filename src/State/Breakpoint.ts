@@ -3,9 +3,9 @@ abstract class Comparable {
 }
 
 export enum BreakpointPolicy {
-    singleStop = "single stop",
-    removeAndProceed = "remove and proceed",
-    default = "default"
+    singleStop = 'single stop',
+    removeAndProceed = 'remove and proceed',
+    default = 'default'
 }
 
 export class Breakpoint extends Comparable {

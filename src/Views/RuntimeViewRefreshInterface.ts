@@ -1,4 +1,4 @@
-import { RuntimeState } from "../State/RuntimeState";
+import { RuntimeState } from '../State/RuntimeState';
 
 export interface RuntimeViewRefreshInterface {
 

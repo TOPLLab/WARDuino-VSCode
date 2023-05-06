@@ -1,6 +1,6 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from 'fs';
 import * as path from 'path';
-import { DeviceConfig, ProxyConfig, WiFiCredentials } from "../../DebuggerConfig";
+import { DeviceConfig, ProxyConfig, WiFiCredentials } from '../../DebuggerConfig';
 
 
 export class ArduinoTemplateBuilder {
@@ -34,7 +34,7 @@ export class ArduinoTemplateBuilder {
 
     static buildArduinoWithWifi(deviceConfig: DeviceConfig, outputDir: string = '', outputFilename: string = 'Arduino-socket.ino'): boolean {
         if (!deviceConfig.usesWiFi()) {
-            throw (new Error(`ArduinoTemplateBuilder: cannot build Wifi based arduino without wifi credentials`));
+            throw (new Error('ArduinoTemplateBuilder: cannot build Wifi based arduino without wifi credentials'));
         }
         const wifiCredentials = deviceConfig.wifiCredentials as WiFiCredentials;
         const templateName = 'Arduino-socket.template';

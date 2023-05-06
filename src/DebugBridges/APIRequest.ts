@@ -1,11 +1,11 @@
-import { ExecutionStateType, WOODDumpResponse, numberExecutionStateTypes } from "../State/WOODState";
-import { HexaEncoder } from "../Util/hexaEncoding";
-import { InterruptTypes } from "./InterruptTypes";
+import { ExecutionStateType, WOODDumpResponse, numberExecutionStateTypes } from '../State/WOODState';
+import { HexaEncoder } from '../Util/hexaEncoding';
+import { InterruptTypes } from './InterruptTypes';
 
 export type Request = {
     dataToSend: string;
     expectedResponse: (line: string) => boolean;
-}
+};
 
 export class StateRequest {
 
@@ -76,17 +76,17 @@ export class StateRequest {
     public generateInterrupt(): string {
         this.state.sort();
         const numberBytes = HexaEncoder.serializeUInt16BE(this.state.length);
-        const stateToReq = this.state.join("");
+        const stateToReq = this.state.join('');
         return `${InterruptTypes.interruptDumpExecutionState}${numberBytes}${stateToReq}`;
     }
 
     public generateRequest(): Request {
         return {
-            dataToSend: this.generateInterrupt() + "\n",
+            dataToSend: this.generateInterrupt() + '\n',
             expectedResponse: (line: string) => {
                 return this.isExpectedState(line);
             }
-        }
+        };
     }
 
     private isExpectedState(line: string): boolean {
@@ -144,57 +144,57 @@ export class StateRequest {
         const request = new StateRequest();
         states.forEach(s => {
             request.pushState(s);
-        })
+        });
         return request;
     }
 }
 
 export const RunRequest: Request = {
-    dataToSend: InterruptTypes.interruptRUN + "\n",
+    dataToSend: InterruptTypes.interruptRUN + '\n',
     expectedResponse: (line: string) => {
-        return line === "GO!";
+        return line === 'GO!';
     }
-}
+};
 
 export const PauseRequest: Request = {
-    dataToSend: InterruptTypes.interruptPAUSE + "\n",
+    dataToSend: InterruptTypes.interruptPAUSE + '\n',
     expectedResponse: (line: string) => {
-        return line === "PAUSE!";
+        return line === 'PAUSE!';
     }
-}
+};
 
 export function UpdateGlobalRequest(globalIdx: number, dataToSend: string) {
     return {
-        dataToSend: dataToSend + "\n",
+        dataToSend: dataToSend + '\n',
         expectedResponse: (line: string) => {
             return line === `Updated Global ${globalIdx}`;
         }
-    }
+    };
 }
 
 export function StackValueUpdateRequest(stackValueIdx: number, dataToSend: string) {
     return {
-        dataToSend: dataToSend + "\n",
+        dataToSend: dataToSend + '\n',
         expectedResponse: (line: string) => {
             return line === `Updated StackValue ${stackValueIdx}`;
         }
-    }
+    };
 }
 
 export function UpdateStateRequest(stateToSend: string[]): Request[] {
     const finalStateIdx = stateToSend.length - 1;
     return stateToSend.map((state, stateIdx) => {
         return {
-            dataToSend: state + "\n",
+            dataToSend: state + '\n',
             expectedResponse: (line: string) => {
                 if (finalStateIdx === stateIdx) {
-                    return line === "done!";
+                    return line === 'done!';
                 }
                 else {
-                    return line === "ack!";
+                    return line === 'ack!';
                 }
             }
-        }
+        };
     });
 }
 
@@ -203,14 +203,14 @@ export function UpdateModuleRequest(wasm: Buffer): Request {
     const sizeHex = HexaEncoder.convertToLEB128(w.length);
     const sizeBuffer = Buffer.allocUnsafe(4);
     sizeBuffer.writeUint32BE(w.length);
-    const wasmHex = Buffer.from(w).toString("hex");
+    const wasmHex = Buffer.from(w).toString('hex');
     const dataToSend = `${InterruptTypes.interruptUPDATEMod}${sizeHex}${wasmHex}`;
     return {
-        dataToSend: dataToSend + "\n",
+        dataToSend: dataToSend + '\n',
         expectedResponse: (line: string) => {
-            return line === "CHANGE Module!";
+            return line === 'CHANGE Module!';
         }
-    }
+    };
 }
 
 export enum ProxyMode {
@@ -223,7 +223,7 @@ export function ProxifyRequest(mode: ProxyMode) {
     return {
         dataToSend: `${InterruptTypes.interruptProxify}${mode}\n`,
         expectedResponse: (line: string) => {
-            return line === "Proxify!";
+            return line === 'Proxify!';
         }
-    }
+    };
 }

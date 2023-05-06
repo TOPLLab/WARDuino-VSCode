@@ -1,15 +1,15 @@
-import { exec, ExecException } from "child_process";
-import * as parseUtils from "../Parsers/ParseUtils";
-import { CompileTimeError } from "./CompileTimeError";
-import { LineInfo } from "../State/LineInfo";
-import { LineInfoPairs } from "../State/LineInfoPairs";
-import { CompileBridge } from "./CompileBridge";
-import { SourceMap } from "../State/SourceMap";
-import { FunctionInfo } from "../State/FunctionInfo";
-import { VariableInfo } from "../State/VariableInfo";
-import { TypeInfo } from "../State/TypeInfo";
-import { readFileSync } from "fs";
-import assert = require("assert");
+import { exec, ExecException } from 'child_process';
+import * as parseUtils from '../Parsers/ParseUtils';
+import { CompileTimeError } from './CompileTimeError';
+import { LineInfo } from '../State/LineInfo';
+import { LineInfoPairs } from '../State/LineInfoPairs';
+import { CompileBridge } from './CompileBridge';
+import { SourceMap } from '../State/SourceMap';
+import { FunctionInfo } from '../State/FunctionInfo';
+import { VariableInfo } from '../State/VariableInfo';
+import { TypeInfo } from '../State/TypeInfo';
+import { readFileSync } from 'fs';
+import assert = require('assert');
 
 function checkCompileTimeError(errorMessage: string) {
     let regexpr = /:(?<line>(\d+)):(?<column>(\d+)): error: (?<message>(.*))/;
@@ -45,10 +45,10 @@ function extractLineInfo(lineString: string): LineInfo {
 function extractSectionAddressCorrections(lines: string[]): Map<number, number> {
     const corrections: Map<number, number> = new Map();
     const sections: string[] =
-        ["Type", "Import", "Function", "Table", "Memory", "Global", "Export", "Elem", "Code"]
+        ['Type', 'Import', 'Function', 'Table', 'Memory', 'Global', 'Export', 'Elem', 'Code']
             .map(kind => {
                 return `; section "${kind}" (`;
-            })
+            });
     let candidates: number[] = [];
     let inSection = false;
     let sectionStartIdx = -1;
@@ -65,10 +65,10 @@ function extractSectionAddressCorrections(lines: string[]): Map<number, number> 
 
         if (inSection && i >= sectionStartIdx) {
             candidates.push(i);
-            if (line.includes("; FIXUP section size")) {
+            if (line.includes('; FIXUP section size')) {
                 const hexaAddr = line.match(/: ([a-zA-Z0-9]+)/)?.[1];
                 if (hexaAddr) {
-                    assert(hexaAddr.length % 2 === 0, "hexa address is not even");
+                    assert(hexaAddr.length % 2 === 0, 'hexa address is not even');
                     const amountBytes = hexaAddr.length / 2;
                     candidates.forEach(lineNr => {
                         corrections.set(lineNr, amountBytes - 1);
@@ -102,13 +102,13 @@ function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
                 const newAddr = Number(`0x${addr}`) + offset;
                 const tmpAddr = newAddr.toString(16);
                 // add padding
-                addr = `${"0".repeat(addr.length - tmpAddr.length)}${tmpAddr}`;
+                addr = `${'0'.repeat(addr.length - tmpAddr.length)}${tmpAddr}`;
             }
             const li = {
                 line: lastLineInfo!.line,
                 column: lastLineInfo!.column,
                 message: lastLineInfo!.message,
-            }
+            };
             result.push({ lineInfo: li, lineAddress: addr });
         }
         catch (e) {

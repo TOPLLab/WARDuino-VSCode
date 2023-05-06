@@ -1,10 +1,10 @@
-import { FunctionInfo } from "../State/FunctionInfo";
+import { FunctionInfo } from '../State/FunctionInfo';
 import * as vscode from 'vscode';
 import { ProviderResult, ThemeIcon, TreeItem } from 'vscode';
-import { DebugBridge } from "../DebugBridges/DebugBridge";
-import { BreakpointPolicy, Breakpoint } from "../State/Breakpoint";
-import { RuntimeViewRefreshInterface } from "./RuntimeViewRefreshInterface";
-import { RuntimeState } from "../State/RuntimeState";
+import { DebugBridge } from '../DebugBridges/DebugBridge';
+import { BreakpointPolicy, Breakpoint } from '../State/Breakpoint';
+import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
+import { RuntimeState } from '../State/RuntimeState';
 
 export class BreakpointPolicyProvider implements vscode.TreeDataProvider<BreakpointPolicyItem>, RuntimeViewRefreshInterface {
     private debugBridge: DebugBridge;
@@ -75,8 +75,8 @@ export class BreakpointPolicyItem extends vscode.TreeItem {
         super(policy);
         this.policy = policy;
         this.selected = false;
-        this.iconPath = new ThemeIcon("pass-filled");
-        this.command = { title: "Activate breakpoint policy", command: "warduinodebug.toggleBreakpointPolicy", arguments: [this] };
+        this.iconPath = new ThemeIcon('pass-filled');
+        this.command = { title: 'Activate breakpoint policy', command: 'warduinodebug.toggleBreakpointPolicy', arguments: [this] };
     }
 
     getPolicy(): BreakpointPolicy {
@@ -89,16 +89,16 @@ export class BreakpointPolicyItem extends vscode.TreeItem {
 
     toggle() {
         this.selected = !this.selected;
-        this.iconPath = new ThemeIcon(this.selected ? "pass-filled" : "circle-large-outline");
+        this.iconPath = new ThemeIcon(this.selected ? 'pass-filled' : 'circle-large-outline');
     }
 
     select() {
         this.selected = true;
-        this.iconPath = new ThemeIcon("pass-filled");
+        this.iconPath = new ThemeIcon('pass-filled');
     }
 
     deSelect() {
         this.selected = false;
-        this.iconPath = new ThemeIcon("circle-large-outline");
+        this.iconPath = new ThemeIcon('circle-large-outline');
     }
 }

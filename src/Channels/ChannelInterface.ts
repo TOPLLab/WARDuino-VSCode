@@ -1,4 +1,4 @@
-import { Request } from "../DebugBridges/APIRequest";
+import { Request } from '../DebugBridges/APIRequest';
 
 export interface ChannelInterface {
 

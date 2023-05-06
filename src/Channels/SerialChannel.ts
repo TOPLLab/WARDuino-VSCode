@@ -9,7 +9,7 @@ export class SerialChannel extends AbstractChannel implements ChannelInterface {
     public readonly port: string;
 
     constructor(port: string, baudrate: number) {
-        super(`SerialConnection (${port})`)
+        super(`SerialConnection (${port})`);
         this.baudrate = baudrate;
         this.port = port;
     }

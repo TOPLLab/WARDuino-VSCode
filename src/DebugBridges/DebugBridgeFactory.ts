@@ -1,13 +1,13 @@
-import { DebugBridge } from "./DebugBridge";
-import { DebugBridgeListenerInterface } from "./DebugBridgeListenerInterface";
-import { RunTimeTarget } from "./RunTimeTarget";
-import { EmulatedDebugBridge } from "./EmulatedDebugBridge";
+import { DebugBridge } from './DebugBridge';
+import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
+import { RunTimeTarget } from './RunTimeTarget';
+import { EmulatedDebugBridge } from './EmulatedDebugBridge';
 import { getFileExtension } from '../Parsers/ParseUtils';
-import { HardwareDebugBridge } from "./HardwareDebugBridge";
-import * as vscode from "vscode";
-import { SourceMap } from "../State/SourceMap";
-import { WOODDebugBridge } from "./WOODDebugBridge";
-import { DeviceConfig } from "../DebuggerConfig";
+import { HardwareDebugBridge } from './HardwareDebugBridge';
+import * as vscode from 'vscode';
+import { SourceMap } from '../State/SourceMap';
+import { WOODDebugBridge } from './WOODDebugBridge';
+import { DeviceConfig } from '../DebuggerConfig';
 
 function getConfig(id: string): string {
     const config: string | undefined = vscode.workspace.getConfiguration().get(id);
@@ -22,8 +22,8 @@ export class DebugBridgeFactory {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
-            case "wast":
-                const warduinoSDK: string = getConfig("warduino.WARDuinoToolChainPath");
+            case 'wast':
+                const warduinoSDK: string = getConfig('warduino.WARDuinoToolChainPath');
                 switch (target) {
                     // Emulated runtimes
                     case RunTimeTarget.emulator:

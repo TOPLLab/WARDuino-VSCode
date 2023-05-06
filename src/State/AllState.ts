@@ -1,7 +1,7 @@
-import { SourceMap } from "../State/SourceMap";
-import { FunctionInfo } from "./FunctionInfo";
-import { VariableInfo } from "./VariableInfo";
-import { WOODDumpResponse, WOODState, Frame, FRAME_FUNC_TYPE, InterruptEvent, ExecutionStateType, StackValue } from "./WOODState";
+import { SourceMap } from '../State/SourceMap';
+import { FunctionInfo } from './FunctionInfo';
+import { VariableInfo } from './VariableInfo';
+import { WOODDumpResponse, WOODState, Frame, FRAME_FUNC_TYPE, InterruptEvent, ExecutionStateType, StackValue } from './WOODState';
 
 
 export class WasmState {
@@ -188,7 +188,7 @@ export class WasmState {
     }
 
     hasException() {
-        return !!this.state.pc_error || (!!this.state.exception_msg && this.state.exception_msg !== "");
+        return !!this.state.pc_error || (!!this.state.exception_msg && this.state.exception_msg !== '');
     }
 
     getPCError(): number {
@@ -206,7 +206,7 @@ export class WasmState {
         if (!!this.state.exception_msg) {
             return this.state.exception_msg;
         }
-        return "";
+        return '';
     }
 
     getRawExceptionMsg() {
@@ -249,7 +249,7 @@ export class WasmState {
 
     getAllStack(): VariableInfo[] {
         return this.state.stack?.map((sv, idx) => {
-            return { index: idx, name: "", type: sv.type, mutable: true, value: sv.value.toString() };
+            return { index: idx, name: '', type: sv.type, mutable: true, value: sv.value.toString() };
         }) ?? [];
     }
 
@@ -340,7 +340,7 @@ export class WasmState {
             ws.callbacks = JSON.stringify(this.state.callbacks);
         }
         else {
-            console.warn("callbacks mapping empty");
+            console.warn('callbacks mapping empty');
         }
 
         return ws;

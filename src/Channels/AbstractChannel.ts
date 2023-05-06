@@ -8,7 +8,7 @@ export abstract class AbstractChannel implements ChannelInterface {
 
     private channelName: string;
     protected connection: any;
-    private dataBuffered: string = "";
+    private dataBuffered: string = '';
     private requests: [Request, FutureResolver][];
     private callbacks: [(line: string) => boolean, (line: string) => void][];
     private catchAllHandler: (line: string) => void;
@@ -17,8 +17,8 @@ export abstract class AbstractChannel implements ChannelInterface {
         this.channelName = channelName;
         this.requests = [];
         this.catchAllHandler = (line: string) => {
-            return this.catchAllLogger(line)
-        }
+            return this.catchAllLogger(line);
+        };
         this.callbacks = [];
     }
 
@@ -78,7 +78,7 @@ export abstract class AbstractChannel implements ChannelInterface {
 
     private parseLines(): string[] {
         const lines = [];
-        let idx = this.dataBuffered.indexOf("\n");
+        let idx = this.dataBuffered.indexOf('\n');
         while (idx !== -1) {
             let line = this.dataBuffered.slice(0, idx);
             this.dataBuffered = this.dataBuffered.slice(idx + 1); // skip newline
@@ -87,7 +87,7 @@ export abstract class AbstractChannel implements ChannelInterface {
             }
             console.log(`ClientSideSocket.parsedLine: ${line}`);
             lines.push(line);
-            idx = this.dataBuffered.indexOf("\n");
+            idx = this.dataBuffered.indexOf('\n');
         };
         return lines;
     }
@@ -95,7 +95,7 @@ export abstract class AbstractChannel implements ChannelInterface {
 
     private findFutureResolver(line: string): number | undefined {
         let i = 0;
-        let resultIndex: number | undefined = undefined
+        let resultIndex: number | undefined = undefined;
         while (resultIndex === undefined && i < this.requests.length) {
             const checkForMatch = this.requests[i][0];
             if (checkForMatch.expectedResponse(line)) {
@@ -109,7 +109,7 @@ export abstract class AbstractChannel implements ChannelInterface {
     protected registerListeners() {
         if (this.connection) {
             this.connection.on('data', (data: Buffer) => {
-                return this.onDataHandler(data)
+                return this.onDataHandler(data);
             });
             this.connection.on('close', () => {
                 console.error(`${this.channelName}: closed`);

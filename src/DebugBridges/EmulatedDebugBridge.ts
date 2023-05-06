@@ -1,6 +1,6 @@
 import { ChildProcess, spawn } from 'child_process';
-import { AbstractDebugBridge, EventsMessages } from "./AbstractDebugBridge";
-import { SourceMap } from "../State/SourceMap";
+import { AbstractDebugBridge, EventsMessages } from './AbstractDebugBridge';
+import { SourceMap } from '../State/SourceMap';
 import { Readable } from 'stream';
 import { ReadlineParser } from 'serialport';
 import { DeviceConfig } from '../DebuggerConfig';
@@ -28,11 +28,11 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     public proxify(mode: ProxyMode): Promise<void> {
-        throw new Error("EmulatedDebugBridge.proxify: Method not supported.");
+        throw new Error('EmulatedDebugBridge.proxify: Method not supported.');
     }
 
     upload(): void {
-        throw new Error("EmulatedDebugBridge.upload: Method not implemented.");
+        throw new Error('EmulatedDebugBridge.upload: Method not implemented.');
     }
 
     setStartAddress(startAddress: number) {
@@ -124,7 +124,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
     }
 
     public disconnectMonitor() {
-        throw Error("No monitor to disconnect on emulator");
+        throw Error('No monitor to disconnect on emulator');
     }
 
     protected spawnEmulatorProcess(): ChildProcess {
@@ -137,11 +137,11 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${emulatorPort}`];
 
         if (this.deviceConfig.needsProxyToAnotherVM()) {
-            if (proxyIP && proxyIP !== "") {
-                args.push("--proxy", `${proxyIP}:${proxyPort}`);
+            if (proxyIP && proxyIP !== '') {
+                args.push('--proxy', `${proxyIP}:${proxyPort}`);
             }
-            else if (proxySerialPort && proxySerialPort !== "") {
-                args.push("--proxy", proxySerialPort, "--baudrate", `${proxyBaudrate}`);
+            else if (proxySerialPort && proxySerialPort !== '') {
+                args.push('--proxy', proxySerialPort, '--baudrate', `${proxyBaudrate}`);
             }
             else {
                 throw Error(`cannot spawn emulator in proxy mode without serialPort or IP of target MCU.
@@ -150,7 +150,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         }
 
         if (this.deviceConfig.onStartConfig.pause) {
-            args.push("--paused");
+            args.push('--paused');
         }
         return spawn(`${this.sdk}/build-emu/wdcli`, args);
         // return spawn(`echo`, ['"Listening"']);

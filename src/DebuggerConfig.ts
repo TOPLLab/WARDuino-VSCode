@@ -1,5 +1,5 @@
 // TODO validate configuration
-import { readFileSync } from "fs";
+import { readFileSync } from 'fs';
 
 class InvalidDebuggerConfiguration extends Error {
     constructor(errormsg: string) {
@@ -27,7 +27,7 @@ export class OnStartConfig {
 
     static fromAnyObject(obj: any): OnStartConfig {
         if (typeof obj !== 'object') {
-            throw (new InvalidDebuggerConfiguration("`onStart` property expected to be an object"));
+            throw (new InvalidDebuggerConfiguration('`onStart` property expected to be an object'));
         }
 
         const c = { flash: true, updateSource: false, pause: false };
@@ -38,7 +38,7 @@ export class OnStartConfig {
 
         if (obj.hasOwnProperty('updateSource')) {
             c.updateSource = obj.updateSource;
-            console.log(`DebuggerConfig: update source not yet activated`);
+            console.log('DebuggerConfig: update source not yet activated');
         }
 
         if (obj.hasOwnProperty('pause')) {
@@ -61,10 +61,10 @@ export class WiFiCredentials {
     }
 
     static validate(pathToCredentials: any): WiFiCredentials {
-        const credentials = { "ssid": "", "pswd": "" };
+        const credentials = { 'ssid': '', 'pswd': '' };
         try {
             if (typeof pathToCredentials !== 'string') {
-                throw (new InvalidDebuggerConfiguration("`wifiCredentials` is expected to be a path to a json file"));
+                throw (new InvalidDebuggerConfiguration('`wifiCredentials` is expected to be a path to a json file'));
             }
             const fileContent = readFileSync(pathToCredentials as string);
             const jsonObj = JSON.parse(fileContent.toString());
@@ -87,7 +87,7 @@ export class WiFiCredentials {
                 throw e;
             }
             else if (e instanceof SyntaxError) {
-                throw (new InvalidDebuggerConfiguration("DebuggerConfig: WifiCreditials is not valid JSON content"));
+                throw (new InvalidDebuggerConfiguration('DebuggerConfig: WifiCreditials is not valid JSON content'));
             }
             else {
                 throw (new InvalidDebuggerConfiguration(`DebuggerConfig: Provided json path ${pathToCredentials} does not exist`));
@@ -100,8 +100,8 @@ export class WiFiCredentials {
 export class ProxyConfig {
     static defaultPort = 8081;
     public port: number = ProxyConfig.defaultPort;
-    public ip: string = "";
-    public serialPort: string = "";
+    public ip: string = '';
+    public serialPort: string = '';
     public baudrate: number = -1;
 
 
@@ -123,24 +123,24 @@ export class ProxyConfig {
 
 export class DeviceConfig {
 
-    static readonly emulatedDebugMode: string = "emulated";
-    static readonly embeddedDebugMode: string = "embedded";
+    static readonly emulatedDebugMode: string = 'emulated';
+    static readonly embeddedDebugMode: string = 'embedded';
     static readonly allowedModes: Set<string> = new Set<string>([DeviceConfig.emulatedDebugMode, DeviceConfig.embeddedDebugMode]);
     static readonly defaultDebugPort: number = 8300;
 
 
     public readonly wifiCredentials: WiFiCredentials | undefined;
 
-    public name: string = "";
+    public name: string = '';
     public port: number = -1;
-    public ip: string = "";
+    public ip: string = '';
     public debugMode: string = DeviceConfig.emulatedDebugMode;
     public proxyConfig: undefined | ProxyConfig;
     public onStartConfig: OnStartConfig;
 
-    public serialPort: string = "";
+    public serialPort: string = '';
     public baudrate: number = -1;
-    public fqbn: string = "";
+    public fqbn: string = '';
 
     constructor(obj: any) {
         if (obj.hasOwnProperty('wifiCredentials')) {
@@ -157,10 +157,10 @@ export class DeviceConfig {
             this.port = DeviceConfig.defaultDebugPort;
         }
 
-        if (obj.hasOwnProperty("name")) {
+        if (obj.hasOwnProperty('name')) {
             this.name = obj.name;
         } else {
-            this.name = this.ip === "" ? "device unknown" : this.ip;
+            this.name = this.ip === '' ? 'device unknown' : this.ip;
         }
 
         if (DeviceConfig.allowedModes.has(obj.debugMode)) {
@@ -169,11 +169,11 @@ export class DeviceConfig {
         else {
             throw (new InvalidDebuggerConfiguration(`No debugmode provided. Options: '${DeviceConfig.embeddedDebugMode}' or '${DeviceConfig.emulatedDebugMode}'`));
         }
-        if (obj.hasOwnProperty("proxy")) {
+        if (obj.hasOwnProperty('proxy')) {
             this.proxyConfig = new ProxyConfig(obj.proxy);
         }
 
-        if (obj.hasOwnProperty("onStart")) {
+        if (obj.hasOwnProperty('onStart')) {
             this.onStartConfig = OnStartConfig.fromAnyObject(obj.onStart);
         }
         else {
@@ -181,16 +181,16 @@ export class DeviceConfig {
         }
 
         if (this.onStartConfig.flash) {
-            if (!obj.hasOwnProperty("serialPort")) {
+            if (!obj.hasOwnProperty('serialPort')) {
                 throw (new InvalidDebuggerConfiguration('serialPort is missing. E.g "serialPort": "/dev/ttyUSB0"'));
             }
-            if (!obj.hasOwnProperty("fqbn")) {
+            if (!obj.hasOwnProperty('fqbn')) {
                 throw (new InvalidDebuggerConfiguration('fqbn is missing from device configuration. E.g. "fqbn": "esp32:esp32:m5stick-c'));
             }
-            if (!obj.hasOwnProperty("baudrate")) {
+            if (!obj.hasOwnProperty('baudrate')) {
                 throw (new InvalidDebuggerConfiguration('baudrate is missing from device configuration. E.g. "baudrate": 115200'));
             }
-            if (this.ip && this.ip !== "" && !!!this.wifiCredentials) {
+            if (this.ip && this.ip !== '' && !!!this.wifiCredentials) {
                 throw (new InvalidDebuggerConfiguration('`wifiCredentials` entry (path to JSON) is needed when compiling for OTA debugging'));
             }
         }
@@ -211,7 +211,7 @@ export class DeviceConfig {
         return !!this.wifiCredentials;
     }
 
-    static defaultDeviceConfig(name: string = "emulated-vm"): DeviceConfig {
+    static defaultDeviceConfig(name: string = 'emulated-vm'): DeviceConfig {
         return new DeviceConfig({
             name: name,
             port: DeviceConfig.defaultDebugPort,
@@ -226,10 +226,10 @@ export class DeviceConfig {
             serialPort: mcuConfig.serialPort,
             baudrate: mcuConfig.baudrate
         };
-        if ((pc.serialPort === "" || pc.baudrate === -1) && pc.ip === "") {
-            throw (new InvalidDebuggerConfiguration("cannot proxy a device without `serialPort` and/or `IP` address"));
+        if ((pc.serialPort === '' || pc.baudrate === -1) && pc.ip === '') {
+            throw (new InvalidDebuggerConfiguration('cannot proxy a device without `serialPort` and/or `IP` address'));
         }
-        if (pc.ip !== "" && pc.port === undefined) {
+        if (pc.ip !== '' && pc.port === undefined) {
             pc.port = ProxyConfig.defaultPort;
         }
         const flash = false;
@@ -239,7 +239,7 @@ export class DeviceConfig {
 
         return new DeviceConfig({
             name: deviceName,
-            ip: "127.0.0.1",
+            ip: '127.0.0.1',
             port: DeviceConfig.defaultDebugPort,
             debugMode: DeviceConfig.emulatedDebugMode,
             proxy: pc,

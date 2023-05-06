@@ -1,16 +1,16 @@
-import { AbstractDebugBridge, EventsMessages, Messages } from "./AbstractDebugBridge";
-import { InterruptTypes } from "./InterruptTypes";
-import { exec, spawn } from "child_process";
-import { SourceMap } from "../State/SourceMap";
-import { DeviceConfig } from "../DebuggerConfig";
+import { AbstractDebugBridge, EventsMessages, Messages } from './AbstractDebugBridge';
+import { InterruptTypes } from './InterruptTypes';
+import { exec, spawn } from 'child_process';
+import { SourceMap } from '../State/SourceMap';
+import { DeviceConfig } from '../DebuggerConfig';
 import * as path from 'path';
-import { LoggingSerialMonitor } from "../Channels/SerialConnection";
-import { ClientSideSocket } from "../Channels/ClientSideSocket";
-import { ChannelInterface } from "../Channels/ChannelInterface";
-import { SerialChannel } from "../Channels/SerialChannel";
-import { ProxifyRequest, ProxyMode, Request, StateRequest } from "./APIRequest";
-import { RuntimeState } from "../State/RuntimeState";
-import { BreakpointPolicy } from "../State/Breakpoint";
+import { LoggingSerialMonitor } from '../Channels/SerialConnection';
+import { ClientSideSocket } from '../Channels/ClientSideSocket';
+import { ChannelInterface } from '../Channels/ChannelInterface';
+import { SerialChannel } from '../Channels/SerialChannel';
+import { ProxifyRequest, ProxyMode, Request, StateRequest } from './APIRequest';
+import { RuntimeState } from '../State/RuntimeState';
+import { BreakpointPolicy } from '../State/Breakpoint';
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
     protected client: ChannelInterface | undefined;
@@ -68,7 +68,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             });
             await p;
         }
-        return "";
+        return '';
     }
 
     public async upload() {
@@ -108,12 +108,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     public disconnect(): void {
         this.client?.disconnect();
         this.logginSerialConnection?.disconnect();
-        console.error("CLOSED!");
+        console.error('CLOSED!');
         this.emit(EventsMessages.disconnected, this);
     }
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        let lastStdOut = "";
+        let lastStdOut = '';
         this.emit(EventsMessages.progress, this, EventsMessages.flashing);
         const upload = exec(`make flash PORT=${this.deviceConfig.serialPort} FQBN=${this.deviceConfig.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
             if (err) {
@@ -139,7 +139,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
         this.emit(EventsMessages.progress, this, Messages.compiling);
-        const compile = spawn("make", ["compile", `FQBN=${this.deviceConfig.fqbn}`], {
+        const compile = spawn('make', ['compile', `FQBN=${this.deviceConfig.fqbn}`], {
             cwd: path
         });
 
@@ -167,16 +167,16 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            const arduinoDir = this.deviceConfig.usesWiFi() ? "/platforms/Arduino-socket/" : "/platforms/Arduino/";
+            const arduinoDir = this.deviceConfig.usesWiFi() ? '/platforms/Arduino-socket/' : '/platforms/Arduino/';
             const sdkpath: string = path.join(this.sdk, arduinoDir);
             this.emit(EventsMessages.progress, this, Messages.compiling);
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
-            cp.on("error", err => {
+            cp.on('error', err => {
                 const errMsg = `Could not store upload file to sdk path. Reason: ${err}`;
                 this.emit(EventsMessages.errorInProgress, this, errMsg);
                 reject(errMsg);
             });
-            cp.on("close", (code) => {
+            cp.on('close', (code) => {
                 this.compileArduino(sdkpath, resolve, reject);
             });
         });

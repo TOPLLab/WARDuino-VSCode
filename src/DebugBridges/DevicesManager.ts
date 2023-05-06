@@ -1,4 +1,4 @@
-import { DebugBridge } from "./DebugBridge";
+import { DebugBridge } from './DebugBridge';
 
 export class DevicesManager {
     private devices: DebugBridge[] = [];

@@ -1,8 +1,8 @@
-import {CompileBridge} from "./CompileBridge";
-import {exec, ExecException} from "child_process";
-import {SourceMap} from "../State/SourceMap";
-import {TypeInfo} from "../State/TypeInfo";
-import { readFileSync } from "fs";
+import {CompileBridge} from './CompileBridge';
+import {exec, ExecException} from 'child_process';
+import {SourceMap} from '../State/SourceMap';
+import {TypeInfo} from '../State/TypeInfo';
+import { readFileSync } from 'fs';
 
 export class AssemblyScriptCompilerBridge implements CompileBridge {
     sourceFilePath: String;
