@@ -114,7 +114,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         let lastStdOut = "";
         this.listener.notifyProgress(Messages.reset);
 
-        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn}`, {cwd: path}, (err, stdout, stderr) => {
+        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn} PAUSED=true`, {cwd: path}, (err, stdout, stderr) => {
                 console.error(err);
                 lastStdOut = stdout + stderr;
                 this.listener.notifyProgress(Messages.initialisationFailure);
@@ -133,7 +133,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        const compile = spawn("make", ["compile", `FQBN=${this.fqbn}`, `BINARY=${this.tmpdir}/upload.wasm`], {
+        const compile = spawn("make", ["compile", `FQBN=${this.fqbn}`, `BINARY=${this.tmpdir}/upload.wasm`, 'PAUSED=true'], {
             cwd: path
         });
 
