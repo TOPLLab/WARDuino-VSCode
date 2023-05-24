@@ -115,7 +115,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
         let lastStdOut = '';
         this.emit(EventsMessages.progress, this, EventsMessages.flashing);
-        const upload = exec(`make flash PORT=${this.deviceConfig.serialPort} FQBN=${this.deviceConfig.fqbn}`, { cwd: path }, (err, stdout, stderr) => {
+        const upload = exec(`make flash PORT=${this.deviceConfig.serialPort} FQBN=${this.deviceConfig.fqbn} PAUSED=true`, { cwd: path }, (err, stdout, stderr) => {
             if (err) {
                 console.error(err);
                 lastStdOut = stdout + stderr;
@@ -139,7 +139,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
         this.emit(EventsMessages.progress, this, Messages.compiling);
-        const compile = spawn('make', ['compile', `FQBN=${this.deviceConfig.fqbn}`], {
+        const compile = spawn('make', ['compile', `FQBN=${this.deviceConfig.fqbn}`, `BINARY=${this.tmpdir}/upload.wasm`, 'PAUSED=true'], {
             cwd: path
         });
 
