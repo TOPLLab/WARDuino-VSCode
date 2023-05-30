@@ -167,7 +167,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            const arduinoDir = this.deviceConfig.usesWiFi() ? '/platforms/Arduino-socket/' : '/platforms/Arduino/';
+            const arduinoDir = '/platforms/Arduino/';
             const sdkpath: string = path.join(this.sdk, arduinoDir);
             this.emit(EventsMessages.progress, this, Messages.compiling);
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
