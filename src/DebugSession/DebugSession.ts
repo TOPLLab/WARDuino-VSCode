@@ -198,10 +198,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             if (debugBridge.getDeviceConfig().onStartConfig.pause) {
                 this.onPause();
             }
-            else {
-                this.debugBridge!.requestStoredException(); // no need to await
-                this.onRunning();
-            }
         }
         catch (reason) {
             console.error(reason);
