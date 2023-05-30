@@ -266,11 +266,12 @@ export class DeviceConfig {
 
     static fromWorkspaceConfig(): DeviceConfig{
         const config = vscode.workspace.getConfiguration();
+        const baudRate: string = config.get('warduino.Baudrate') ||  '115200';
         return DeviceConfig.fromObject({
             'debugMode': config.get('warduino.DebugMode'),
             'serialPort': config.get('warduino.Port'),
             'fqbn': config.get('warduino.Device'),
-            'baudrate': +config.get('warduino.Baudrate')!,
+            'baudrate': +baudRate,
             'onStart': {
                 'flash': config.get('warduino.FlashOnStart'),
                 'updateSource': false,
