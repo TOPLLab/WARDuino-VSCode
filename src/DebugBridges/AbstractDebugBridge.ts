@@ -12,7 +12,7 @@ import { HexaEncoder } from '../Util/hexaEncoding';
 import { DeviceConfig } from '../DebuggerConfig';
 import { DebuggingTimeline } from '../State/DebuggingTimeline';
 import { ChannelInterface } from '../Channels/ChannelInterface';
-import { PauseRequest, ProxyMode, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from './APIRequest';
+import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from './APIRequest';
 import { EventItem } from '../Views/EventsProvider';
 import EventEmitter = require('events');
 
@@ -94,7 +94,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     // Debug API
 
-    abstract proxify(mode: ProxyMode): Promise<void>;
+    abstract proxify(): Promise<void>;
 
     public async run(): Promise<void> {
         await this.client?.request(RunRequest);

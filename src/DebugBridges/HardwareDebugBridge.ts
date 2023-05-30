@@ -8,7 +8,7 @@ import { LoggingSerialMonitor } from '../Channels/SerialConnection';
 import { ClientSideSocket } from '../Channels/ClientSideSocket';
 import { ChannelInterface } from '../Channels/ChannelInterface';
 import { SerialChannel } from '../Channels/SerialChannel';
-import { ProxifyRequest, ProxyMode, Request, StateRequest } from './APIRequest';
+import { ProxifyRequest, Request, StateRequest } from './APIRequest';
 import { RuntimeState } from '../State/RuntimeState';
 import { BreakpointPolicy } from '../State/Breakpoint';
 
@@ -182,9 +182,8 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         });
     }
 
-    public async proxify(mode: ProxyMode): Promise<void> {
-        const req = ProxifyRequest(mode);
-        await this.client!.request(req);
+    public async proxify(): Promise<void> {
+        await this.client!.request(ProxifyRequest);
     }
 
     async refresh(): Promise<void> {

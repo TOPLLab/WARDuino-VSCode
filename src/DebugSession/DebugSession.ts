@@ -42,7 +42,6 @@ import { BridgeListener } from '../DebugBridges/DebugBridgeListener';
 import { EventsMessages, Messages } from '../DebugBridges/AbstractDebugBridge';
 import { DebugBridgeListenerInterface } from '../DebugBridges/DebugBridgeListenerInterface';
 import { RuntimeState } from '../State/RuntimeState';
-import { ProxyMode } from '../DebugBridges/APIRequest';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ['emulated', RunTimeTarget.emulator],
@@ -470,12 +469,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         const newBridge = DebugBridgeFactory.makeDebugBridge(this.program, dc, this.sourceMap as SourceMap, RunTimeTarget.wood, this.tmpdir);
         this.registerGUICallbacks(newBridge);
-        if (bridge.getBreakpointPolicy() === BreakpointPolicy.default) {
-            await bridge.proxify(ProxyMode.ProxyRedirect);
-        }
-        else {
-            await bridge.proxify(ProxyMode.ProxyCopy);
-        }
+        await bridge.proxify();
 
         if (!config.usesWiFi()) {
             bridge.disconnect();

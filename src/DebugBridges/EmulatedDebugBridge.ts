@@ -7,7 +7,7 @@ import { DeviceConfig } from '../DebuggerConfig';
 import { ClientSideSocket } from '../Channels/ClientSideSocket';
 import { RuntimeState } from '../State/RuntimeState';
 import { ChannelInterface } from '../Channels/ChannelInterface';
-import { ProxyMode, StateRequest } from './APIRequest';
+import { StateRequest } from './APIRequest';
 
 // export const EMULATOR_PORT: number = 8300;
 
@@ -27,7 +27,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.client = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
     }
 
-    public proxify(mode: ProxyMode): Promise<void> {
+    public proxify(): Promise<void> {
         throw new Error('EmulatedDebugBridge.proxify: Method not supported.');
     }
 

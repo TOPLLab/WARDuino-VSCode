@@ -213,17 +213,9 @@ export function UpdateModuleRequest(wasm: Buffer): Request {
     };
 }
 
-export enum ProxyMode {
-    ProxyNotUsed = '01',
-    ProxyRedirect = '02',
-    ProxyCopy = '03'
-}
-
-export function ProxifyRequest(mode: ProxyMode) {
-    return {
-        dataToSend: `${InterruptTypes.interruptProxify}${mode}\n`,
+export const ProxifyRequest: Request =  {
+    dataToSend: `${InterruptTypes.interruptProxify}\n`,
         expectedResponse: (line: string) => {
-            return line === 'Proxify!';
+        return line === 'Interrupt: 65';
         }
     };
-}
