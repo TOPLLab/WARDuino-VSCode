@@ -148,13 +148,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log(args.program);
         this.reporter.clear();
         this.program = args.program;
-        if (!this.isValidStartConfig(args.device)) {
-            response.success = false;
-            response.message = 'invalid config';
-            return;
-        }
-
-        const deviceConfig = DeviceConfig.fromObject(args.device);
+        const deviceConfig = DeviceConfig.fromWorkspaceConfig();
         const eventsProvider = new EventsProvider();
         this.viewsRefresher.addViewProvider(eventsProvider);
         vscode.window.registerTreeDataProvider('events', eventsProvider);
@@ -213,17 +207,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         catch (reason) {
             console.error(reason);
-        }
-    }
-
-    private isValidStartConfig(deviceConfig: any): boolean {
-        try {
-            DeviceConfig.fromObject(deviceConfig);
-            return true;
-        }
-        catch (err) {
-            vscode.window.showErrorMessage(`${err}`);
-            return false;
         }
     }
 
@@ -482,7 +465,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private async startDebuggingOnEmulatorHelper(bridge: DebugBridge, stateToUse: RuntimeState) {
 
         const config = bridge.getDeviceConfig();
-        const name = `${config.name} (Emulator)`;
+        const name = `${config.name} (Proxied Emulator)`;
         const dc = DeviceConfig.configForProxy(name, config);
         const state = stateToUse.deepcopy();
 

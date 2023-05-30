@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 // TODO validate configuration
 import { readFileSync } from 'fs';
 
@@ -38,7 +40,6 @@ export class OnStartConfig {
 
         if (obj.hasOwnProperty('updateSource')) {
             c.updateSource = obj.updateSource;
-            console.log('DebuggerConfig: update source not yet activated');
         }
 
         if (obj.hasOwnProperty('pause')) {
@@ -157,12 +158,6 @@ export class DeviceConfig {
             this.port = DeviceConfig.defaultDebugPort;
         }
 
-        if (obj.hasOwnProperty('name')) {
-            this.name = obj.name;
-        } else {
-            this.name = this.ip === '' ? 'device unknown' : this.ip;
-        }
-
         if (DeviceConfig.allowedModes.has(obj.debugMode)) {
             this.debugMode = obj.debugMode;
         }
@@ -190,6 +185,9 @@ export class DeviceConfig {
             if (!obj.hasOwnProperty('baudrate')) {
                 throw (new InvalidDebuggerConfiguration('baudrate is missing from device configuration. E.g. "baudrate": 115200'));
             }
+            if (typeof(obj.baudrate) !== 'number') {
+                throw (new InvalidDebuggerConfiguration('baudrate is supposed to be a number'));
+            }
             if (this.ip && this.ip !== '' && !!!this.wifiCredentials) {
                 throw (new InvalidDebuggerConfiguration('`wifiCredentials` entry (path to JSON) is needed when compiling for OTA debugging'));
             }
@@ -197,6 +195,21 @@ export class DeviceConfig {
         this.serialPort = obj.serialPort;
         this.fqbn = obj.fqbn;
         this.baudrate = obj.baudrate;
+
+        if (obj.hasOwnProperty('name')) {
+            this.name = obj.name;
+        } else if(this.debugMode === DeviceConfig.embeddedDebugMode){
+            this.name = 'device unknown';
+            if(this.ip !== ''){
+                this.name = this.ip;
+            }
+            else if(this.serialPort !== ''){
+                this.name = this.serialPort;
+            }
+        }
+        else{
+            this.name = 'emulator';
+        }
     }
 
     needsProxyToAnotherVM(): boolean {
@@ -249,5 +262,20 @@ export class DeviceConfig {
 
     static fromObject(obj: any): DeviceConfig {
         return new DeviceConfig(obj);
+    }
+
+    static fromWorkspaceConfig(): DeviceConfig{
+        const config = vscode.workspace.getConfiguration();
+        return DeviceConfig.fromObject({
+            'debugMode': config.get('warduino.DebugMode'),
+            'serialPort': config.get('warduino.Port'),
+            'fqbn': config.get('warduino.Device'),
+            'baudrate': +config.get('warduino.Baudrate')!,
+            'onStart': {
+                'flash': config.get('warduino.FlashOnStart'),
+                'updateSource': false,
+                'pause': true
+            }
+        });
     }
 }
