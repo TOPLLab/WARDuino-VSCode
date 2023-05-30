@@ -147,6 +147,26 @@ export class WASMCompilerBridge implements CompileBridge {
         return await this.executeCompileCommand(compileCHeader);
     }
 
+    async clean(path2makefile: string): Promise<void> {
+        return new Promise((res, rej)=>{
+            const clean = exec('make clean', { cwd: path2makefile }, (err, stdout, stderr) => {
+                if (err) {
+                    rej(err);
+                }
+            });
+
+            clean.on('close', (code) => {
+                if (code === 0) {
+                    res();
+                } else {
+                    const errMsg = `Could not clean previous Arduino build. Exit code: ${code}`;
+                    console.error(errMsg);
+                    rej();
+                }
+            });
+        });
+    }
+
     private checkErrorMessage(errorString: string) {
         checkErrorWat2Wasm(errorString);
         checkErrorObjDump(errorString);

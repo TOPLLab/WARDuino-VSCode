@@ -163,13 +163,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 }
             });
         });
-        if (deviceConfig.isForHardware()) {
-            const path2sdk = vscode.workspace.getConfiguration().get('warduino.WARDuinoToolChainPath') as string;
-            ArduinoTemplateBuilder.setPath2Templates(path2sdk);
-            ArduinoTemplateBuilder.build(deviceConfig);
-        }
 
         this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get('warduino.WABToolChainPath') ?? '');
+        if(deviceConfig.onStartConfig.flash){
+            const makefilepath = path.join(vscode.workspace.getConfiguration().get('warduino.WARDuinoToolChainPath')!, '/platforms/Arduino/');
+            await this.compiler.clean(makefilepath);
+        }
 
         let compileResult: CompileResult | void = await this.compiler.compile().catch((reason) => this.handleCompileError(reason));
         if (compileResult) {

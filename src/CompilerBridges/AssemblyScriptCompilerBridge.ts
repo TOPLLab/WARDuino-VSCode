@@ -17,6 +17,10 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
         return {sourceMap: await this.executeCompileCommand(this.compileCommand()), wasm: wasm};
     }
 
+    async clean(path2makefile: string): Promise<void> {
+        return;
+    }
+
     private executeCompileCommand(command: string): Promise<SourceMap> {
         return new Promise((resolve, reject) => {
             let sourceMap: SourceMap;

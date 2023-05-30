@@ -7,4 +7,5 @@ export interface CompileResult{
 
 export interface CompileBridge {
     compile(): Promise<CompileResult>;
+    clean(path2makefile: string): Promise<void>;
 }
