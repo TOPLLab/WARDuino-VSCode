@@ -77,7 +77,7 @@ export class StateRequest {
         this.state.sort();
         const numberBytes = HexaEncoder.serializeUInt16BE(this.state.length);
         const stateToReq = this.state.join('');
-        return `${InterruptTypes.interruptDumpExecutionState}${numberBytes}${stateToReq}`;
+        return `${InterruptTypes.interruptInspect}${numberBytes}${stateToReq}`;
     }
 
     public generateRequest(): Request {
@@ -204,7 +204,7 @@ export function UpdateModuleRequest(wasm: Buffer): Request {
     const sizeBuffer = Buffer.allocUnsafe(4);
     sizeBuffer.writeUint32BE(w.length);
     const wasmHex = Buffer.from(w).toString('hex');
-    const dataToSend = `${InterruptTypes.interruptUPDATEMod}${sizeHex}${wasmHex}`;
+    const dataToSend = `${InterruptTypes.interruptUPDATEModule}${sizeHex}${wasmHex}`;
     return {
         dataToSend: dataToSend + '\n',
         expectedResponse: (line: string) => {

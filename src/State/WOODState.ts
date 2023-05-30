@@ -11,9 +11,9 @@ export enum ExecutionStateType {
     memState = '06',
     branchingTableState = '07',
     stackState = '08',
-    errorState = '09',
-    callbacksState = '0a',
-    eventsState = '0b'
+    callbacksState = '09',
+    eventsState = '0a',
+    errorState = '0b',
 }
 
 export const numberExecutionStateTypes = 11;
@@ -97,7 +97,7 @@ class HexaStateMessages {
 
     // Header data
     private nrBytesForPayloadSize = 4 * 2; // tells how big the payload is. Times 2 for hexa
-    private nrBytesForInterruptKind = InterruptTypes.interruptWOODRecvState.length; // already in hexa
+    private nrBytesForInterruptKind = InterruptTypes.interruptLoadSnapshot.length; // already in hexa
     private headerSize: number;
 
     // Footer data
@@ -181,7 +181,7 @@ class HexaStateMessages {
             const size = Math.floor(payload.length / 2);
             const sizeHexa = HexaEncoder.serializeUInt32BE(size);
             const done = (msgIdx + 1) === amountMessages ? '01' : '00';
-            const msg = `${InterruptTypes.interruptWOODRecvState}${sizeHexa}${payload}${done}${lastChar}`;
+            const msg = `${InterruptTypes.interruptLoadSnapshot}${sizeHexa}${payload}${done}${lastChar}`;
             if (msg.length % 2 !== 0) {
                 throw (new Error('WoodState: Hexa message not even'));
             }
@@ -670,7 +670,7 @@ export class WOODState {
     static serializeGlobalValueUpdate(value: StackValue): string {
         const stackIDx = HexaEncoder.serializeUInt32BE(value.idx);
         const valueHex = this.serializeValue(value);
-        return `${InterruptTypes.interruptUPDATEGlobalValue}${stackIDx}${valueHex}`;
+        return `${InterruptTypes.interruptUPDATEGlobal}${stackIDx}${valueHex}`;
     }
 
     static fromLine(line: string) {
