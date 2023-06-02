@@ -133,7 +133,7 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        const compile = spawn("make", ["compile", `FQBN=${this.fqbn}`, `BINARY=${this.tmpdir}/upload.wasm`, 'PAUSED=true'], {
+        const compile = spawn("make", ["recompile", `FQBN=${this.fqbn}`, `BINARY=${this.tmpdir}/upload.wasm`, 'PAUSED=true'], {
             cwd: path
         });
 
