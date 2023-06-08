@@ -53,7 +53,7 @@ interface OnStartBreakpoint {
     linenr: number
 }
 
-// Interface between the debugger and the VS runtime 
+// Interface between the debugger and the VS runtime
 export class WARDuinoDebugSession extends LoggingDebugSession {
     private sourceMap?: SourceMap = undefined;
     private program: string = '';
@@ -574,7 +574,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private setLineNumberFromPC(pc: number) {
-        this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc);
+        this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc) ?? this.testCurrentLine;
     }
 
 
@@ -643,7 +643,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let frames = Array.from(callstack.reverse(), (frame, index) => {
             // @ts-ignore
             const functionInfo = this.sourceMap.functionInfos[frame.index];
-            let start = (index === 0) ? this.testCurrentLine : getLineNumberForAddress(this.sourceMap!, callstack[index - 1].returnAddress);
+            let start = (index === 0) ? this.testCurrentLine : getLineNumberForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? this.testCurrentLine;
             let name = (functionInfo === undefined) ? '<anonymous>' : functionInfo.name;
 
             return new StackFrame(index, name,

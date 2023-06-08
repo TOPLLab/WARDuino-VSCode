@@ -22,8 +22,8 @@ export function EmptySourceMap(): SourceMap {
     };
 }
 
-export function getLineNumberForAddress(sourceMap: SourceMap, address: number, includeMinusOne = true): number {
-    let line = 0;
+export function getLineNumberForAddress(sourceMap: SourceMap, address: number, includeMinusOne = true): number | undefined {
+    let line: number | undefined
     sourceMap.lineInfoPairs.forEach((info) => {
         const candidate = parseInt('0x' + info.lineAddress);
         if (Math.abs(address - candidate) === 0) {
