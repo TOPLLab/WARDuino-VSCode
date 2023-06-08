@@ -22,7 +22,8 @@ export class DebugBridgeFactory {
         let fileType = getFileExtension(file);
         let bridge;
         switch (fileType) {
-            case 'wast':
+            case 'ts':
+            case 'wast' :
                 const warduinoSDK: string = getConfig('warduino.WARDuinoToolChainPath');
                 switch (target) {
                     // Emulated runtimes

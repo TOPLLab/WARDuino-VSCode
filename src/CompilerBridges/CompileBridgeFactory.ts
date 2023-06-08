@@ -10,7 +10,7 @@ export class CompileBridgeFactory {
             case 'wast' :
                 return new WASMCompilerBridge(file, tmpdir, wabt);
             case 'ts' :
-                return new AssemblyScriptCompilerBridge(file);
+                return new AssemblyScriptCompilerBridge(file, tmpdir, wabt);
         }
         throw new Error('Unsupported file type');
     }
