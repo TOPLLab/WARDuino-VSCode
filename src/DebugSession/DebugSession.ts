@@ -574,6 +574,9 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private setLineNumberFromPC(pc: number) {
+        if (this.getLineNumberForAddress(pc) === undefined) {
+            this.debugBridge?.step();
+        }
         this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc) ?? this.testCurrentLine;
     }
 
@@ -643,7 +646,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let frames = Array.from(callstack.reverse(), (frame, index) => {
             // @ts-ignore
             const functionInfo = this.sourceMap.functionInfos[frame.index];
-            let start = (index === 0) ? this.testCurrentLine : getLineNumberForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? this.testCurrentLine;
+            let start = (index === 0) ? this.testCurrentLine : getLineNumberForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? 0;
             let name = (functionInfo === undefined) ? '<anonymous>' : functionInfo.name;
 
             return new StackFrame(index, name,
