@@ -574,10 +574,11 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private setLineNumberFromPC(pc: number) {
-        if (this.getLineNumberForAddress(pc) === undefined) {
+        if (getLineNumberForAddress(this.sourceMap!, pc) === undefined) {
             this.debugBridge?.step();
+        } else {
+            this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc) ?? this.testCurrentLine;
         }
-        this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc) ?? this.testCurrentLine;
     }
 
 
