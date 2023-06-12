@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 // TODO validate configuration
 import { readFileSync } from 'fs';
+import { Breakpoint, BreakpointPolicy } from './State/Breakpoint';
 
 class InvalidDebuggerConfiguration extends Error {
     constructor(errormsg: string) {
@@ -143,6 +144,9 @@ export class DeviceConfig {
     public baudrate: number = -1;
     public fqbn: string = '';
 
+    private breakPoliciesActive = false;
+    private breakpointPolicy: BreakpointPolicy = BreakpointPolicy.default;
+
     constructor(obj: any) {
         if (obj.hasOwnProperty('wifiCredentials')) {
             const credentials = WiFiCredentials.validate(obj.wifiCredentials);
@@ -210,6 +214,10 @@ export class DeviceConfig {
         else{
             this.name = 'emulator';
         }
+
+        if(obj.hasOwnProperty('breakpointPoliciesEnabled') && obj.breakpointPoliciesEnabled){
+            this.breakpointPolicy = this.validateBreakpointPolicy(obj.breakpointPolicy);
+        }
     }
 
     needsProxyToAnotherVM(): boolean {
@@ -222,6 +230,32 @@ export class DeviceConfig {
 
     usesWiFi(): boolean {
         return !!this.wifiCredentials;
+    }
+
+    isBreakpointPolicyEnabled() {
+        return this.breakPoliciesActive;
+    }
+
+    getBreakpointPolicy(): BreakpointPolicy {
+        return this.breakpointPolicy;
+    }
+
+    setBreakpointPolicy(policy: BreakpointPolicy) {
+        this.breakpointPolicy = policy;
+    }
+
+    private validateBreakpointPolicy(policy: any): BreakpointPolicy {
+        if(typeof(policy) !== 'string'){
+            throw new InvalidDebuggerConfiguration('breakpoint policy is expected to be a string');
+        }
+
+        const found = Breakpoint.policies().find(p=> p === policy);
+        if(typeof(found) === 'undefined'){
+            let errorMsg = `breakpoint policy is invalid. Given ${policy}. Allowed policy: `;
+            errorMsg += Breakpoint.policies().join(', ');
+            throw new InvalidDebuggerConfiguration(errorMsg);
+        }
+        return found;
     }
 
     static defaultDeviceConfig(name: string = 'emulated-vm'): DeviceConfig {
@@ -256,7 +290,8 @@ export class DeviceConfig {
             port: DeviceConfig.defaultDebugPort,
             debugMode: DeviceConfig.emulatedDebugMode,
             proxy: pc,
-            onStart: os
+            onStart: os,
+            breakpointPoliciesEnabled: false,
         });
     }
 
@@ -264,10 +299,12 @@ export class DeviceConfig {
         return new DeviceConfig(obj);
     }
 
+
     static fromWorkspaceConfig(): DeviceConfig{
         const config = vscode.workspace.getConfiguration();
         const baudRate: string = config.get('warduino.Baudrate') ||  '115200';
-        return DeviceConfig.fromObject({
+        const enableBreakpointPolicy = !!config.get('warduino.ExperimentalBreakpointPolicies.enabled');
+        const deviceConfig: any =  {
             'debugMode': config.get('warduino.DebugMode'),
             'serialPort': config.get('warduino.Port'),
             'fqbn': config.get('warduino.Device'),
@@ -276,7 +313,14 @@ export class DeviceConfig {
                 'flash': config.get('warduino.FlashOnStart'),
                 'updateSource': false,
                 'pause': true
-            }
-        });
+            },
+            'breakpointPoliciesEnabled': enableBreakpointPolicy,
+        };
+
+        if(enableBreakpointPolicy){
+            deviceConfig.breakpointPolicy =  config.get('warduino.ExperimentalBreakpointPolicies.policy');
+        }
+
+        return DeviceConfig.fromObject(deviceConfig);
     }
 }

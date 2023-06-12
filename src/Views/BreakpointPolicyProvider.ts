@@ -1,4 +1,3 @@
-import { FunctionInfo } from '../State/FunctionInfo';
 import * as vscode from 'vscode';
 import { ProviderResult, ThemeIcon, TreeItem } from 'vscode';
 import { DebugBridge } from '../DebugBridges/DebugBridge';
@@ -23,7 +22,7 @@ export class BreakpointPolicyProvider implements vscode.TreeDataProvider<Breakpo
 
     getChildren(element?: BreakpointPolicyItem): ProviderResult<BreakpointPolicyItem[]> {
         if (element === undefined) {
-            const activePolicy = this.debugBridge.getBreakpointPolicy();
+            const activePolicy = this.debugBridge.getDeviceConfig().getBreakpointPolicy();
             this.items.forEach(i => {
                 if (i.getPolicy() === activePolicy) {
                     i.select();

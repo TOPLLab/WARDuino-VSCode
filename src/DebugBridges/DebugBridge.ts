@@ -3,8 +3,7 @@ import { WOODState } from '../State/WOODState';
 import { SourceMap } from '../State/SourceMap';
 import { ProxyCallItem } from '../Views/ProxyCallsProvider';
 import { RuntimeState } from '../State/RuntimeState';
-import { Breakpoint, BreakpointPolicy } from '../State/Breakpoint';
-import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
+import { Breakpoint } from '../State/Breakpoint';
 import { DebuggingTimeline } from '../State/DebuggingTimeline';
 import { DeviceConfig } from '../DebuggerConfig';
 import { EventEmitter } from 'stream';
@@ -78,10 +77,6 @@ export interface DebugBridge extends EventEmitter {
   updateLocal(local: VariableInfo): Promise<void>;
 
   updateGlobal(updateGlobal: VariableInfo): Promise<void>;
-
-  getBreakpointPolicy(): BreakpointPolicy;
-
-  setBreakpointPolicy(policy: BreakpointPolicy): void;
 
   getDeviceConfig(): DeviceConfig;
 

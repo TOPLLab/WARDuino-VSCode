@@ -32,15 +32,12 @@ import { StackProvider } from '../Views/StackProvider';
 import { ProxyCallItem, ProxyCallsProvider } from '../Views/ProxyCallsProvider';
 import { CompileResult } from '../CompilerBridges/CompileBridge';
 import { DeviceConfig } from '../DebuggerConfig';
-import { ArduinoTemplateBuilder } from '../arduinoTemplates/templates/TemplateBuilder';
 import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/BreakpointPolicyProvider';
 import { Breakpoint, BreakpointPolicy } from '../State/Breakpoint';
 import { DebuggingTimelineProvider, TimelineItem } from '../Views/DebuggingTimelineProvider';
 import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
 import { DevicesManager } from '../DebugBridges/DevicesManager';
-import { BridgeListener } from '../DebugBridges/DebugBridgeListener';
-import { EventsMessages, Messages } from '../DebugBridges/AbstractDebugBridge';
-import { DebugBridgeListenerInterface } from '../DebugBridges/DebugBridgeListenerInterface';
+import { EventsMessages } from '../DebugBridges/AbstractDebugBridge';
 import { RuntimeState } from '../State/RuntimeState';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
@@ -187,7 +184,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 await this.debugBridge?.refresh();
             }
 
-            if (debugBridge.getBreakpointPolicy() === BreakpointPolicy.default && this.startingBPs.length > 0) {
+            if (this.startingBPs.length > 0) {
                 const validBps = this.startingBPs.filter(bp => {
                     return bp.source.path === args.program;
                 }).map(bp => bp.linenr);
@@ -218,14 +215,16 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.proxyCallsProvider?.setDebugBridge(next);
         }
 
-        if (!!!this.breakpointPolicyProvider) {
-            this.breakpointPolicyProvider = new BreakpointPolicyProvider(next);
-            this.viewsRefresher.addViewProvider(this.breakpointPolicyProvider);
-            vscode.window.registerTreeDataProvider('breakpointPolicies', this.breakpointPolicyProvider);
-        } else {
-            this.breakpointPolicyProvider.setDebugBridge(next);
+        if(next.getDeviceConfig().isBreakpointPolicyEnabled()){
+            if (!!!this.breakpointPolicyProvider) {
+                this.breakpointPolicyProvider = new BreakpointPolicyProvider(next);
+                this.viewsRefresher.addViewProvider(this.breakpointPolicyProvider);
+                vscode.window.registerTreeDataProvider('breakpointPolicies', this.breakpointPolicyProvider);
+            } else {
+                this.breakpointPolicyProvider.setDebugBridge(next);
+            }
+            this.breakpointPolicyProvider.refresh();
         }
-        this.breakpointPolicyProvider.refresh();
 
         if (!!!this.timelineProvider) {
             this.timelineProvider = new DebuggingTimelineProvider(next);
@@ -376,12 +375,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         this.setDebugBridge(proxyBridge!);
 
-        if (proxyBridge!.getBreakpointPolicy() === BreakpointPolicy.default) {
-            await proxyBridge?.refresh();
-            this.onPause();
+        if (proxyBridge!.getDeviceConfig().isBreakpointPolicyEnabled() && proxyBridge!.getDeviceConfig().getBreakpointPolicy() !== BreakpointPolicy.default) {
+            this.onRunning();
         }
         else {
-            this.onRunning();
+            await proxyBridge?.refresh();
+            this.onPause();
         }
     }
 
@@ -409,7 +408,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     public toggleBreakpointPolicy(item: BreakpointPolicyItem) {
         this.breakpointPolicyProvider!.toggleItem(item);
         const activePolicy = this.breakpointPolicyProvider!.getSelected();
-        this.debugBridge?.setBreakpointPolicy(activePolicy?.getPolicy() ?? BreakpointPolicy.default);
+        this.debugBridge?.getDeviceConfig().setBreakpointPolicy(activePolicy?.getPolicy() ?? BreakpointPolicy.default);
         this.breakpointPolicyProvider!.refresh();
     }
 
@@ -707,14 +706,15 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.onEnforcingBPPolicy(db, policy);
         });
         debugBridge.on(EventsMessages.atBreakpoint, (db: DebugBridge, line: any) => {
-            if (db.getBreakpointPolicy() !== BreakpointPolicy.default) {
-                let msg = 'reached breakpoint';
-                if (line !== undefined) {
-                    msg += ` at line ${line}`;
+            if (db.getDeviceConfig().isBreakpointPolicyEnabled()){
+                if( db.getDeviceConfig().getBreakpointPolicy() !== BreakpointPolicy.default) {
+                    let msg = 'reached breakpoint';
+                    if (line !== undefined) {
+                        msg += ` at line ${line}`;
+                    }
+                    this.notifyInfoMessage(db, msg);
                 }
-                this.notifyInfoMessage(db, msg);
-            }
-        });
+            }});
         debugBridge.on(EventsMessages.emulatorStarted, (db: DebugBridge) => {
             const name = db.getDeviceConfig().name;
             const msg = `Emulator for ${name} spawned`;

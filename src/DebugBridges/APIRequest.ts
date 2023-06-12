@@ -215,7 +215,7 @@ export function UpdateModuleRequest(wasm: Buffer): Request {
 
 export const ProxifyRequest: Request =  {
     dataToSend: `${InterruptTypes.interruptProxify}\n`,
-        expectedResponse: (line: string) => {
+    expectedResponse: (line: string) => {
         return line === 'Interrupt: 65';
-        }
-    };
+    }
+};

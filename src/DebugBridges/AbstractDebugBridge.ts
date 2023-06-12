@@ -61,7 +61,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     protected callstack: Frame[] = [];
     protected selectedProxies: Set<ProxyCallItem> = new Set<ProxyCallItem>();
     protected breakpoints: UniqueSet<Breakpoint> = new UniqueSet<Breakpoint>();
-    protected breakpointPolicy: BreakpointPolicy;
 
     // Interfaces
     protected abstract client: ChannelInterface | undefined;
@@ -79,7 +78,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
             ?? new Set<ProxyCallItem>();
         this.deviceConfig = deviceConfig;
-        this.breakpointPolicy = BreakpointPolicy.default;
     }
 
     // General Bridge functionality
@@ -187,14 +185,17 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             this.emit(EventsMessages.atBreakpoint, this, lineBP);
             await this.refresh();
 
-            if (this.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
-                this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.singleStop);
-                await this.unsetAllBreakpoints();
-                await this.run();
-            } else if (this.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed) {
-                this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.removeAndProceed);
-                await this.unsetBreakPoint(bpAddress);
-                await this.run();
+            const dc = this.deviceConfig;
+            if(dc.isBreakpointPolicyEnabled()){
+                if (dc.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
+                    this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.singleStop);
+                    await this.unsetAllBreakpoints();
+                    await this.run();
+                } else if (dc.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed) {
+                    this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.removeAndProceed);
+                    await this.unsetBreakPoint(bpAddress);
+                    await this.run();
+                }
             }
             else {
                 this.emit(EventsMessages.paused);
@@ -338,14 +339,6 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     getCurrentState(): RuntimeState | undefined {
         return this.timeline.getActiveState();
-    }
-
-    getBreakpointPolicy(): BreakpointPolicy {
-        return this.breakpointPolicy;
-    }
-
-    setBreakpointPolicy(policy: BreakpointPolicy) {
-        this.breakpointPolicy = policy;
     }
 
     updateRuntimeState(runtimeState: RuntimeState, opts?: { refreshViews?: boolean, includeInTimeline?: boolean }) {

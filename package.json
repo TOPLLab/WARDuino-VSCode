@@ -168,45 +168,80 @@
         },
         "warduino.Password": {
           "type": "string",
+          "order": 8,
           "scope": "resource",
           "default": "password",
           "description": "The password of the local Wi-Fi network"
         },
         "warduino.Port": {
           "type": "string",
+          "order": 3,
           "scope": "resource",
           "default": "/dev/cu.usbserial-1420",
           "description": "The port to use in order to program the microcontroller"
         },
         "warduino.Baudrate": {
           "type": "string",
+          "order": 1,
           "scope": "resource",
           "default": "115200",
           "description": "Baudrate to use for the serial connection"
         },
         "warduino.Device": {
           "type": "string",
+          "order": 2,
           "scope": "resource",
           "default": "esp32:esp32:esp32wrover",
           "description": "The FQBN of the target device"
         },
         "warduino.WARDuinoToolChainPath": {
           "type": "string",
+          "order": 4,
           "scope": "resource",
           "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/",
           "description": "WARDuino toolchain path (repo root folder)"
         },
         "warduino.WABToolChainPath": {
           "type": "string",
+          "order": 5,
           "scope": "resource",
           "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/build",
           "description": "TOPLLab WABT toolchain path (build folder)"
         },
         "warduino.FlashOnStart": {
           "type": "boolean",
+          "order": 6,
           "scope": "resource",
           "default": "yes",
           "description": "Flash the VM and application when connecting to the device"
+        },
+        "warduino.ExperimentalBreakpointPolicies": {
+          "type": "object",
+          "order": 9,
+          "description": "Breakpoint policies let you debug remote applications locally while keeping the application runnning",
+          "scope": "resource",
+          "properties": {
+            "enabled": {
+              "type" : "boolean",
+              "scope": "resource",
+              "description": "Activate the use of breakpoint policies"
+            },
+            "policy": {
+              "type": "string",
+              "scope": "resource",
+              "description": "The policy to use.",
+              "enum": [
+                  "default",
+                  "single stop",
+                  "remove and proceed"
+                ]
+            }
+          },
+          "additionalProperties": false,
+          "default": {
+            "enabled": false,
+            "policy": "default"
+          }
         }
       }
     }
