@@ -9,20 +9,6 @@
             "request": "launch",
             "name": "Debug WARDuino",
             "program": "${workspaceFolder}/dimmer-m5stickc.wast",
-            "device": {
-                "name": "DimmerStickPlus",
-                "debugMode": "embedded",
-                "ip": "192.168.1.211",
-                "wifiCredentials": "${workspaceFolder}/.wifiHotSpot.json",
-                "serialPort": "/dev/cu.usbserial-85528EB8F6",
-                "baudrate": 115200,
-                "fqbn": "esp32:esp32:m5stick-c",
-                "onStart": {
-                    "flash": true,
-                    "updateSource": false,
-                    "pause": true
-                }
-            },
             "stopOnEntry": true,
             "trace": false
         }
