@@ -662,8 +662,8 @@ export class WOODState {
     }
 
     static serializeStackValueUpdate(value: StackValue): string {
-        const stackIDx = HexaEncoder.serializeUInt32BE(value.idx);
-        const valueHex = this.serializeValue(value);
+        const stackIDx = HexaEncoder.convertToLEB128(value.idx);
+        const valueHex = HexaEncoder.convertToLEB128(value.value as number);
         return `${InterruptTypes.interruptUPDATEStackValue}${stackIDx}${valueHex}`;
     }
 

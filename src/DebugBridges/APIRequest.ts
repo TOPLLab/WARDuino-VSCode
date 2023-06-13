@@ -178,7 +178,7 @@ export function StackValueUpdateRequest(stackValueIdx: number, dataToSend: strin
     return {
         dataToSend: dataToSend + '\n',
         expectedResponse: (line: string) => {
-            return line === `Updated StackValue ${stackValueIdx}`;
+            return line === `StackValue ${stackValueIdx} changed`;
         }
     };
 }
