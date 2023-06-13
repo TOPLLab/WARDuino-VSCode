@@ -1,19 +1,28 @@
-import { DebugBridge } from './DebugBridge';
-import { Frame } from '../Parsers/Frame';
-import { VariableInfo } from '../State/VariableInfo';
-import { SourceMap, getLineNumberForAddress } from '../State/SourceMap';
-import { ExecutionStateType, WOODDumpResponse, WOODState } from '../State/WOODState';
-import { InterruptTypes } from './InterruptTypes';
-import { FunctionInfo } from '../State/FunctionInfo';
-import { ProxyCallItem } from '../Views/ProxyCallsProvider';
-import { RuntimeState } from '../State/RuntimeState';
-import { Breakpoint, BreakpointPolicy, UniqueSet } from '../State/Breakpoint';
-import { HexaEncoder } from '../Util/hexaEncoding';
-import { DeviceConfig } from '../DebuggerConfig';
-import { DebuggingTimeline } from '../State/DebuggingTimeline';
-import { ChannelInterface } from '../Channels/ChannelInterface';
-import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from './APIRequest';
-import { EventItem } from '../Views/EventsProvider';
+import {DebugBridge} from './DebugBridge';
+import {Frame} from '../Parsers/Frame';
+import {VariableInfo} from '../State/VariableInfo';
+import {SourceMap, getLineNumberForAddress} from '../State/SourceMap';
+import {ExecutionStateType, WOODDumpResponse, WOODState} from '../State/WOODState';
+import {InterruptTypes} from './InterruptTypes';
+import {FunctionInfo} from '../State/FunctionInfo';
+import {ProxyCallItem} from '../Views/ProxyCallsProvider';
+import {RuntimeState} from '../State/RuntimeState';
+import {Breakpoint, BreakpointPolicy, UniqueSet} from '../State/Breakpoint';
+import {HexaEncoder} from '../Util/hexaEncoding';
+import {DeviceConfig} from '../DebuggerConfig';
+import {DebuggingTimeline} from '../State/DebuggingTimeline';
+import {ChannelInterface} from '../Channels/ChannelInterface';
+import {
+    PauseRequest,
+    Request,
+    RunRequest,
+    StackValueUpdateRequest,
+    StateRequest,
+    UpdateGlobalRequest,
+    UpdateModuleRequest,
+    UpdateStateRequest
+} from './APIRequest';
+import {EventItem} from '../Views/EventsProvider';
 import EventEmitter = require('events');
 
 export class Messages {
@@ -110,17 +119,21 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         const runtimeState = this.timeline.advanceTimeline();
         if (!!runtimeState) {
             // Time travel forward
-            const doNotSave = { includeInTimeline: false };
+            const doNotSave = {includeInTimeline: false};
             this.updateRuntimeState(runtimeState, doNotSave);
         } else {
-            await this.client?.request({
-                dataToSend: InterruptTypes.interruptSTEP + '\n',
-                expectedResponse: (line) => {
-                    return line.includes('STEP');
-                },
-            });
-            // Normal step forward
-            await this.refresh();
+            let runtimeState: RuntimeState | undefined;
+            do {
+                await this.client?.request({
+                    dataToSend: InterruptTypes.interruptSTEP + '\n',
+                    expectedResponse: (line) => {
+                        return line.includes('STEP');
+                    },
+                });
+                // Normal step forward
+                runtimeState = await this.refresh();
+            } while (getLineNumberForAddress(this.sourceMap, runtimeState.getProgramCounter()) === undefined);
+            this.updateRuntimeState(runtimeState);
         }
         this.emit(EventsMessages.stepCompleted);
     }
@@ -129,13 +142,13 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         // Time travel backward
         const rs = this.timeline.isActiveStateTheStart() ? this.timeline.getStartState() : this.timeline.goBackTimeline();
         if (!!rs) {
-            const doNotSave = { includeInTimeline: false };
+            const doNotSave = {includeInTimeline: false};
             this.updateRuntimeState(rs, doNotSave);
             this.emit(EventsMessages.paused);
         }
     }
 
-    abstract refresh(): Promise<void>;
+    abstract refresh(): Promise<RuntimeState>;
 
 
     public getBreakpoints(): Breakpoint[] {
@@ -199,8 +212,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
                     await this.unsetBreakPoint(bpAddress);
                     await this.run();
                 }
-            }
-            else {
+            } else {
                 this.emit(EventsMessages.paused);
             }
         }
@@ -221,7 +233,9 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         // Add missing breakpoints
         await Promise.all(
             lines
-                .filter((line) => { return this.isNewBreakpoint(line); })
+                .filter((line) => {
+                    return this.isNewBreakpoint(line);
+                })
                 .map(line => {
                     const breakpoint: Breakpoint = new Breakpoint(this.lineToAddress(line), line);
                     return this.setBreakPoint(breakpoint);
@@ -462,8 +476,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
                 try {
                     const parsed: WOODDumpResponse = JSON.parse(line);
                     return parsed.pc_error !== undefined && parsed.exception_msg !== undefined;
-                }
-                catch (err) {
+                } catch (err) {
                     return false;
                 }
             },

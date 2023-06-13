@@ -186,16 +186,18 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         await this.client!.request(ProxifyRequest);
     }
 
-    async refresh(): Promise<void> {
-        const stateRequest = this.createStateRequest();
-        try {
-            const response = await this.client!.request(stateRequest);
-            const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
-            this.updateRuntimeState(runtimeState);
-        }
-        catch (err) {
-            console.error(`Hardware: refresh Error ${err}`);
-        }
+    refresh(): Promise<RuntimeState> {
+        return new Promise(async (resolve) => {
+            const stateRequest = this.createStateRequest();
+            try {
+                const response = await this.client!.request(stateRequest);
+                const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
+                resolve(runtimeState);
+            }
+            catch (err) {
+                console.error(`Hardware: refresh Error ${err}`);
+            }
+        });
     }
 
     private createStateRequest(): Request {

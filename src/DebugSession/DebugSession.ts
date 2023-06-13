@@ -1,5 +1,5 @@
-import { DebugProtocol } from 'vscode-debugprotocol';
-import { basename } from 'path-browserify';
+import {DebugProtocol} from 'vscode-debugprotocol';
+import {basename} from 'path-browserify';
 import * as vscode from 'vscode';
 
 import {
@@ -14,31 +14,31 @@ import {
     TerminatedEvent,
     Thread
 } from 'vscode-debugadapter';
-import { CompileTimeError } from '../CompilerBridges/CompileTimeError';
-import { ErrorReporter } from './ErrorReporter';
-import { DebugBridge } from '../DebugBridges/DebugBridge';
-import { DebugBridgeFactory } from '../DebugBridges/DebugBridgeFactory';
-import { RunTimeTarget } from '../DebugBridges/RunTimeTarget';
-import { CompileBridgeFactory } from '../CompilerBridges/CompileBridgeFactory';
-import { CompileBridge } from '../CompilerBridges/CompileBridge';
-import { SourceMap, getLineNumberForAddress } from '../State/SourceMap';
-import { VariableInfo } from '../State/VariableInfo';
+import {CompileTimeError} from '../CompilerBridges/CompileTimeError';
+import {ErrorReporter} from './ErrorReporter';
+import {DebugBridge} from '../DebugBridges/DebugBridge';
+import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
+import {RunTimeTarget} from '../DebugBridges/RunTimeTarget';
+import {CompileBridgeFactory} from '../CompilerBridges/CompileBridgeFactory';
+import {CompileBridge} from '../CompilerBridges/CompileBridge';
+import {SourceMap, getLineNumberForAddress} from '../State/SourceMap';
+import {VariableInfo} from '../State/VariableInfo';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { WOODDebugBridge } from '../DebugBridges/WOODDebugBridge';
-import { EventsProvider } from '../Views/EventsProvider';
-import { StackProvider } from '../Views/StackProvider';
-import { ProxyCallItem, ProxyCallsProvider } from '../Views/ProxyCallsProvider';
-import { CompileResult } from '../CompilerBridges/CompileBridge';
-import { DeviceConfig } from '../DebuggerConfig';
-import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/BreakpointPolicyProvider';
-import { Breakpoint, BreakpointPolicy } from '../State/Breakpoint';
-import { DebuggingTimelineProvider, TimelineItem } from '../Views/DebuggingTimelineProvider';
-import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
-import { DevicesManager } from '../DebugBridges/DevicesManager';
-import { EventsMessages } from '../DebugBridges/AbstractDebugBridge';
-import { RuntimeState } from '../State/RuntimeState';
+import {WOODDebugBridge} from '../DebugBridges/WOODDebugBridge';
+import {EventsProvider} from '../Views/EventsProvider';
+import {StackProvider} from '../Views/StackProvider';
+import {ProxyCallItem, ProxyCallsProvider} from '../Views/ProxyCallsProvider';
+import {CompileResult} from '../CompilerBridges/CompileBridge';
+import {DeviceConfig} from '../DebuggerConfig';
+import {BreakpointPolicyItem, BreakpointPolicyProvider} from '../Views/BreakpointPolicyProvider';
+import {Breakpoint, BreakpointPolicy} from '../State/Breakpoint';
+import {DebuggingTimelineProvider, TimelineItem} from '../Views/DebuggingTimelineProvider';
+import {RuntimeViewsRefresher} from '../Views/ViewsRefresh';
+import {DevicesManager} from '../DebugBridges/DevicesManager';
+import {EventsMessages} from '../DebugBridges/AbstractDebugBridge';
+import {RuntimeState} from '../State/RuntimeState';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ['emulated', RunTimeTarget.emulator],
@@ -163,7 +163,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         });
 
         this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get('warduino.WABToolChainPath') ?? '');
-        if(deviceConfig.onStartConfig.flash){
+        if (deviceConfig.onStartConfig.flash) {
             const makefilepath = path.join(vscode.workspace.getConfiguration().get('warduino.WARDuinoToolChainPath')!, '/platforms/Arduino/');
             await this.compiler.clean(makefilepath);
         }
@@ -200,8 +200,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             if (debugBridge.getDeviceConfig().onStartConfig.pause) {
                 this.onPause();
             }
-        }
-        catch (reason) {
+        } catch (reason) {
             console.error(reason);
         }
     }
@@ -220,7 +219,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.proxyCallsProvider?.setDebugBridge(next);
         }
 
-        if(next.getDeviceConfig().isBreakpointPolicyEnabled()){
+        if (next.getDeviceConfig().isBreakpointPolicyEnabled()) {
             if (!!!this.breakpointPolicyProvider) {
                 this.breakpointPolicyProvider = new BreakpointPolicyProvider(next);
                 this.viewsRefresher.addViewProvider(this.breakpointPolicyProvider);
@@ -234,7 +233,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         if (!!!this.timelineProvider) {
             this.timelineProvider = new DebuggingTimelineProvider(next);
             this.viewsRefresher.addViewProvider(this.timelineProvider);
-            const v = vscode.window.createTreeView('debuggingTimeline', { treeDataProvider: this.timelineProvider });
+            const v = vscode.window.createTreeView('debuggingTimeline', {treeDataProvider: this.timelineProvider});
             this.timelineProvider.setView(v);
         } else {
             this.timelineProvider.setDebugBridge(next);
@@ -277,16 +276,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         this.timelineProvider?.refreshView();
                     }
                     await db.updateLocal(newvariable);
-                }
-                else {
+                } else {
                     newvariable = state?.getLocal(args.name);
                 }
-            }
-            else {
+            } else {
                 newvariable = state?.getLocal(args.name);
             }
-        }
-        else if (v === 'globals' && db && state) {
+        } else if (v === 'globals' && db && state) {
             if (isUpdateAllowed) {
                 newvariable = state?.updateGlobal(args.name, args.value);
                 if (!!newvariable) {
@@ -296,16 +292,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         this.timelineProvider?.refreshView();
                     }
                     await this.debugBridge?.updateGlobal(newvariable);
-                }
-                else {
+                } else {
                     newvariable = state?.getGlobal(args.name);
                 }
-            }
-            else {
+            } else {
                 newvariable = state?.getGlobal(args.name);
             }
-        }
-        else if (v === 'arguments' && db && state) {
+        } else if (v === 'arguments' && db && state) {
             if (isUpdateAllowed) {
                 newvariable = state?.updateArgument(args.name, args.value);
                 if (!!newvariable) {
@@ -315,12 +308,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                         this.timelineProvider?.refreshView();
                     }
                     await this.debugBridge?.updateArgument(newvariable);
-                }
-                else {
+                } else {
                     newvariable = state?.getArgument(args.name);
                 }
-            }
-            else {
+            } else {
                 newvariable = state?.getArgument(args.name);
             }
         }
@@ -389,8 +380,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
         if (proxyBridge!.getDeviceConfig().isBreakpointPolicyEnabled() && proxyBridge!.getDeviceConfig().getBreakpointPolicy() !== BreakpointPolicy.default) {
             this.onRunning();
-        }
-        else {
+        } else {
             await proxyBridge?.refresh();
             this.onPause();
         }
@@ -398,7 +388,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     public async startMultiverseDebugging() {
         const index = this.debugBridge?.getDebuggingTimeline().getIndexOfActiveState();
-        const item = this.timelineProvider?.getItemFromTimeLineIndex(index ?? - 1);
+        const item = this.timelineProvider?.getItemFromTimeLineIndex(index ?? -1);
         if (!!item) {
             await this.saveRuntimeState(item);
             const bridge = this.debugBridge;
@@ -431,7 +421,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         const state = this.debugBridge?.getCurrentState();
         if (!!state) {
-            const doNotSave = { includeInTimeline: false };
+            const doNotSave = {includeInTimeline: false};
             this.debugBridge?.updateRuntimeState(state, doNotSave);
             this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
         }
@@ -491,8 +481,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             await (newBridge as WOODDebugBridge).specifyProxyCalls();
             newBridge.updateRuntimeState(state);
             this.onPause();
-        }
-        catch (reason) {
+        } catch (reason) {
             console.error(reason);
         }
     }
@@ -504,8 +493,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let br = undefined;
         if (this.debugBridge.getDeviceConfig().isForHardware()) {
             br = this.devicesManager.getEmulatorBridge(this.debugBridge);
-        }
-        else {
+        } else {
             br = this.devicesManager.getProxyBridge(this.debugBridge);
         }
         if (!!br) {
@@ -537,8 +525,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let responseBps: Breakpoint[] = [];
         if (!!this.debugBridge) {
             responseBps = await this.debugBridge.setBreakPoints(args.lines ?? []);
-        }
-        else if (!!args.lines && !!args.source) {
+        } else if (!!args.lines && !!args.source) {
             // case where the bridge did not start yet.
             // Store bps so to set them after connection to bridge
             const toConcat = args.lines.map((linenr: number) => {
@@ -574,11 +561,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private setLineNumberFromPC(pc: number) {
-        if (getLineNumberForAddress(this.sourceMap!, pc) === undefined) {
-            this.debugBridge?.step();
-        } else {
-            this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc) ?? this.testCurrentLine;
-        }
+        this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc) ?? this.testCurrentLine;
     }
 
 
@@ -594,8 +577,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected variablesRequest(response: DebugProtocol.VariablesResponse,
-        args: DebugProtocol.VariablesArguments,
-        request?: DebugProtocol.Request) {
+                               args: DebugProtocol.VariablesArguments,
+                               request?: DebugProtocol.Request) {
         if (this.sourceMap === undefined) {
             return;
         }
@@ -618,7 +601,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             const globals = this.debugBridge?.getCurrentState()?.getGlobals() ?? this.sourceMap.globalInfos;
             response.body = {
                 variables: Array.from(globals, (info) => {
-                    return { name: info.name, value: info.value, variablesReference: 0 };
+                    return {name: info.name, value: info.value, variablesReference: 0};
                 })
             };
             this.sendResponse(response);
@@ -626,7 +609,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             const state = this.debugBridge?.getCurrentState()?.getArguments() ?? [];
             response.body = {
                 variables: Array.from(state, (info) => {
-                    return { name: info.name, value: info.value, variablesReference: 0 };
+                    return {name: info.name, value: info.value, variablesReference: 0};
                 })
             };
             this.sendResponse(response);
@@ -634,7 +617,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse,
-        args: DebugProtocol.StackTraceArguments): void {
+                                args: DebugProtocol.StackTraceArguments): void {
         const pc = this.debugBridge!.getCurrentState()?.getProgramCounter() ?? 0;
         this.setLineNumberFromPC(pc);
 
@@ -687,7 +670,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log('Shutting the debugger down');
         this.debugBridge?.disconnect();
         if (this.tmpdir) {
-            fs.rm(this.tmpdir, { recursive: true }, err => {
+            fs.rm(this.tmpdir, {recursive: true}, err => {
                 if (err) {
                     throw new Error('Could not delete temporary directory.');
                 }
@@ -722,15 +705,16 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             this.onEnforcingBPPolicy(db, policy);
         });
         debugBridge.on(EventsMessages.atBreakpoint, (db: DebugBridge, line: any) => {
-            if (db.getDeviceConfig().isBreakpointPolicyEnabled()){
-                if( db.getDeviceConfig().getBreakpointPolicy() !== BreakpointPolicy.default) {
+            if (db.getDeviceConfig().isBreakpointPolicyEnabled()) {
+                if (db.getDeviceConfig().getBreakpointPolicy() !== BreakpointPolicy.default) {
                     let msg = 'reached breakpoint';
                     if (line !== undefined) {
                         msg += ` at line ${line}`;
                     }
                     this.notifyInfoMessage(db, msg);
                 }
-            }});
+            }
+        });
         debugBridge.on(EventsMessages.emulatorStarted, (db: DebugBridge) => {
             const name = db.getDeviceConfig().name;
             const msg = `Emulator for ${name} spawned`;

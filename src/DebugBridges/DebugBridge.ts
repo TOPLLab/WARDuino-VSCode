@@ -63,7 +63,7 @@ export interface DebugBridge extends EventEmitter {
 
   unsetBreakPoint(breakpoint: Breakpoint | number): void;
 
-  refresh(): Promise<void>;
+  refresh(): Promise<RuntimeState>;
 
   disconnect(): void;
 
