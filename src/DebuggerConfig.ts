@@ -215,7 +215,8 @@ export class DeviceConfig {
             this.name = 'emulator';
         }
 
-        if(obj.hasOwnProperty('breakpointPoliciesEnabled') && obj.breakpointPoliciesEnabled){
+        if (obj.hasOwnProperty('breakpointPoliciesEnabled') && obj.breakpointPoliciesEnabled) {
+            this.breakPoliciesActive = true;
             this.breakpointPolicy = this.validateBreakpointPolicy(obj.breakpointPolicy);
         }
     }
