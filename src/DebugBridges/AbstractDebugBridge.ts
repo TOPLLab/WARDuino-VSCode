@@ -138,6 +138,9 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     abstract refresh(): Promise<void>;
 
 
+    public getBreakpoints(): Breakpoint[] {
+        return Array.from(this.breakpoints);
+    }
 
     public async unsetAllBreakpoints(): Promise<void> {
         await Promise.all(Array.from(this.breakpoints).map(bp => this.unsetBreakPoint(bp)));
@@ -186,7 +189,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             await this.refresh();
 
             const dc = this.deviceConfig;
-            if(dc.isBreakpointPolicyEnabled()){
+            if (dc.isBreakpointPolicyEnabled()) {
                 if (dc.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
                     this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.singleStop);
                     await this.unsetAllBreakpoints();

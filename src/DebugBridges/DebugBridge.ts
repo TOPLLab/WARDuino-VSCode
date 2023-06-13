@@ -26,6 +26,8 @@ export interface DebugBridge extends EventEmitter {
 
   getSourceMap(): SourceMap;
 
+  getBreakpoints(): Breakpoint[];
+
   updateRuntimeState(runtimeState: RuntimeState, opts?: { refreshViews?: boolean, includeInTimeline?: boolean }): void;
 
   isUpdateOperationAllowed(): boolean;
