@@ -69,7 +69,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private timelineProvider?: DebuggingTimelineProvider;
     private stackProvider?: StackProvider;
 
-    private viewsRefresher: RuntimeViewsRefresher = new RuntimeViewsRefresher();
+    private extensionName = 'warduinodebug';
+    private viewsRefresher: RuntimeViewsRefresher = new RuntimeViewsRefresher(this.extensionName);
 
     private variableHandles = new Handles<'locals' | 'globals' | 'arguments'>();
     private compiler?: CompileBridge;
@@ -145,6 +146,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.reporter.clear();
         this.program = args.program;
         const deviceConfig = DeviceConfig.fromWorkspaceConfig();
+        this.viewsRefresher.showViewsFromConfig(deviceConfig);
         const eventsProvider = new EventsProvider();
         this.viewsRefresher.addViewProvider(eventsProvider);
         vscode.window.registerTreeDataProvider('events', eventsProvider);

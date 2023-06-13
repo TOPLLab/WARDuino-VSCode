@@ -108,7 +108,8 @@
         {
           "id": "breakpointPolicies",
           "name": "breakpoint Policies",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "warduinodebug.showBreakpointPolicies"
         },
         {
           "id": "debuggingTimeline",
