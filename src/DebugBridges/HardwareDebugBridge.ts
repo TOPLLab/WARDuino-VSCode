@@ -200,16 +200,12 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     private createStateRequest(): Request {
         const stateRequest = new StateRequest();
-        if (this.deviceConfig.isBreakpointPolicyEnabled()){
-            if(this.deviceConfig.getBreakpointPolicy() !== BreakpointPolicy.default) {
-                // non default bp policy is set so debugging on a MCU that cannot
-                // be stopped is in place.
-                // To keep he MCU running and allow local debugging
-                // we must request all the state
-                stateRequest.includeAll();
-            }
+        if (this.deviceConfig.isBreakpointPolicyEnabled() && (this.deviceConfig.getBreakpointPolicy() !== BreakpointPolicy.default)) {
+            // case where bp policy is activated and the non-default breakpoint policy is selected 
+            // Here we want to enable local debugging while keeping target MCU running so each state request should be a full snapshot
+            stateRequest.includeAll();
         } else {
-            // default bp policy is set so pausing a MCU to debug is allowed
+            // case where bp policy is not activated or default bp is selected
             // requesting a part of a snapshot suffices
             stateRequest.includePC();
             stateRequest.includeStack();
