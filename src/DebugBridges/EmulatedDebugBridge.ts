@@ -58,23 +58,25 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         }
     }
 
-    public async refresh() {
-        const stateRequest = new StateRequest();
-        stateRequest.includePC();
-        stateRequest.includeStack();
-        stateRequest.includeGlobals();
-        stateRequest.includeCallstack();
-        stateRequest.includeBreakpoints();
-        stateRequest.includeEvents();
-        const req = stateRequest.generateRequest();
-        try {
-            const response = await this.client!.request(req);
-            const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
-            this.updateRuntimeState(runtimeState);
-        }
-        catch (err) {
-            console.error(`Emulated: refresh Error ${err}`);
-        }
+    public refresh(): Promise<RuntimeState> {
+        return new Promise(async (resolve, reject) => {
+            const stateRequest = new StateRequest();
+            stateRequest.includePC();
+            stateRequest.includeStack();
+            stateRequest.includeGlobals();
+            stateRequest.includeCallstack();
+            stateRequest.includeBreakpoints();
+            stateRequest.includeEvents();
+            const req = stateRequest.generateRequest();
+            try {
+                const response = await this.client!.request(req);
+                const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
+                resolve(runtimeState);
+            }
+            catch (err) {
+                console.error(`Emulated: refresh Error ${err}`);
+            }
+        });
     }
 
     private startEmulator(): Promise<string> {
