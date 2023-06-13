@@ -339,9 +339,12 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     public async updateModule(): Promise<void> {
         let res: void | CompileResult = await this.compiler?.compile().catch((reason) => this.handleCompileError(reason));
         if (!!res) {
-            this.sourceMap = res.sourceMap;
-
             if (!!res.wasm) {
+                // remove no longer needed breakpoints
+                const invalidBpsAfterUpdate = this.debugBridge?.getBreakpoints().filter(bp => bp.id > res!.wasm.length) || [];
+                await Promise.all(invalidBpsAfterUpdate.map(bp => this.debugBridge?.unsetBreakPoint(bp)));
+
+                this.sourceMap = res.sourceMap;
                 this.notifyProgress('updating module...');
                 await this.debugBridge?.updateModule(res.wasm);
                 this.debugBridge?.updateSourceMapper(res.sourceMap);
@@ -367,6 +370,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             const flash = false;
             await proxyBridge?.connect(flash);
         }
+
+        // remove no longer needed breakpoints
+        const invalidBpsAfterUpdate = proxyBridge!.getBreakpoints().filter(bp => bp.id > res!.wasm.length) || [];
+        await Promise.all(invalidBpsAfterUpdate.map(bp => proxyBridge!.unsetBreakPoint(bp)));
 
         await proxyBridge!.updateModule(res.wasm);
         this.viewsRefresher.refreshViews();
