@@ -213,7 +213,7 @@
           "type": "boolean",
           "order": 6,
           "scope": "resource",
-          "default": "yes",
+          "default": true,
           "description": "Flash the VM and application when connecting to the device"
         },
         "warduino.ExperimentalBreakpointPolicies": {
