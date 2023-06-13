@@ -164,10 +164,12 @@ export const PauseRequest: Request = {
 };
 
 export function UpdateGlobalRequest(globalIdx: number, dataToSend: string) {
+    // because of issue https://github.com/TOPLLab/WARDuino/issues/187
+    // we will resolve update request based on substring match
     return {
         dataToSend: dataToSend + '\n',
         expectedResponse: (line: string) => {
-            return line === `Updated Global ${globalIdx}`;
+            return line.includes(`Global ${globalIdx} changed to`);
         }
     };
 }
