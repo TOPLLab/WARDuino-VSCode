@@ -668,9 +668,9 @@ export class WOODState {
     }
 
     static serializeGlobalValueUpdate(value: StackValue): string {
-        const stackIDx = HexaEncoder.convertToLEB128(value.idx);
+        const globalIDX = HexaEncoder.convertToLEB128(value.idx);
         const valueHex = HexaEncoder.convertToLEB128(value.value as number);
-        return `${InterruptTypes.interruptUPDATEGlobal}${stackIDx}${valueHex}`;
+        return `${InterruptTypes.interruptUPDATEGlobal}${globalIDX}${valueHex}`;
     }
 
     static fromLine(line: string) {
