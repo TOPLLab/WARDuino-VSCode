@@ -29,7 +29,7 @@ describe('WASM Compiler Bridge Test Suite', () => {
         let compilerBridge = new WASMCompilerBridge(`${wasmDirectoryPath}/fac_ok.wast`, tmpdir, wabtSDK);
         const result = (await compilerBridge.compile()).sourceMap;
         expect(result.lineInfoPairs).to.have.lengthOf.above(0);
-        expect(result.lineInfoPairs[0].lineAddress).to.equal('000002e');
+        expect(result.lineInfoPairs[0].lineAddress).to.equal('0000042');
         expect(result.lineInfoPairs[0].lineInfo.line).to.equal(13);
     });
 
