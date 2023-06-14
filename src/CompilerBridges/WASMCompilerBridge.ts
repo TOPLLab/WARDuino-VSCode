@@ -270,7 +270,7 @@ export class WASMCompilerBridge implements CompileBridge {
     }
 
     private compileToWasmCommand(): string {
-        return `${this.wabt}/wat2wasm --debug-names -v -o ${this.tmpdir}/upload.wasm ` + this.wasmFilePath;
+        return `${this.wabt}/wat2wasm --no-canonicalize-leb128s --disable-bulk-memory --debug-names -v -o ${this.tmpdir}/upload.wasm ` + this.wasmFilePath;
     }
 
     private getNameDumpCommand(): string {
