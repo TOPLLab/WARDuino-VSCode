@@ -11,6 +11,7 @@
   ],
   "activationEvents": [
     "onCommand:warduinodebug.upload",
+    "onCommand:warduinodebug.commitChanges",
     "onCommand:warduinodebug.multiverse",
     "onDebugResolve:WARDuinoDBG",
     "onDebugDynamicConfigurations:WARDuinoDBG"
@@ -39,6 +40,12 @@
         "icon": "$(arrow-circle-up)"
       },
       {
+        "command": "warduinodebug.commitChanges",
+        "category": "WARDuino",
+        "title": "Commit changes",
+        "icon": "$(arrow-circle-up)"
+      },
+      {
         "command": "warduinodebug.multiverse",
         "category": "WARDuino",
         "title": "Pull debugsession",
@@ -55,6 +62,30 @@
         "category": "WARDuino",
         "title": "Update Module",
         "icon": "$(arrow-circle-up)"
+      },
+      {
+        "command": "warduinodebug.showViewOnRuntimeState",
+        "category": "WARDuino",
+        "title": "View the state",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "warduinodebug.saveRuntimeState",
+        "category": "WARDuino",
+        "title": "Save current state",
+        "icon": "$(save)"
+      },
+      {
+        "command": "warduinodebug.startDebuggingOnEmulator",
+        "category": "WARDuino",
+        "title": "Start debugging locally",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "warduinodebug.switchBridge",
+        "category": "WARDuino",
+        "title": "Swith device view",
+        "icon": "$(debug-start)"
       }
     ],
     "views": {
@@ -68,6 +99,22 @@
           "id": "proxies",
           "name": "proxies",
           "group": "navigation"
+        },
+        {
+          "id": "stack",
+          "name": "stack",
+          "group": "navigation"
+        },
+        {
+          "id": "breakpointPolicies",
+          "name": "breakpoint Policies",
+          "group": "navigation",
+          "when": "warduinodebug.showBreakpointPolicies"
+        },
+        {
+          "id": "debuggingTimeline",
+          "name": "Debugging Timeline",
+          "group": "navigation"
         }
       ]
     },
@@ -77,6 +124,23 @@
           "command": "warduinodebug.popEvent",
           "when": "view == events",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "warduinodebug.showViewOnRuntimeState",
+          "when": "view == debuggingTimeline",
+          "group": "inline"
+        },
+        {
+          "command": "warduinodebug.saveRuntimeState",
+          "when": "view == debuggingTimeline && viewItem == save",
+          "group": "inline"
+        },
+        {
+          "command": "warduinodebug.startDebuggingOnEmulator",
+          "when": "view == debuggingTimeline && viewItem == debug-externally",
+          "group": "inline"
         }
       ]
     },
@@ -105,53 +169,94 @@
         },
         "warduino.Password": {
           "type": "string",
+          "order": 8,
           "scope": "resource",
           "default": "password",
           "description": "The password of the local Wi-Fi network"
         },
         "warduino.Port": {
           "type": "string",
+          "order": 3,
           "scope": "resource",
           "default": "/dev/cu.usbserial-1420",
           "description": "The port to use in order to program the microcontroller"
         },
         "warduino.Baudrate": {
           "type": "string",
+          "order": 1,
           "scope": "resource",
           "default": "115200",
           "description": "Baudrate to use for the serial connection"
         },
         "warduino.Device": {
           "type": "string",
+          "order": 2,
           "scope": "resource",
           "default": "esp32:esp32:esp32wrover",
           "description": "The FQBN of the target device"
         },
         "warduino.WARDuinoToolChainPath": {
           "type": "string",
+          "order": 4,
           "scope": "resource",
           "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/",
           "description": "WARDuino toolchain path (repo root folder)"
         },
         "warduino.WABToolChainPath": {
           "type": "string",
+          "order": 5,
           "scope": "resource",
           "default": "/Users/xtofs/Documents/Programming/ESP_BLINK/ESPWASM/build",
           "description": "TOPLLab WABT toolchain path (build folder)"
+        },
+        "warduino.FlashOnStart": {
+          "type": "boolean",
+          "order": 6,
+          "scope": "resource",
+          "default": true,
+          "description": "Flash the VM and application when connecting to the device"
+        },
+        "warduino.ExperimentalBreakpointPolicies": {
+          "type": "object",
+          "order": 9,
+          "description": "Breakpoint policies let you debug remote applications locally while keeping the application runnning",
+          "scope": "resource",
+          "properties": {
+            "enabled": {
+              "type" : "boolean",
+              "scope": "resource",
+              "description": "Activate the use of breakpoint policies"
+            },
+            "policy": {
+              "type": "string",
+              "scope": "resource",
+              "description": "The policy to use.",
+              "enum": [
+                  "default",
+                  "single stop",
+                  "remove and proceed"
+                ]
+            }
+          },
+          "additionalProperties": false,
+          "default": {
+            "enabled": false,
+            "policy": "default"
+          }
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "yarn run compile",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "yarn run compile && yarn run lint",
-    "lint": "eslint src --ext ts",
-    "extension-test": "node ./out/test/runTest.js",
-    "compiler-test": "mocha --ui tdd --require ts-node/register src/test/UnitTests/TestCompilerBridge.ts",
-    "debugger-test": "mocha --ui tdd --require ts-node/register src/test/UnitTests/TestDebuggerBridge.ts --grep '^Debug API Test Suite \\(emulated\\)'",
-    "unit-test": "npm run compiler-test && npm run debugger-test"
+    "pretest": "npm run compile && npm run gen-examples",
+    "gen-examples": "./src/test/suite/examples/build.sh",
+    "test": "npm run plugintest",
+    "plugintest": "node ./out/test/runTest.js",
+    "check": "node ./out/test.js",
+    "lint": "eslint src --ext ts"
   },
   "devDependencies": {
     "@types/chai": "^4.3.0",
@@ -159,7 +264,9 @@
     "@types/mocha": "^9.1.0",
     "@types/node": "14.x",
     "@types/path-browserify": "^1.0.0",
+    "@types/uuid": "^9.0.0",
     "@types/vscode": "^1.64.0",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.12.1",
     "@typescript-eslint/parser": "^5.12.1",
     "@vscode/test-electron": "^2.1.2",
@@ -168,6 +275,7 @@
     "glob": "^7.2.0",
     "mocha": "^9.2.1",
     "path-browserify": "^1.0.1",
+    "protobufjs": "^7.1.2",
     "serialport": "^10.4.0",
     "ts-node": "^10.5.0",
     "typescript": "^4.5.5",
@@ -176,6 +284,9 @@
     "vscode-debugadapter-testsupport": "^1.51.0-pre.0"
   },
   "dependencies": {
-    "chai": "^4.3.6"
+    "chai": "^4.3.6",
+    "ieee754": "^1.2.1",
+    "mqtt": "^4.3.7",
+    "ts-retry-promise": "^0.7.0"
   }
 }

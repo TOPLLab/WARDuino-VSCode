@@ -12,6 +12,20 @@ This directory contains the source code for the VS Code plugin for the WARDuino 
 
 The debugger contributes the following settings:
 
+## Testing
+
+To run the vm tests run:
+
+```bash
+env WABT='path to wabt commands' npm run test-vm
+```
+
+To run the spec tests with Latch:
+
+```bash
+env WABT='dir with WABT commands' CORESUITE='dir with original spec test suite' npm run spectest
+```
+
 ## Development Notes
 
 Before first time use make sure you have:

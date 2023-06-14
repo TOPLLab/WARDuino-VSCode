@@ -1,39 +1,32 @@
-import {AbstractDebugBridge, Messages} from "./AbstractDebugBridge";
-import {DebugBridgeListener} from "./DebugBridgeListener";
-import {ReadlineParser, SerialPort} from 'serialport';
-import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {InterruptTypes} from "./InterruptTypes";
-import {exec, spawn} from "child_process";
-import {SourceMap} from "../State/SourceMap";
-import {WOODState} from "../State/WOODState";
-import {EventsProvider} from "../Views/EventsProvider";
+import { AbstractDebugBridge, EventsMessages, Messages } from './AbstractDebugBridge';
+import { InterruptTypes } from './InterruptTypes';
+import { exec, spawn } from 'child_process';
+import { SourceMap } from '../State/SourceMap';
+import { DeviceConfig } from '../DebuggerConfig';
+import * as path from 'path';
+import { LoggingSerialMonitor } from '../Channels/SerialConnection';
+import { ClientSideSocket } from '../Channels/ClientSideSocket';
+import { ChannelInterface } from '../Channels/ChannelInterface';
+import { SerialChannel } from '../Channels/SerialChannel';
+import { ProxifyRequest, Request, StateRequest } from './APIRequest';
+import { RuntimeState } from '../State/RuntimeState';
+import { BreakpointPolicy } from '../State/Breakpoint';
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
-    private parser: DebugInfoParser = new DebugInfoParser();
-    private wasmPath: string;
-    protected client: SerialPort | undefined;
-    protected readonly portAddress: string;
-    protected readonly fqbn: string;
+    protected client: ChannelInterface | undefined;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
-    private woodState?: WOODState;
-    private woodDumpDetected: boolean = false;
 
-    constructor(wasmPath: string,
-                sourceMap: SourceMap | void,
-                eventsProvider: EventsProvider | void,
-                tmpdir: string,
-                listener: DebugBridgeListener,
-                portAddress: string,
-                fqbn: string,
-                warduinoSDK: string) {
-        super(sourceMap, eventsProvider, listener);
+    private logginSerialConnection?: LoggingSerialMonitor;
 
-        this.wasmPath = wasmPath;
+    constructor(
+        deviceConfig: DeviceConfig,
+        sourceMap: SourceMap,
+        tmpdir: string,
+        warduinoSDK: string) {
+        super(deviceConfig, sourceMap);
+
         this.sourceMap = sourceMap;
-        this.listener = listener;
-        this.portAddress = portAddress;
-        this.fqbn = fqbn;
         this.sdk = warduinoSDK;
         this.tmpdir = tmpdir;
     }
@@ -43,117 +36,130 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
         this.startAddress = startAddress;
     }
 
-    async connect(): Promise<string> {
-        return new Promise(async (resolve, reject) => {
-            this.listener.notifyProgress(Messages.compiling);
+    async connect(flash?: boolean): Promise<string> {
+        const doFlash = flash === undefined ? this.deviceConfig.onStartConfig.flash : flash;
+        if (doFlash) {
             await this.compileAndUpload();
-            this.listener.notifyProgress(Messages.connecting);
-            this.openSerialPort(reject, resolve);
-            this.installInputStreamListener();
-        });
+        }
+        this.emit(EventsMessages.progress, this, Messages.connecting);
+        if (this.deviceConfig.usesWiFi()) {
+            await this.openSocketPort();
+            this.registerCallbacks();
+            if (!!!this.logginSerialConnection) {
+                const loggername = this.deviceConfig.name;
+                const port = this.deviceConfig.serialPort;
+                const baudRate = this.deviceConfig.baudrate;
+                this.logginSerialConnection = new LoggingSerialMonitor(loggername, port, baudRate);
+            }
+            this.logginSerialConnection.openConnection().catch((err) => {
+                console.log(`Plugin: could not monitor serial port ${this.deviceConfig.serialPort} reason: ${err}`);
+            });
+        }
+        else {
+            await this.openSerialPort();
+            this.registerCallbacks();
+        }
+        if (doFlash) {
+            const p = new Promise((res) => {
+                const secs = 2000;
+                setTimeout(() => {
+                    res('done');
+                }, secs);
+            });
+            await p;
+        }
+        return '';
     }
 
     public async upload() {
         await this.compileAndUpload();
     }
 
-    protected openSerialPort(reject: (reason?: any) => void, resolve: (value: string | PromiseLike<string>) => void) {
-        this.client = new SerialPort({path: this.portAddress, baudRate: 115200},
-            (error) => {
-                if (error) {
-                    reject(`Could not connect to serial port: ${this.portAddress}`);
-                } else {
-                    this.listener.notifyProgress(Messages.connected);
-                    resolve(this.portAddress);
-                }
+    protected async openSocketPort() {
+        this.client = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
+        try {
+            const maxConnectionAttempts = 5;
+            if (!await this.client.openConnection(maxConnectionAttempts)) {
+                return `Could not connect to socket ${this.deviceConfig.ip}:${this.deviceConfig.port}`;
             }
-        );
+            this.emit(EventsMessages.connected, this);
+            return `127.0.0.1:${this.deviceConfig.port}`;
+        }
+        catch (err) {
+            this.emit(EventsMessages.connectionError, this, err);
+            console.error(err);
+            throw err;
+        }
     }
 
-    protected installInputStreamListener() {
-        const parser = new ReadlineParser();
-        this.client?.pipe(parser);
-        parser.on("data", (line: string) => {
-            this.handleLine(line);
-        });
+    public disconnectMonitor() {
+        this.logginSerialConnection?.disconnect();
     }
 
-    protected handleLine(line: string) {
-        if (this.woodDumpDetected) {
-            // Next line will be a WOOD dump
-            // TODO receive state from WOOD Dump and call bridge.pushSession(state)
-            this.woodState = new WOODState(line);
-            this.requestCallbackmapping();
-            this.woodDumpDetected = false;
-            return;
+    protected async openSerialPort() {
+        this.client = new SerialChannel(this.deviceConfig.serialPort, this.deviceConfig.baudrate);
+        if (!await this.client.openConnection()) {
+            return `Could not connect to serial port: ${this.deviceConfig.serialPort}`;
         }
-
-        if (this.woodState !== undefined && line.startsWith('{"callbacks": ')) {
-            this.woodState.callbacks = line;
-            this.pushSession();
-        }
-        this.woodDumpDetected = line.includes("DUMP!");
-        console.log(`hardware: ${line}`);
-        this.parser.parse(this, line);
-
-        this.woodDumpDetected = line.includes("DUMP!");
-        console.log(`hardware: ${line}`);
-
-        this.parser.parse(this, line);
+        this.emit(EventsMessages.connected, this);
+        return this.deviceConfig.serialPort;
     }
 
     public disconnect(): void {
-        console.error("CLOSED!"), this.client;
-        this.client?.close((e) => {
-            console.log(e);
-        });
-        this.listener.notifyProgress(Messages.disconnected);
+        this.client?.disconnect();
+        this.logginSerialConnection?.disconnect();
+        console.error('CLOSED!');
+        this.emit(EventsMessages.disconnected, this);
     }
 
     protected uploadArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        let lastStdOut = "";
-        this.listener.notifyProgress(Messages.reset);
-
-        const upload = exec(`make flash PORT=${this.portAddress} FQBN=${this.fqbn} PAUSED=true`, {cwd: path}, (err, stdout, stderr) => {
+        let lastStdOut = '';
+        this.emit(EventsMessages.progress, this, EventsMessages.flashing);
+        const upload = exec(`make flash PORT=${this.deviceConfig.serialPort} FQBN=${this.deviceConfig.fqbn} PAUSED=true`, { cwd: path }, (err, stdout, stderr) => {
+            if (err) {
                 console.error(err);
                 lastStdOut = stdout + stderr;
-                this.listener.notifyProgress(Messages.initialisationFailure);
+                const errMsg = `${EventsMessages.flashingFailure} reason: ${err}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
             }
-        );
+        });
 
-        this.listener.notifyProgress(Messages.uploading);
+        this.emit(EventsMessages.progress, this, EventsMessages.flashing);
 
-        upload.on("close", (code) => {
+        upload.on('close', (code) => {
             if (code === 0) {
                 resolver(true);
             } else {
+                const errMsg = `${EventsMessages.flashingFailure}. Exit code: ${code}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
                 reject(`Could not flash ended with ${code} \n${lastStdOut}`);
             }
         });
     }
 
     public compileArduino(path: string, resolver: (value: boolean) => void, reject: (value: any) => void): void {
-        const compile = spawn("make", ["recompile", `FQBN=${this.fqbn}`, `BINARY=${this.tmpdir}/upload.wasm`, 'PAUSED=true'], {
+        this.emit(EventsMessages.progress, this, Messages.compiling);
+        const compile = spawn('make', ['recompile', `FQBN=${this.deviceConfig.fqbn}`, `BINARY=${this.tmpdir}/upload.wasm`, 'PAUSED=true'], {
             cwd: path
         });
 
-        compile.stdout.on("data", data => {
+        compile.stdout.on('data', data => {
             console.log(data.toString());
         });
 
-        compile.stderr.on("data", (data: string) => {
+        compile.stderr.on('data', (data: string) => {
             console.error(`HardwareDebugBridge stderr: ${data}`);
-            this.listener.notifyProgress(Messages.initialisationFailure);
+            const errMsg = `${EventsMessages.compilationFailure}. Reason: ${data}`;
+            this.emit(EventsMessages.errorInProgress, this, errMsg);
             reject(data);
         });
 
-        compile.on("close", (code) => {
+        compile.on('close', (code) => {
             console.log(`Arduino compilation exited with code ${code}`);
             if (code === 0) {
-                this.listener.notifyProgress(Messages.compiled);
                 this.uploadArduino(path, resolver, reject);
             } else {
-                this.listener.notifyProgress(Messages.initialisationFailure);
+                this.emit(EventsMessages.progress, this, Messages.initialisationFailure);
                 reject(false);
             }
         });
@@ -161,53 +167,53 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
 
     public compileAndUpload(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            const sdkpath: string = this.sdk + "/platforms/Arduino/";
+            const arduinoDir = '/platforms/Arduino/';
+            const sdkpath: string = path.join(this.sdk, arduinoDir);
+            this.emit(EventsMessages.progress, this, Messages.compiling);
             const cp = exec(`cp ${this.tmpdir}/upload.c ${sdkpath}/upload.h`);
-            cp.on("error", err => {
-                reject("Could not store upload file to sdk path.");
+            cp.on('error', err => {
+                const errMsg = `Could not store upload file to sdk path. Reason: ${err}`;
+                this.emit(EventsMessages.errorInProgress, this, errMsg);
+                reject(errMsg);
             });
-            cp.on("close", (code) => {
+            cp.on('close', (code) => {
                 this.compileArduino(sdkpath, resolve, reject);
             });
         });
     }
 
-    getCurrentFunctionIndex(): number {
-        if (this.callstack.length === 0) {
-            return -1;
+    public async proxify(): Promise<void> {
+        await this.client!.request(ProxifyRequest);
+    }
+
+    async refresh(): Promise<void> {
+        const stateRequest = this.createStateRequest();
+        try {
+            const response = await this.client!.request(stateRequest);
+            const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
+            this.updateRuntimeState(runtimeState);
         }
-        return this.callstack[this.callstack.length - 1].index;
-    }
-
-    pullSession(): void {
-        this.listener.notifyProgress(Messages.transfering);
-        this.sendInterrupt(InterruptTypes.interruptWOODDump, function (err: any) {
-            console.log("Plugin: WOOD Dump");
-            if (err) {
-                return console.log("Error on write: ", err.message);
-            }
-        });
-    }
-
-    pushSession(): void {
-        if (this.woodState === undefined) {
-            return;
+        catch (err) {
+            console.error(`Hardware: refresh Error ${err}`);
         }
-        console.log("Plugin: transfer state received.");
-        this.sendInterrupt(InterruptTypes.interruptProxify);
-        this.listener.startMultiverseDebugging(this.woodState);
     }
 
-    requestCallbackmapping() {
-        this.sendInterrupt(InterruptTypes.interruptDUMPCallbackmapping);
-    }
-
-    refresh(): void {
-        console.log("Plugin: Refreshing");
-        this.sendInterrupt(InterruptTypes.interruptDUMPFull, function (err: any) {
-            if (err) {
-                return console.log("Error on write: ", err.message);
-            }
-        });
+    private createStateRequest(): Request {
+        const stateRequest = new StateRequest();
+        if (this.deviceConfig.isBreakpointPolicyEnabled() && (this.deviceConfig.getBreakpointPolicy() !== BreakpointPolicy.default)) {
+            // case where bp policy is activated and the non-default breakpoint policy is selected 
+            // Here we want to enable local debugging while keeping target MCU running so each state request should be a full snapshot
+            stateRequest.includeAll();
+        } else {
+            // case where bp policy is not activated or default bp is selected
+            // requesting a part of a snapshot suffices
+            stateRequest.includePC();
+            stateRequest.includeStack();
+            stateRequest.includeCallstack();
+            stateRequest.includeBreakpoints();
+            stateRequest.includeGlobals();
+            stateRequest.includeEvents();
+        }
+        return stateRequest.generateRequest();
     }
 }

@@ -1,126 +1,87 @@
-import {ChildProcess, spawn} from 'child_process';
-import * as net from 'net';
-import {DebugBridgeListener} from './DebugBridgeListener';
-import {InterruptTypes} from './InterruptTypes';
-import {DebugInfoParser} from "../Parsers/DebugInfoParser";
-import {SourceMap} from "../State/SourceMap";
-import {AbstractDebugBridge} from "./AbstractDebugBridge";
-import {WOODState} from "../State/WOODState";
-import {EventsProvider} from "../Views/EventsProvider";
-import {Readable} from 'stream';
-import {ReadlineParser} from 'serialport';
+import { ChildProcess, spawn } from 'child_process';
+import { AbstractDebugBridge, EventsMessages } from './AbstractDebugBridge';
+import { SourceMap } from '../State/SourceMap';
+import { Readable } from 'stream';
+import { ReadlineParser } from 'serialport';
+import { DeviceConfig } from '../DebuggerConfig';
+import { ClientSideSocket } from '../Channels/ClientSideSocket';
+import { RuntimeState } from '../State/RuntimeState';
+import { ChannelInterface } from '../Channels/ChannelInterface';
+import { StateRequest } from './APIRequest';
 
-export const EMULATOR_PORT: number = 8300;
+// export const EMULATOR_PORT: number = 8300;
 
 export class EmulatedDebugBridge extends AbstractDebugBridge {
-    public client: net.Socket | undefined;
+    public client: ChannelInterface | undefined;
     protected readonly tmpdir: string;
-    private wasmPath: string;
     protected readonly sdk: string;
     private cp?: ChildProcess;
-    private parser: DebugInfoParser;
-    private buffer: string = "";
 
-    constructor(wasmPath: string, sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, tmpdir: string, listener: DebugBridgeListener,
-                warduinoSDK: string) {
-        super(sourceMap, eventsProvider, listener);
+    constructor(config: DeviceConfig, sourceMap: SourceMap, tmpdir: string,
+        warduinoSDK: string) {
+        super(config, sourceMap);
 
-        this.wasmPath = wasmPath;
         this.sdk = warduinoSDK;
         this.sourceMap = sourceMap;
         this.tmpdir = tmpdir;
-        this.parser = new DebugInfoParser();
+        this.client = new ClientSideSocket(this.deviceConfig.port, this.deviceConfig.ip);
+    }
+
+    public proxify(): Promise<void> {
+        throw new Error('EmulatedDebugBridge.proxify: Method not supported.');
     }
 
     upload(): void {
-        throw new Error("Method not implemented.");
+        throw new Error('EmulatedDebugBridge.upload: Method not implemented.');
     }
 
     setStartAddress(startAddress: number) {
         this.startAddress = startAddress;
     }
 
-    public connect(): Promise<string> {
+    public connect(flash?: boolean): Promise<string> {
         return this.startEmulator();
     }
 
-    getCurrentFunctionIndex(): number {
-        if (this.callstack.length === 0) {
-            return -1;
+
+    private async initClient(): Promise<string> {
+        try {
+            await this.client!.openConnection();
+            this.emit(EventsMessages.connected, this);
+            this.registerCallbacks();
+            return `127.0.0.1:${this.deviceConfig.port}`;
         }
-        return this.callstack[this.callstack.length - 1].index;
+        catch (err) {
+            this.emit(EventsMessages.connectionError, this, err);
+            console.error(`Connection error: ${err}`);
+            throw err;
+        }
     }
 
-    private initClient(): Promise<string> {
-        return new Promise<string>((resolve, reject) => {
-            let that = this;
-            let address = {port: EMULATOR_PORT, host: "127.0.0.1"};  // TODO config
-            if (this.client === undefined) {
-                this.client = new net.Socket();
-                this.client.connect(address, () => {
-                    this.listener.notifyProgress("Connected to socket");
-                    resolve(`${address.host}:${address.port}`);
-                });
-
-                this.client.on("error", err => {
-                        this.listener.notifyError("Lost connection to the board");
-                        console.error(err);
-                        reject(err);
-                    }
-                );
-
-                this.client.on("data", data => {
-                        data.toString().split("\n").forEach((line) => {
-                            console.log(`emulator: ${line}`);
-
-                            if (line.startsWith("Interrupt:")) {
-                                this.buffer = line;
-                            } else if (this.buffer.length > 0) {
-                                this.buffer += line;
-                            } else if (line.startsWith("{")) {
-                                this.buffer = line;
-                            } else {
-                                that.parser.parse(that, line);
-                                return;
-                            }
-
-                            try {
-                                that.parser.parse(that, this.buffer);
-                                this.buffer = "";
-                            } catch (e) {
-                                return;
-                            }
-                        });
-                    }
-                );
-            } else {
-                resolve(`${address.host}:${address.port}`);
-            }
-        });
-    }
-
-    public refresh() {
-        this.sendInterrupt(InterruptTypes.interruptDUMPFull);
-    }
-
-    public pullSession() {
-        this.sendInterrupt(InterruptTypes.interruptWOODDump);
-    }
-
-    public pushSession(woodState: WOODState) {
-        throw new Error("Method not implemented.");
-    }
-
-    private executeCommand(command: InterruptTypes) {
-        console.log(command.toString());
-        this.client?.write(command.toString + '\n');
+    public async refresh() {
+        const stateRequest = new StateRequest();
+        stateRequest.includePC();
+        stateRequest.includeStack();
+        stateRequest.includeGlobals();
+        stateRequest.includeCallstack();
+        stateRequest.includeBreakpoints();
+        stateRequest.includeEvents();
+        const req = stateRequest.generateRequest();
+        try {
+            const response = await this.client!.request(req);
+            const runtimeState: RuntimeState = new RuntimeState(response, this.sourceMap);
+            this.updateRuntimeState(runtimeState);
+        }
+        catch (err) {
+            console.error(`Emulated: refresh Error ${err}`);
+        }
     }
 
     private startEmulator(): Promise<string> {
         return new Promise((resolve, reject) => {
             this.cp = this.spawnEmulatorProcess();
 
-            this.listener.notifyProgress('Started emulator');
+            this.emit(EventsMessages.emulatorStarted, this);
             while (this.cp.stdout === undefined) {
             }
             if (isReadable(this.cp.stdout) && isReadable(this.cp.stderr)) {
@@ -131,7 +92,7 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
 
                 outParser.on('data', (data) => {  // Print debug and trace information
                     console.log(`stdout: ${data}`);
-                    if (data.includes("Listening")) {
+                    if (data.includes('Listening')) {
                         this.initClient().then(resolve).catch(reject);
                     }
                 });
@@ -145,27 +106,54 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
                 });
 
                 this.cp.on('close', (code) => {
-                    this.listener.notifyProgress('Disconnected from emulator');
+                    this.emit(EventsMessages.emulatorClosed, this, code);
                     this.cp?.kill();
                     this.cp = undefined;
                 });
 
             } else {
-                reject("No stdout of stderr on emulator");
+                reject('No stdout of stderr on emulator');
             }
         });
     }
 
     public disconnect(): void {
-        console.error("Disconnected emulator");
+        console.error('Disconnected emulator');
         this.cp?.kill();
-        this.client?.destroy();
+        this.client!.disconnect();
+    }
+
+    public disconnectMonitor() {
+        throw Error('No monitor to disconnect on emulator');
     }
 
     protected spawnEmulatorProcess(): ChildProcess {
         // TODO package extension with upload.wasm and compile WARDuino during installation.
-        return spawn(`${this.sdk}/build-emu/wdcli`, [`${this.tmpdir}/upload.wasm`, '--socket', `${EMULATOR_PORT}`]);
-        //return spawn(`echo`, ['"Listening"']);
+        const emulatorPort: number = this.deviceConfig.port;
+        const proxySerialPort = this.deviceConfig.proxyConfig?.serialPort;
+        const proxyBaudrate = this.deviceConfig.proxyConfig?.baudrate;
+        const proxyIP = this.deviceConfig.proxyConfig?.ip;
+        const proxyPort = this.deviceConfig.proxyConfig?.port;
+        const args: string[] = [`${this.tmpdir}/upload.wasm`, '--socket', `${emulatorPort}`];
+
+        if (this.deviceConfig.needsProxyToAnotherVM()) {
+            if (proxyIP && proxyIP !== '') {
+                args.push('--proxy', `${proxyIP}:${proxyPort}`);
+            }
+            else if (proxySerialPort && proxySerialPort !== '') {
+                args.push('--proxy', proxySerialPort, '--baudrate', `${proxyBaudrate}`);
+            }
+            else {
+                throw Error(`cannot spawn emulator in proxy mode without serialPort or IP of target MCU.
+                Given serialPort=${proxySerialPort} baudrate=${proxyBaudrate} IP=${proxyIP} IPPORT=${proxyPort}.`);
+            }
+        }
+
+        if (this.deviceConfig.onStartConfig.pause) {
+            args.push('--paused');
+        }
+        return spawn(`${this.sdk}/build-emu/wdcli`, args);
+        // return spawn(`echo`, ['"Listening"']);
     }
 
 }

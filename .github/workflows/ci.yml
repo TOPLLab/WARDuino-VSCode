@@ -13,46 +13,47 @@ jobs:
     formatting-check:
         name: ESLint
         runs-on: ubuntu-latest
-        
+
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
-            
+              uses: actions/checkout@v3
+
             - name: Set up Node.js
-              uses: actions/setup-node@v1
+              uses: actions/setup-node@v3
               with:
-                node-version: 14
+                cache: 'npm'
+                node-version: 16
 
             - name: Install Node.js dependencies
               run: npm ci
 
             - name: Run ESLint
               run: npm run lint
-    
+
     build-wdcli:
         name: Build WARDuino CLI
         runs-on: ubuntu-latest
-        
+
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                 submodules: recursive
-    
+
             - name: Retrieve version
               run: |
                 cd WARDuino
-                echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_STATE
+                echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
               id: version
 
             - name: Cache build files
               id: cache-wdcli
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
                     ./WARDuino/build-emu
                 key: ${{ env.WDCLI_CACHE }}-${{ steps.version.outputs.COMMIT }}
-            
+
             - name: Build from source
               if: steps.cache-wdcli.outputs.cache-hit != 'true'
               run: |
@@ -67,27 +68,27 @@ jobs:
     build-wabt:
         name: Build custom WABT
         runs-on: ubuntu-latest
-        
+
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                 submodules: recursive
-    
+
             - name: Retrieve version
               run: |
                 cd WABT
-                echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_STATE
+                echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
               id: version
 
             - name: Cache build files
               id: cache-wabt
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
                     ./WABT/build
                 key: ${{ env.WABT_CACHE }}-${{ steps.version.outputs.COMMIT }}
-            
+
             - name: Build from source
               if: steps.cache-wabt.outputs.cache-hit != 'true'
               run: |
@@ -99,30 +100,95 @@ jobs:
               if: steps.cache-wabt.outputs.cache-hit != 'true'
               run: ./WABT/build/wasm-objdump --version
 
-    test:
-        name: Mocha Test Suites
+    test-debugger:
+        name: Debugger Test Suite
+        needs: [build-wabt, build-wdcli]
+        runs-on: ubuntu-latest
+    
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v3
+            with:
+              submodules: recursive
+
+          - name: Retrieve WABT version
+            run: |
+              cd WABT
+              echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+            id: wabt
+
+          - name: Get WABT cache
+            id: cache-wabt
+            uses: actions/cache@v3
+            with:
+              path: |
+                ./WABT/build
+              key: ${{ env.WABT_CACHE }}-${{ steps.wabt.outputs.COMMIT }}
+
+          - name: Update $PATH
+            run: echo "${GITHUB_WORKSPACE}/WABT/build" >> $GITHUB_PATH
+
+          - name: Check wat2wasm
+            run: wat2wasm --version
+
+          - name: Check wasm-objdump
+            run: wasm-objdump --version
+
+          - name: Set up Node.js
+            uses: actions/setup-node@v3
+            with:
+              cache: 'npm'
+              node-version: 16
+
+          - name: Install Node.js dependencies
+            run: npm ci
+
+          - name: Retrieve WARDuino version
+            run: |
+              cd WARDuino
+              echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+            id: warduino
+
+          - name: Get WARDuino cache
+            id: cache-wdcli
+            uses: actions/cache@v3
+            with:
+              path: |
+                ./WARDuino/build-emu
+              key: ${{ env.WDCLI_CACHE }}-${{ steps.warduino.outputs.COMMIT }}
+
+          - name: Move wdcli
+            run: |
+              mkdir -p $HOME/Arduino/libraries/WARDuino/build-emu/
+              cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
+
+          - name: Run tests
+            run: npm run pretest
+
+    test-ui:
+        name: Plugin UI Test Suite
         needs: [build-wabt, build-wdcli]
         runs-on: ubuntu-latest
     
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
-
-            - name: Set up Node.js
-              uses: actions/setup-node@v1
+              uses: actions/checkout@v3
               with:
-                node-version: 14
+                submodules: recursive
 
-            - name: Install Node.js dependencies
-              run: npm ci
+            - name: Retrieve WABT version
+              run: |
+                cd WABT
+                echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+              id: wabt
 
             - name: Get WABT cache
               id: cache-wabt
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
-                    ./WABT/build
-                key: ${{ env.WABT_CACHE }}-${{ steps.version.outputs.COMMIT }}
+                  ./WABT/build
+                key: ${{ env.WABT_CACHE }}-${{ steps.wabt.outputs.COMMIT }}
 
             - name: Update $PATH
               run: echo "${GITHUB_WORKSPACE}/WABT/build" >> $GITHUB_PATH
@@ -133,14 +199,34 @@ jobs:
             - name: Check wasm-objdump
               run: wasm-objdump --version
 
+            - name: Set up Node.js
+              uses: actions/setup-node@v3
+              with:
+                cache: 'npm'
+                node-version: 16
+
+            - name: Install Node.js dependencies
+              run: npm ci
+
+            - name: Retrieve WARDuino version
+              run: |
+                cd WARDuino
+                echo "::set-output name=COMMIT::$(git rev-parse HEAD)"
+              id: warduino
+
             - name: Get WARDuino cache
               id: cache-wdcli
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
                     ./WARDuino/build-emu
-                key: ${{ env.WDCLI_CACHE }}-${{ steps.version.outputs.COMMIT }}
+                key: ${{ env.WDCLI_CACHE }}-${{ steps.warduino.outputs.COMMIT }}
+
+            - name: Move wdcli
+              run: |
+                mkdir -p $HOME/Arduino/libraries/WARDuino/build-emu/
+                cp ./WARDuino/build-emu/wdcli $HOME/Arduino/libraries/WARDuino/build-emu/
 
             - name: Run tests
-              run: npm run compiler-test
+              run: npm run pretest; xvfb-run -a npm run plugintest
 

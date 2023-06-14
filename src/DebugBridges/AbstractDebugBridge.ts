@@ -1,50 +1,61 @@
-import {DebugBridge} from "./DebugBridge";
-import {Frame} from "../Parsers/Frame";
-import {VariableInfo} from "../State/VariableInfo";
-import {SourceMap} from "../State/SourceMap";
-import {DebugBridgeListener} from "./DebugBridgeListener";
-import {WOODState} from "../State/WOODState";
-import {InterruptTypes} from "./InterruptTypes";
-import {Writable} from "stream";
-import {EventItem, EventsProvider} from "../Views/EventsProvider";
-import {FunctionInfo} from "../State/FunctionInfo";
-import {ProxyCallItem} from "../Views/ProxyCallsProvider";
-import {RuntimeState} from "../State/RuntimeState";
-import {Breakpoint, UniqueSet} from "../State/Breakpoint";
+import { DebugBridge } from './DebugBridge';
+import { Frame } from '../Parsers/Frame';
+import { VariableInfo } from '../State/VariableInfo';
+import { SourceMap, getLineNumberForAddress } from '../State/SourceMap';
+import { ExecutionStateType, WOODDumpResponse, WOODState } from '../State/WOODState';
+import { InterruptTypes } from './InterruptTypes';
+import { FunctionInfo } from '../State/FunctionInfo';
+import { ProxyCallItem } from '../Views/ProxyCallsProvider';
+import { RuntimeState } from '../State/RuntimeState';
+import { Breakpoint, BreakpointPolicy, UniqueSet } from '../State/Breakpoint';
+import { HexaEncoder } from '../Util/hexaEncoding';
+import { DeviceConfig } from '../DebuggerConfig';
+import { DebuggingTimeline } from '../State/DebuggingTimeline';
+import { ChannelInterface } from '../Channels/ChannelInterface';
+import { PauseRequest, Request, RunRequest, StackValueUpdateRequest, StateRequest, UpdateGlobalRequest, UpdateModuleRequest, UpdateStateRequest } from './APIRequest';
+import { EventItem } from '../Views/EventsProvider';
+import EventEmitter = require('events');
 
 export class Messages {
-    public static readonly compiling: string = "Compiling the code";
-    public static readonly compiled: string = "Compiled Code";
-    public static readonly reset: string = "Press reset button";
-    public static readonly transfering: string = "Transfering state";
-    public static readonly uploading: string = "Uploading to board";
-    public static readonly connecting: string = "Connecting to board";
-    public static readonly connected: string = "Connected to board";
-    public static readonly disconnected: string = "Disconnected board";
-    public static readonly initialisationFailure: string = "Failed to initialise";
-    public static readonly connectionFailure: string = "Failed to connect device";
+    public static readonly compiling: string = 'Compiling the code';
+    public static readonly compiled: string = 'Compiled Code';
+    public static readonly reset: string = 'Press reset button';
+    public static readonly transfering: string = 'Transfering state';
+    public static readonly uploading: string = 'Uploading to board';
+    public static readonly connecting: string = 'Connecting to board';
+    public static readonly connected: string = 'Connected to board';
+    public static readonly disconnected: string = 'Disconnected board';
+    public static readonly initialisationFailure: string = 'Failed to initialise';
+    public static readonly connectionFailure: string = 'Failed to connect device';
 }
 
-function convertToLEB128(a: number): string { // TODO can only handle 32 bit
-    a |= 0;
-    const result = [];
-    while (true) {
-        const byte_ = a & 0x7f;
-        a >>= 7;
-        if (
-            (a === 0 && (byte_ & 0x40) === 0) ||
-            (a === -1 && (byte_ & 0x40) !== 0)
-        ) {
-            result.push(byte_.toString(16).padStart(2, "0"));
-            return result.join("").toUpperCase();
-        }
-        result.push((byte_ | 0x80).toString(16).padStart(2, "0"));
-    }
+export class EventsMessages {
+    public static readonly stateUpdated: string = 'state updated';
+    public static readonly moduleUpdated: string = 'module updated';
+    public static readonly stepCompleted: string = 'stepped';
+    public static readonly running: string = 'running';
+    public static readonly paused: string = 'paused';
+    public static readonly exceptionOccurred: string = 'exception occurred';
+    public static readonly enforcingBreakpointPolicy: string = 'enforcing breakpoint policy';
+    public static readonly connected: string = 'connected';
+    public static readonly connectionError: string = 'connectionError';
+    public static readonly disconnected: string = 'disconnected';
+    public static readonly emulatorStarted: string = 'emulator started';
+    public static readonly emulatorClosed: string = 'emulator closed';
+    public static readonly progress: string = 'progress';
+    public static readonly errorInProgress: string = 'progress error';
+    public static readonly compiling: string = 'Compiling the code';
+    public static readonly compiled: string = 'Compiled Code';
+    public static readonly compilationFailure: string = 'Compilation failure';
+    public static readonly flashing: string = 'Flashing Code';
+    public static readonly flashingFailure: string = 'Flashing failed';
+    public static readonly atBreakpoint: string = 'At breakpoint';
 }
 
-export abstract class AbstractDebugBridge implements DebugBridge {
+
+export abstract class AbstractDebugBridge extends EventEmitter implements DebugBridge {
     // State
-    protected sourceMap: SourceMap | void;
+    protected sourceMap: SourceMap;
     protected startAddress: number = 0;
     protected pc: number = 0;
     protected callstack: Frame[] = [];
@@ -52,108 +63,170 @@ export abstract class AbstractDebugBridge implements DebugBridge {
     protected breakpoints: UniqueSet<Breakpoint> = new UniqueSet<Breakpoint>();
 
     // Interfaces
-    protected listener: DebugBridgeListener;
-    protected abstract client: Writable | undefined;
-    private eventsProvider: EventsProvider | void;
+    protected abstract client: ChannelInterface | undefined;
 
     // History (time-travel)
-    private history: RuntimeState[] = [];
-    private present = -1;
+    protected timeline: DebuggingTimeline = new DebuggingTimeline();
 
-    protected constructor(sourceMap: SourceMap | void, eventsProvider: EventsProvider | void, listener: DebugBridgeListener) {
+    public readonly deviceConfig: DeviceConfig;
+    public outOfPlaceActive = false;
+
+    protected constructor(deviceConfig: DeviceConfig, sourceMap: SourceMap) {
+        super();
         this.sourceMap = sourceMap;
         const callbacks = sourceMap?.importInfos ?? [];
         this.selectedProxies = new Set<ProxyCallItem>(callbacks.map((primitive: FunctionInfo) => (new ProxyCallItem(primitive))))
             ?? new Set<ProxyCallItem>();
-        this.eventsProvider = eventsProvider;
-        this.listener = listener;
+        this.deviceConfig = deviceConfig;
     }
 
     // General Bridge functionality
 
-    abstract connect(): Promise<string>;
+    abstract connect(flash?: boolean): Promise<string>;
 
     abstract disconnect(): void;
+
+    abstract disconnectMonitor(): void;
 
     abstract upload(): void;
 
     // Debug API
 
-    public run(): void {
-        this.resetHistory();
-        this.sendInterrupt(InterruptTypes.interruptRUN);
+    abstract proxify(): Promise<void>;
+
+    public async run(): Promise<void> {
+        await this.client?.request(RunRequest);
+        this.emit(EventsMessages.running);
     }
 
-    public pause(): void {
-        this.sendInterrupt(InterruptTypes.interruptPAUSE);
-        this.listener.notifyPaused();
+    public async pause(): Promise<void> {
+        const req = PauseRequest;
+        await this.client?.request(req);
+        await this.refresh();
+        this.emit(EventsMessages.paused);
     }
 
-    public hitBreakpoint() {
-        this.listener.notifyBreakpointHit();
-    }
-
-    public step(): void {
-        if (this.present + 1 < this.history.length) {
+    public async step(): Promise<void> {
+        const runtimeState = this.timeline.advanceTimeline();
+        if (!!runtimeState) {
             // Time travel forward
-            this.present++;
-            this.updateRuntimeState(this.history[this.present]);
+            const doNotSave = { includeInTimeline: false };
+            this.updateRuntimeState(runtimeState, doNotSave);
         } else {
-            // Normal step forward
-            this.sendInterrupt(InterruptTypes.interruptSTEP, function (err: any) {
-                console.log("Plugin: Step");
-                if (err) {
-                    return console.log("Error on write: ", err.message);
-                }
+            await this.client?.request({
+                dataToSend: InterruptTypes.interruptSTEP + '\n',
+                expectedResponse: (line) => {
+                    return line.includes('STEP');
+                },
             });
+            // Normal step forward
+            await this.refresh();
         }
+        this.emit(EventsMessages.stepCompleted);
     }
 
     public stepBack() {
         // Time travel backward
-        this.present = this.present > 0 ? this.present - 1 : 0;
-        this.updateRuntimeState(this.history[this.present]);
-    }
-
-    abstract refresh(): void;
-
-    abstract getCurrentFunctionIndex(): number;
-
-    private unsetBreakPoint(breakpoint: Breakpoint) {
-        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
-        let command = `${InterruptTypes.interruptBPRem}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
-        console.log(`Plugin: sent ${command}`);
-        this.client?.write(command);
-        this.breakpoints.delete(breakpoint);
-    }
-
-    private setBreakPoint(breakpoint: Breakpoint) {
-        this.breakpoints.add(breakpoint);
-        let breakPointAddress: string = (this.startAddress + breakpoint.id).toString(16).toUpperCase();
-        let command = `${InterruptTypes.interruptBPAdd}0${(breakPointAddress.length / 2).toString(16)}${breakPointAddress} \n`;
-        console.log(`Plugin: sent ${command}`);
-        this.client?.write(command);
-    }
-
-    public setBreakPoints(lines: number[]): Breakpoint[] {
-        if (this.sourceMap === undefined) {
-            console.log("setBreakPointsRequest: no source map");
-            return [];
+        const rs = this.timeline.isActiveStateTheStart() ? this.timeline.getStartState() : this.timeline.goBackTimeline();
+        if (!!rs) {
+            const doNotSave = { includeInTimeline: false };
+            this.updateRuntimeState(rs, doNotSave);
+            this.emit(EventsMessages.paused);
         }
+    }
 
+    abstract refresh(): Promise<void>;
+
+
+    public getBreakpoints(): Breakpoint[] {
+        return Array.from(this.breakpoints);
+    }
+
+    public async unsetAllBreakpoints(): Promise<void> {
+        await Promise.all(Array.from(this.breakpoints).map(bp => this.unsetBreakPoint(bp)));
+    }
+
+    public async unsetBreakPoint(breakpoint: Breakpoint | number) {
+        let breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint instanceof Breakpoint ? breakpoint.id : breakpoint);
+        const bp = breakpoint instanceof Breakpoint ? breakpoint : this.getBreakpointFromAddr(breakpoint);
+        const req: Request = {
+            dataToSend: `${InterruptTypes.interruptBPRem}${breakPointAddress}\n`,
+            expectedResponse: (line: string) => {
+                return line === `BP ${bp!.id}!`;
+            }
+        };
+        await this.client?.request(req);
+        console.log(`BP removed at line ${bp!.line} (Addr ${bp!.id})`);
+        this.breakpoints.delete(bp);
+    }
+
+    private getBreakpointFromAddr(addr: number): Breakpoint | undefined {
+        return Array.from(this.breakpoints).find(bp => bp.id === addr);
+    }
+
+    private async setBreakPoint(breakpoint: Breakpoint): Promise<Breakpoint> {
+        const breakPointAddress: string = HexaEncoder.serializeUInt32BE(breakpoint.id);
+        const req: Request = {
+            dataToSend: `${InterruptTypes.interruptBPAdd}${breakPointAddress}\n`,
+            expectedResponse: (line: string) => {
+                return line === `BP ${breakpoint.id}!`;
+            }
+        };
+        await this.client?.request(req);
+        console.log(`BP added at line ${breakpoint.line} (Addr ${breakpoint.id})`);
+        this.breakpoints.add(breakpoint);
+        return breakpoint;
+    }
+
+
+    private async onBreakpointReached(line: string) {
+        let breakpointInfo = line.match(/AT ([0-9]+)!/);
+        if (!!breakpointInfo && breakpointInfo.length > 1) {
+            let bpAddress = parseInt(breakpointInfo[1]);
+            const lineBP = this.getBreakpointFromAddr(bpAddress)?.line;
+            console.log(`BP reached at line ${lineBP} (addr=${bpAddress})`);
+            this.emit(EventsMessages.atBreakpoint, this, lineBP);
+            await this.refresh();
+
+            const dc = this.deviceConfig;
+            if (dc.isBreakpointPolicyEnabled()) {
+                if (dc.getBreakpointPolicy() === BreakpointPolicy.singleStop) {
+                    this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.singleStop);
+                    await this.unsetAllBreakpoints();
+                    await this.run();
+                } else if (dc.getBreakpointPolicy() === BreakpointPolicy.removeAndProceed) {
+                    this.emit(EventsMessages.enforcingBreakpointPolicy, this, BreakpointPolicy.removeAndProceed);
+                    await this.unsetBreakPoint(bpAddress);
+                    await this.run();
+                }
+            }
+            else {
+                this.emit(EventsMessages.paused);
+            }
+        }
+    }
+
+    protected registerCallbacks() {
+        this.registerAtBPCallback();
+        this.registerOnNewPushedEventCallback();
+        this.registerOnExceptionCallback();
+    }
+
+    public async setBreakPoints(lines: number[]): Promise<Breakpoint[]> {
         // Delete absent breakpoints
-        Array.from<Breakpoint>(this.breakpoints.values())
+        await Promise.all(Array.from<Breakpoint>(this.breakpoints.values())
             .filter((breakpoint) => !lines.includes(breakpoint.id))
-            .forEach(breakpoint => this.unsetBreakPoint(breakpoint));
+            .map(breakpoint => this.unsetBreakPoint(breakpoint)));
 
         // Add missing breakpoints
-        lines.forEach((line) => {
-            if (this.isNewBreakpoint(line)) {
-                const breakpoint: Breakpoint = new Breakpoint(this.lineToAddress(line), line);
-                this.setBreakPoint(breakpoint);
-            }
-        });
-
+        await Promise.all(
+            lines
+                .filter((line) => { return this.isNewBreakpoint(line); })
+                .map(line => {
+                    const breakpoint: Breakpoint = new Breakpoint(this.lineToAddress(line), line);
+                    return this.setBreakPoint(breakpoint);
+                })
+        );
         return Array.from(this.breakpoints.values());  // return new breakpoints list
     }
 
@@ -165,35 +238,18 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     private lineToAddress(line: number): number {
         const lineInfoPair = this.sourceMap?.lineInfoPairs.find(info => info.lineInfo.line === line);
-        return parseInt("0x" + lineInfoPair?.lineAddress ?? "");
+        return parseInt('0x' + lineInfoPair?.lineAddress ?? '');
     }
 
-    abstract setStartAddress(startAddress: number): void;
 
-    public setVariable(name: string, value: number): Promise<string> {
-        return new Promise<string>((resolve, reject) => {
-            console.log(`setting ${name} ${value}`);
-            try {
-                let command = this.getVariableCommand(name, value);
-                this.client?.write(command, err => {
-                    resolve("Interrupt send.");
-                });
-            } catch {
-                reject("Local not found.");
-            }
+    public async pushSession(woodState: WOODState): Promise<void> {
+        const messages: string[] = woodState.toBinary();
+        const requests: Request[] = UpdateStateRequest(messages);
+        console.log(`sending ${messages.length} messages as new State\n`);
+        const promises = requests.map(req => {
+            return this.client!.request(req);
         });
-    }
-
-    abstract pullSession(): void;
-
-    abstract pushSession(woodState: WOODState): void;
-
-    public refreshEvents(events: EventItem[]) {
-        this.eventsProvider?.setEvents(events);
-    }
-
-    public notifyNewEvent(): void {
-        this.sendInterrupt(InterruptTypes.interruptDUMPAllEvents);
+        await Promise.all(promises);
     }
 
     public popEvent(): void {
@@ -202,18 +258,16 @@ export abstract class AbstractDebugBridge implements DebugBridge {
 
     // Helper functions
 
+    //TODO remove
     protected sendInterrupt(i: InterruptTypes, callback?: (error: Error | null | undefined) => void) {
-        return this.client?.write(`${i} \n`, callback);
+        if (!!this.client) {
+            return this.client?.write(`${i} \n`, callback);
+        }
+        // else {
+        //     return this.socketConnection?.write(`${i} \n`, callback);
+        // }
     }
 
-    protected getVariableCommand(name: string, value: number): string {
-        let local = this.getLocals(this.getCurrentFunctionIndex()).find(o => o.name === name);
-        if (local) {
-            return `21${convertToLEB128(local.index)}${convertToLEB128(value)} \n`;
-        } else {
-            throw new Error("Failed to set variables.");
-        }
-    }
 
     protected getPrimitives(): number[] {
         return this.sourceMap?.importInfos.map((primitive: FunctionInfo) => (primitive.index)) ?? [];
@@ -237,31 +291,82 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         } else {
             this.selectedProxies.delete(proxy);
         }
-        console.warn("Only WOOD Emulator Debug Bridge needs proxies");
+        console.warn('Only WOOD Emulator Debug Bridge needs proxies');
     }
 
-    private inHistory() {
-        return this.present + 1 < this.history.length;
-    }
-
-    private resetHistory() {
-        this.present = -1;
-        this.history = [];
-    }
 
     // Getters and Setters
 
-    updateRuntimeState(runtimeState: RuntimeState) {
-        if (!this.inHistory()) {
-            this.present++;
-            this.history.push(runtimeState.deepcopy());
-        }
+    public getSourceMap(): SourceMap {
+        return this.sourceMap;
+    }
 
-        this.setProgramCounter(runtimeState.getAdjustedProgramCounter());
-        this.setStartAddress(runtimeState.startAddress);
-        this.refreshEvents(runtimeState.events);
-        this.setCallstack(runtimeState.callstack);
-        this.setLocals(runtimeState.currentFunction(), runtimeState.locals);
+    async requestMissingState(): Promise<void> {
+        const missing: ExecutionStateType[] = this.getCurrentState()?.getMissingState() ?? [];
+        const stateRequest = StateRequest.fromList(missing);
+        if (stateRequest.isRequestEmpty()) {
+            // promise that resolves instantly
+            return new Promise((res) => {
+                res();
+            });
+        }
+        const req = stateRequest.generateRequest();
+        const response = await this.client!.request(req);
+        const missingState = new RuntimeState(response, this.sourceMap);
+        const state = this.getCurrentState();
+        state!.copyMissingState(missingState);
+        const pc = state!.getProgramCounter();
+        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${getLineNumberForAddress(this.sourceMap, pc)})`);
+        return;
+    }
+
+    async requestStoredException(): Promise<void> {
+        const stateRequest = new StateRequest();
+        stateRequest.includeError();
+        const req = stateRequest.generateRequest();
+        const response = await this.client!.request(req);
+        const state = new RuntimeState(response, this.sourceMap);
+        if (state.hasException()) {
+            state.setRawProgramCounter(state.getExceptionLocation());
+            this.updateRuntimeState(state);
+        }
+    }
+
+    getDeviceConfig() {
+        return this.deviceConfig;
+    }
+
+    getDebuggingTimeline(): DebuggingTimeline {
+        return this.timeline;
+    }
+
+    getCurrentState(): RuntimeState | undefined {
+        return this.timeline.getActiveState();
+    }
+
+    updateRuntimeState(runtimeState: RuntimeState, opts?: { refreshViews?: boolean, includeInTimeline?: boolean }) {
+        const includeInTimeline = opts?.includeInTimeline ?? true;
+        if (includeInTimeline && this.timeline.isActiveStatePresent()) {
+            this.timeline.addRuntime(runtimeState.deepcopy());
+            if (!!!this.timeline.advanceTimeline()) {
+                throw new Error('Timeline should be able to advance');
+            }
+        }
+        this.emitNewStateEvent();
+    }
+
+    public isUpdateOperationAllowed(): boolean {
+        return this.timeline.isActiveStatePresent() || !!this.timeline.getActiveState()?.hasAllState();
+    }
+
+    public emitNewStateEvent() {
+        const currentState = this.getCurrentState();
+        const pc = currentState!.getProgramCounter();
+        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${getLineNumberForAddress(this.sourceMap, pc)})`);
+        this.emit(EventsMessages.stateUpdated, currentState);
+        if (currentState?.hasException()) {
+            this.emit(EventsMessages.exceptionOccurred, this, currentState);
+        }
     }
 
     getProgramCounter(): number {
@@ -276,43 +381,100 @@ export abstract class AbstractDebugBridge implements DebugBridge {
         return this.sourceMap?.lineInfoPairs.map(info => new Breakpoint(this.lineToAddress(info.lineInfo.line), info.lineInfo.line)) ?? [];
     }
 
-    getLocals(fidx: number): VariableInfo[] {
-        if (this.sourceMap === undefined || fidx >= this.sourceMap.functionInfos.length || fidx < 0) {
-            return [];
-        }
-        return this.sourceMap.functionInfos[fidx].locals;
-    }
 
-    setLocals(fidx: number, locals: VariableInfo[]) {
-        if (this.sourceMap === undefined) {
+    async updateLocal(local: VariableInfo): Promise<void> {
+        const state = this.getCurrentState()?.getWasmState();
+        const command = state?.serializeStackValueUpdate(local.index);
+        if (!!!command) {
             return;
         }
-        if (fidx >= this.sourceMap.functionInfos.length) {
-            console.log(`warning setting locals for new function with index: ${fidx}`);
-            this.sourceMap.functionInfos[fidx] = {index: fidx, name: "<anonymous>", locals: []};
+
+        const req = StackValueUpdateRequest(local.index, command);
+        await this.client!.request(req);
+    }
+
+    async updateGlobal(global: VariableInfo): Promise<void> {
+        const state = this.getCurrentState()?.getWasmState();
+        const command = state?.serializeGlobalValueUpdate(global.index);
+        if (!!!command) {
+            return;
         }
-        this.sourceMap.functionInfos[fidx].locals = locals;
+        const req = UpdateGlobalRequest(global.index, command);
+        await this.client!.request(req);
     }
 
-    getCallstack(): Frame[] {
-        return this.callstack;
+    async updateArgument(argument: VariableInfo): Promise<void> {
+        await this.updateLocal(argument);
     }
 
-    setCallstack(callstack: Frame[]): void {
-        this.callstack = callstack;
-        this.listener.notifyStateUpdate();
-    }
 
     updateSourceMapper(newSourceMap: SourceMap): void {
         this.sourceMap = newSourceMap;
     }
 
-    updateModule(wasm: Buffer): void {
-        const w = new Uint8Array(wasm);
-        const sizeHex: string = convertToLEB128(w.length);
-        const wasmHex = Buffer.from(w).toString("hex");
-        let command = `${InterruptTypes.interruptUPDATEMod}${sizeHex}${wasmHex} \n`;
-        console.log("Plugin: send Update module command");
-        this.client?.write(command);
+    public async updateModule(wasm: Buffer): Promise<void> {
+        const req = UpdateModuleRequest(wasm);
+        await this.client!.request(req);
+        this.getDebuggingTimeline().clear();
+        this.emit(EventsMessages.moduleUpdated, this);
+    }
+
+    private async refreshEvents() {
+        const stateReq = new StateRequest();
+        stateReq.includeEvents();
+        const req = stateReq.generateRequest();
+        const evtsLine = await this.client!.request(req);
+        const rs = this.getCurrentState();
+        const evts = JSON.parse(evtsLine).events;
+        if (!!rs && !!evts) {
+            rs.setEvents(evts.map((obj: EventItem) => (new EventItem(obj.topic, obj.payload))));
+            this.emitNewStateEvent();
+        }
+    }
+
+    private registerAtBPCallback() {
+        this.client?.addCallback(
+            (line: string) => !!line.match(/AT ([0-9]+)!/),
+            (line: string) => {
+                this.onBreakpointReached(line);
+            }
+        );
+    }
+
+    private registerOnNewPushedEventCallback() {
+        //callback that requests the new events
+        this.client?.addCallback(
+            (line: string) => {
+                return line === 'new pushed event';
+            },
+            (line: string) => {
+                this.refreshEvents();
+            }
+        );
+    }
+
+    private registerOnExceptionCallback() {
+        this.client?.addCallback(
+            (line: string) => {
+                if (!line.startsWith('{"')) {
+                    return false;
+                }
+                try {
+                    const parsed: WOODDumpResponse = JSON.parse(line);
+                    return parsed.pc_error !== undefined && parsed.exception_msg !== undefined;
+                }
+                catch (err) {
+                    return false;
+                }
+            },
+            (line: string) => {
+                this.onExceptionCallback(line);
+            }
+        );
+    }
+
+    private onExceptionCallback(line: string) {
+        const runtimeState: RuntimeState = new RuntimeState(line, this.sourceMap);
+        this.updateRuntimeState(runtimeState);
     }
 }

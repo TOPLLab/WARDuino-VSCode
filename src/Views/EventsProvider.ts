@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
-import {ProviderResult, TreeItem, TreeItemCollapsibleState} from 'vscode';
+import { ProviderResult, TreeItem, TreeItemCollapsibleState } from 'vscode';
+import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
+import { RuntimeState } from '../State/RuntimeState';
 
-export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
+export class EventsProvider implements vscode.TreeDataProvider<EventItem>, RuntimeViewRefreshInterface {
     private events: EventItem[] = [];
 
     private _onDidChangeTreeData: vscode.EventEmitter<EventItem | undefined | null | void> = new vscode.EventEmitter<EventItem | undefined | null | void>();
@@ -11,9 +13,9 @@ export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
         if (element === undefined) {
             return this.events;
         } else if (element.collapsibleState !== TreeItemCollapsibleState.None) {
-            let children = [new EventItem(`topic: ${element.topic}`, "")];
+            let children = [new EventItem(`topic: ${element.topic}`, '')];
             if (element.payload.length > 0) {
-                children.push(new EventItem(`payload: ${element.payload}`, ""));
+                children.push(new EventItem(`payload: ${element.payload}`, ''));
             }
             return children;
         }
@@ -24,9 +26,11 @@ export class EventsProvider implements vscode.TreeDataProvider<EventItem> {
         return element;
     }
 
-    setEvents(events: EventItem[]) {
-        this.events = events ?? [];
-        this._onDidChangeTreeData.fire();
+    refreshView(runtimeState?: RuntimeState): void {
+        if (!!runtimeState) {
+            this.events = runtimeState.getEvents();
+            this._onDidChangeTreeData.fire();
+        }
     }
 }
 

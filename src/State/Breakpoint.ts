@@ -2,6 +2,12 @@ abstract class Comparable {
     public abstract equals(other: Comparable): boolean;
 }
 
+export enum BreakpointPolicy {
+    singleStop = 'single stop',
+    removeAndProceed = 'remove and proceed',
+    default = 'default'
+}
+
 export class Breakpoint extends Comparable {
     id: number;  // address
     verified: boolean = true;
@@ -16,6 +22,10 @@ export class Breakpoint extends Comparable {
 
     public equals(other: Breakpoint): boolean {
         return other.id === this.id;
+    }
+
+    static policies(): BreakpointPolicy[] {
+        return [BreakpointPolicy.singleStop, BreakpointPolicy.removeAndProceed, BreakpointPolicy.default];
     }
 }
 

@@ -35,7 +35,7 @@ export class HexaEncoder {
         else {
             buff.writeBigUInt64LE(n);
         }
-        return buff.toString("hex");
+        return buff.toString('hex');
     }
 
     static serializeUInt(n: number, amountBytes: number, bigendian: boolean): string {
@@ -87,9 +87,9 @@ export class HexaEncoder {
             }
         }
         else {
-            throw (new Error("invalid amount of bytes"));
+            throw (new Error('invalid amount of bytes'));
         }
-        return buff.toString("hex");
+        return buff.toString('hex');
     };
 
     static serializeInt32(n: number, bigendian: boolean): string {
@@ -100,7 +100,7 @@ export class HexaEncoder {
         else {
             buff.writeUInt32LE(n);
         }
-        return buff.toString("hex");
+        return buff.toString('hex');
     }
 
     static serializeFloatBE(n: number): string {
@@ -119,7 +119,7 @@ export class HexaEncoder {
         else {
             buff.writeFloatLE(n);
         }
-        return buff.toString("hex");
+        return buff.toString('hex');
     }
 
     static serializeDoubleBE(n: number): string {
@@ -138,6 +138,27 @@ export class HexaEncoder {
         else {
             buff.writeDoubleLE(n);
         }
-        return buff.toString("hex");
+        return buff.toString('hex');
+    }
+
+    static serializeString(s: string): string {
+        return s.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+    }
+
+    static convertToLEB128(a: number): string { // TODO can only handle 32 bit
+        a |= 0;
+        const result = [];
+        while (true) {
+            const byte_ = a & 0x7f;
+            a >>= 7;
+            if (
+                (a === 0 && (byte_ & 0x40) === 0) ||
+                (a === -1 && (byte_ & 0x40) !== 0)
+            ) {
+                result.push(byte_.toString(16).padStart(2, '0'));
+                return result.join('').toUpperCase();
+            }
+            result.push((byte_ | 0x80).toString(16).padStart(2, '0'));
+        }
     }
 }

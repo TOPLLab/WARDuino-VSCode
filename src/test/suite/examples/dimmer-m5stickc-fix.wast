@@ -20,17 +20,22 @@
   (global $up i32 (i32.const 39))
   (global $down i32 (i32.const 37))
 
+  (global $inputPullUp i32 (i32.const 5))
+  ;; pullup
+
   ;; Mutable globals
   (global $delta (mut i32) (i32.const -127))
 
-  (func $decrease (type $t4)
+  (func $decrease (type $t3)
     i32.const -127
-    ;; i32.const 127
+    global.get $delta
+    i32.add
     global.set $delta)
 
-  (func $increase (type $t4)
+  (func $increase (type $t3)
     i32.const 127
-    ;; i32.const 0
+    global.get $delta
+    i32.add
     global.set $delta)
 
   (func $setup (type $t4)
@@ -42,11 +47,21 @@
     global.get $led
     i32.const 0
     call $env.chip_ledc_attach_pin
+
     ;; setup buttons
+    global.get $up
+    global.get $inputPullUp
+    call $env.chip_pin_mode
+
     global.get $up
     i32.const 2
     i32.const 2
     call $env.subscribe_interrupt
+
+    global.get $down
+    global.get $inputPullUp
+    call $env.chip_pin_mode
+
     global.get $down
     i32.const 1
     i32.const 2
@@ -79,7 +94,11 @@
       local.get $brightness
       i32.const 254
       call $env.chip_analog_write
-
+      
+      ;; resetting delta
+      i32.const 0
+      global.set $delta
+      
       i32.const 100
       call $env.chip_delay
       br $L0

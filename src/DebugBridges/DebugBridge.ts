@@ -1,74 +1,85 @@
-import { VariableInfo } from "../State/VariableInfo";
-import { Frame } from "../Parsers/Frame";
-import { WOODState } from "../State/WOODState";
-import { SourceMap } from "../State/SourceMap";
-import { EventItem } from "../Views/EventsProvider";
-import { ProxyCallItem } from "../Views/ProxyCallsProvider";
-import { RuntimeState } from "../State/RuntimeState";
-import { Breakpoint } from "../State/Breakpoint";
+import { VariableInfo } from '../State/VariableInfo';
+import { WOODState } from '../State/WOODState';
+import { SourceMap } from '../State/SourceMap';
+import { ProxyCallItem } from '../Views/ProxyCallsProvider';
+import { RuntimeState } from '../State/RuntimeState';
+import { Breakpoint } from '../State/Breakpoint';
+import { DebuggingTimeline } from '../State/DebuggingTimeline';
+import { DeviceConfig } from '../DebuggerConfig';
+import { EventEmitter } from 'stream';
 
-export interface DebugBridge {
-    setStartAddress(startAddress: number): void;
+export interface DebugBridge extends EventEmitter {
 
-    connect(): Promise<string>;
+  requestMissingState(): Promise<void>;
 
-    updateRuntimeState(runtimeState: RuntimeState): void;
+  requestStoredException(): Promise<void>;
 
-    getProgramCounter(): number;
+  emitNewStateEvent(): void;
 
-    setProgramCounter(pc: number): void;
+  connect(flash?: boolean): Promise<string>;
 
-    getBreakpointPossibilities(): Breakpoint[];
+  disconnectMonitor(): void;
 
-    getLocals(fidx: number): VariableInfo[];
+  getDebuggingTimeline(): DebuggingTimeline;
 
-    setLocals(fidx: number, locals: VariableInfo[]): void;
+  getCurrentState(): RuntimeState | undefined;
 
-    getCallstack(): Frame[];
+  getSourceMap(): SourceMap;
 
-    setCallstack(callstack: Frame[]): void;
+  getBreakpoints(): Breakpoint[];
 
-    getCurrentFunctionIndex(): number;
+  updateRuntimeState(runtimeState: RuntimeState, opts?: { refreshViews?: boolean, includeInTimeline?: boolean }): void;
 
-    step(): void;
+  isUpdateOperationAllowed(): boolean;
 
-    stepBack(): void;
+  getBreakpointPossibilities(): Breakpoint[];
 
-    run(): void;
 
-    pause(): void;
+  proxify(): Promise<void>;
 
-    hitBreakpoint(): void;
+  step(): Promise<void>;
 
-    pullSession(): void;
+  stepBack(): void;
 
-    pushSession(woodState: WOODState): void;
+  run(): Promise<void>;
 
-    refreshEvents(events: EventItem[]): void;
+  pause(): Promise<void>;
 
-    popEvent(): void;
+  pushSession(woodState: WOODState): Promise<void>;
 
-    // Adds or removes the current callback depending on whether is selected or not respectively
-    updateSelectedProxies(proxy: ProxyCallItem): void;
 
-    setSelectedProxies(proxies: Set<ProxyCallItem>): void;
+  popEvent(): void;
 
-    getSelectedProxies(): Set<ProxyCallItem>;
+  // Adds or removes the current callback depending on whether is selected or not respectively
+  updateSelectedProxies(proxy: ProxyCallItem): void;
 
-    setBreakPoints(lines: number[]): Breakpoint[];
+  setSelectedProxies(proxies: Set<ProxyCallItem>): void;
 
-    refresh(): void;
+  getSelectedProxies(): Set<ProxyCallItem>;
 
-    notifyNewEvent(): void;
+  setBreakPoints(lines: number[]): Promise<Breakpoint[]>;
 
-    disconnect(): void;
+  unsetAllBreakpoints(): Promise<void>;
 
-    setVariable(name: string, value: number): Promise<string>;
+  unsetBreakPoint(breakpoint: Breakpoint | number): void;
 
-    upload(): void;
+  refresh(): Promise<void>;
 
-    updateModule(wasm: Buffer): void;
+  disconnect(): void;
 
-    updateSourceMapper(newSourceMap: SourceMap): void;
+
+  upload(): void;
+
+  updateModule(wasm: Buffer): Promise<void>;
+
+  updateSourceMapper(newSourceMap: SourceMap): void;
+
+  updateArgument(argument: VariableInfo): Promise<void>;
+
+  updateLocal(local: VariableInfo): Promise<void>;
+
+  updateGlobal(updateGlobal: VariableInfo): Promise<void>;
+
+  getDeviceConfig(): DeviceConfig;
 
 }

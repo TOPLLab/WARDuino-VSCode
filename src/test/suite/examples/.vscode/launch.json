@@ -8,7 +8,7 @@
             "type": "WARDuinoDBG",
             "request": "launch",
             "name": "Debug WARDuino",
-            "program": "${workspaceFolder}/blink.wast",
+            "program": "${workspaceFolder}/dimmer-m5stickc.wast",
             "stopOnEntry": true,
             "trace": false
         }
