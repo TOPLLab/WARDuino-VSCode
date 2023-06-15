@@ -13,7 +13,7 @@ git submodule update --init
 echo "> WARDuino: fetching submodules"
 cd WARDuino
 git fetch
-git checkout feat/wood
+git checkout main
 git submodule update --init
 
 echo "> WARDuino: building emulator"
