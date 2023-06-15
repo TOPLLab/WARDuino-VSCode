@@ -199,7 +199,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
             const lineBP = this.getBreakpointFromAddr(bpAddress)?.line;
             console.log(`BP reached at line ${lineBP} (addr=${bpAddress})`);
             this.emit(EventsMessages.atBreakpoint, this, lineBP);
-            await this.refresh();
+            this.updateRuntimeState(await this.refresh());
 
             const dc = this.deviceConfig;
             if (dc.isBreakpointPolicyEnabled()) {
