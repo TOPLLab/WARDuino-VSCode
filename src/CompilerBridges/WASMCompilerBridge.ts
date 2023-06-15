@@ -42,50 +42,8 @@ function extractLineInfo(lineString: string): LineInfo {
     return parseUtils.jsonParse(lineString);
 }
 
-function extractSectionAddressCorrections(lines: string[]): Map<number, number> {
-    const corrections: Map<number, number> = new Map();
-    const sections: string[] =
-        ['Type', 'Import', 'Function', 'Table', 'Memory', 'Global', 'Export', 'Elem', 'Code']
-            .map(kind => {
-                return `; section "${kind}" (`;
-            });
-    let candidates: number[] = [];
-    let inSection = false;
-    let sectionStartIdx = -1;
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const foundSection = sections.find(s => {
-            return line.startsWith(s);
-        });
-
-        if (foundSection) {
-            inSection = true;
-            sectionStartIdx = i + 1;
-        }
-
-        if (inSection && i >= sectionStartIdx) {
-            candidates.push(i);
-            if (line.includes('; FIXUP section size')) {
-                const hexaAddr = line.match(/: ([a-zA-Z0-9]+)/)?.[1];
-                if (hexaAddr) {
-                    assert(hexaAddr.length % 2 === 0, 'hexa address is not even');
-                    const amountBytes = hexaAddr.length / 2;
-                    candidates.forEach(lineNr => {
-                        corrections.set(lineNr, amountBytes - 1);
-                    });
-                }
-                inSection = false;
-                sectionStartIdx = -1;
-                candidates = [];
-            }
-        }
-    }
-    return corrections;
-}
-
 function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
 
-    const corrections = extractSectionAddressCorrections(lines);
     let result = [];
     let lastLineInfo = undefined;
     for (let i = 0; i < lines.length; i++) {
@@ -97,13 +55,6 @@ function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
         }
         try {
             let addr = parseUtils.extractAddressInformation(line);
-            if (corrections.has(i)) {
-                const offset = corrections.get(i)!;
-                const newAddr = Number(`0x${addr}`) + offset;
-                const tmpAddr = newAddr.toString(16);
-                // add padding
-                addr = `${'0'.repeat(addr.length - tmpAddr.length)}${tmpAddr}`;
-            }
             const li = {
                 line: lastLineInfo!.line,
                 column: lastLineInfo!.column,
