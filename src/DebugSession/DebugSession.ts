@@ -666,8 +666,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): Promise<void> {
         console.log('nextRequest');
-        await this.debugBridge?.step();
         this.sendResponse(response);
+        await this.debugBridge?.step();
     }
 
     protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments, request?: DebugProtocol.Request): void {
