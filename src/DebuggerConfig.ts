@@ -301,17 +301,19 @@ export class DeviceConfig {
     }
 
 
-    static fromWorkspaceConfig(): DeviceConfig{
+    static fromWorkspaceConfig(): DeviceConfig {
         const config = vscode.workspace.getConfiguration();
-        const baudRate: string = config.get('warduino.Baudrate') ||  '115200';
+        const baudRate: string = config.get('warduino.Baudrate') || '115200';
         const enableBreakpointPolicy = !!config.get('warduino.ExperimentalBreakpointPolicies.enabled');
-        const deviceConfig: any =  {
-            'debugMode': config.get('warduino.DebugMode'),
+        const debugMode: string = config.get('warduino.DebugMode')!;
+        const flashOnStart = debugMode === DeviceConfig.embeddedDebugMode ? config.get('warduino.FlashOnStart') : false;
+        const deviceConfig: any = {
+            'debugMode': debugMode,
             'serialPort': config.get('warduino.Port'),
             'fqbn': config.get('warduino.Device'),
             'baudrate': +baudRate,
             'onStart': {
-                'flash': config.get('warduino.FlashOnStart'),
+                'flash': flashOnStart,
                 'updateSource': false,
                 'pause': true
             },
