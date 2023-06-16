@@ -35,7 +35,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
 
     private async wasm() {
         return new Promise<void>((resolve, reject) => {
-            const command = `cd ${path.dirname(this.sourceFilePath.toString())} ; asc ${this.sourceFilePath} --sourceMap -O3s --debug --binaryFile ${this.tmpdir}/upload.wasm --textFile ${this.tmpdir}/upload.wast`;  // use .wast to get inline sourcemapping
+            const command = `cd ${path.dirname(this.sourceFilePath.toString())} ; asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap -O3s --debug --binaryFile ${this.tmpdir}/upload.wasm --textFile ${this.tmpdir}/upload.wast`;  // use .wast to get inline sourcemapping
             let out: String = '';
             let err: String = '';
 
