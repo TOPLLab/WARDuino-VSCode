@@ -154,7 +154,7 @@ export class WasmState {
             return [];
         }
         return func.locals.map((local, idx) => {
-            const sv = stack[frame.fp + 1 + idx];
+            const sv = stack[frame.fp + idx];
             return { index: local.index, name: local.name, type: local.type, mutable: local.mutable, value: `${sv.value}` };
         });
     }
