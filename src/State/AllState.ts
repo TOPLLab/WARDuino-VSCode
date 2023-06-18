@@ -155,6 +155,9 @@ export class WasmState {
         }
         return func.locals.map((local, idx) => {
             const sv = stack[frame.fp + idx];
+            if (sv === undefined) {
+                return { index: local.index, name: local.name, type: local.type, mutable: local.mutable, value: `${NaN}` };
+            }
             return { index: local.index, name: local.name, type: local.type, mutable: local.mutable, value: `${sv.value}` };
         });
     }
