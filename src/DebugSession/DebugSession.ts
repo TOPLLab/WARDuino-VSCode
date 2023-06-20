@@ -21,7 +21,7 @@ import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
 import {RunTimeTarget} from '../DebugBridges/RunTimeTarget';
 import {CompileBridgeFactory} from '../CompilerBridges/CompileBridgeFactory';
 import {CompileBridge} from '../CompilerBridges/CompileBridge';
-import {SourceMap, getLineNumberForAddress} from '../State/SourceMap';
+import {SourceMap, getLineNumberForAddress, getLocationForAddress, Location} from '../State/SourceMap';
 import {VariableInfo} from '../State/VariableInfo';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -60,6 +60,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private tmpdir: string;
     private THREAD_ID: number = 42;
     private testCurrentLine = 0;
+    private testCurrentColumn = 0;
     private debugBridge?: DebugBridge;
     private proxyBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
@@ -562,6 +563,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private setLineNumberFromPC(pc: number) {
         this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc) ?? this.testCurrentLine;
+        this.testCurrentColumn = getLocationForAddress(this.sourceMap!, pc)?.column ?? this.testCurrentColumn;
     }
 
 
@@ -631,14 +633,17 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             // @ts-ignore
             const functionInfo = this.sourceMap.functionInfos[frame.index];
             let start = (index === 0) ? this.testCurrentLine : getLineNumberForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? 0;
+            let location: Location | undefined = (index === 0) ? {line: this.testCurrentLine, column: 0} : getLocationForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? {line: 0, column: 0};
             let name = (functionInfo === undefined) ? '<anonymous>' : functionInfo.name;
 
             return new StackFrame(index, name,
                 this.createSource(this.program), // TODO
-                this.convertDebuggerLineToClient(start)); // TODO
+                this.convertDebuggerLineToClient(location.line),
+                this.convertDebuggerColumnToClient(location.column)); // TODO
         });
         frames.push(bottom);
         frames[0].line = this.convertDebuggerLineToClient(this.testCurrentLine);
+        frames[0].column = this.convertDebuggerColumnToClient(this.testCurrentColumn);
 
         if (this.sourceMap !== undefined) {
             response.body = {
