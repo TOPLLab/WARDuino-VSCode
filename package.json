@@ -223,7 +223,7 @@
           "scope": "resource",
           "properties": {
             "enabled": {
-              "type" : "boolean",
+              "type": "boolean",
               "scope": "resource",
               "description": "Activate the use of breakpoint policies"
             },
@@ -232,10 +232,10 @@
               "scope": "resource",
               "description": "The policy to use.",
               "enum": [
-                  "default",
-                  "single stop",
-                  "remove and proceed"
-                ]
+                "default",
+                "single stop",
+                "remove and proceed"
+              ]
             }
           },
           "additionalProperties": false,
@@ -270,6 +270,7 @@
     "@typescript-eslint/eslint-plugin": "^5.12.1",
     "@typescript-eslint/parser": "^5.12.1",
     "@vscode/test-electron": "^2.1.2",
+    "@vscode/vsce": "^2.19.0",
     "electron-rebuild": "^3.2.7",
     "eslint": "^8.9.0",
     "glob": "^7.2.0",
@@ -279,7 +280,6 @@
     "serialport": "^10.4.0",
     "ts-node": "^10.5.0",
     "typescript": "^4.5.5",
-    "vsce": "^2.5.1",
     "vscode-debugadapter": "^1.51.0-pre.0",
     "vscode-debugadapter-testsupport": "^1.51.0-pre.0"
   },
