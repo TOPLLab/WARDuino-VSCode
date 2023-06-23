@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true  # Cancel in-flight jobs for the same branch or PR
+    cancel-in-progress: false
 
 env:
     WDCLI_CACHE: "build-wdcli"
