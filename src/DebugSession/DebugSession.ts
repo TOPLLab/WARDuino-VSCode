@@ -183,7 +183,10 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
             await debugBridge.connect();
             if (deviceConfig.onStartConfig.pause) {
-                await this.debugBridge?.refresh();
+                const rs = await this.debugBridge?.refresh();
+                if (rs) {
+                    this.debugBridge?.updateRuntimeState(rs);
+                }
             }
 
             if (this.startingBPs.length > 0) {
