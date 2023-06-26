@@ -34,8 +34,8 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
     }
 
     private async wasm() {
-        return new Promise<void>((resolve, reject) => {
-            const command = `cd ${path.dirname(this.sourceFilePath.toString())} ; asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap -O3s --debug --binaryFile ${this.tmpdir}/upload.wasm --textFile ${this.tmpdir}/upload.wast`;  // use .wast to get inline sourcemapping
+        return new Promise<void>(async (resolve, reject) => {
+            const command = `cd ${path.dirname(this.sourceFilePath.toString())} ; ` + await this.getCompilationCommand();
             let out: String = '';
             let err: String = '';
 
@@ -122,4 +122,38 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
         });
     }
 
+    private getCompilationCommand(): Promise<string> {
+        // builds asc command based on the version of asc
+        return new Promise<string>((resolve, reject) => {
+            let out: String = '';
+            let err: String = '';
+            function handle(error: ExecException | null, stdout: String, stderr: any) {
+                out = stdout;
+                err = error?.message ?? '';
+            }
+
+            let compilerVersion = exec('asc --version', handle);
+            compilerVersion.on('close', (code) => {
+                if (code !== 0) {
+                    reject(`Compilation to wasm failed: exit code ${code}. Message: ${err}`);
+                }
+
+                // build command
+                const versionRegex: RegExp = /^Version (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)/;
+                const matched = out.match(versionRegex);
+                if (!matched || !!!matched.groups?.major || !!!matched.groups?.minor || !!!matched.groups?.patch) {
+                    reject(`Compilation to wasm failed: asc--version did not print expected output format 'Version x.x.x'.Got instead ${out} `);
+                }
+                let command = `asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap -O3s --debug `;
+                if (+matched!.groups!.major > 0 || +matched!.groups!.minor >= 20) {
+                    command += '--outFile ';
+                }
+                else {
+                    command += '--binaryFile ';
+                }
+                command += `${this.tmpdir}/upload.wasm --textFile ${this.tmpdir}/upload.wast`;  // use .wast to get inline sourcemapping
+                resolve(command);
+            });
+        });
+    }
 }
