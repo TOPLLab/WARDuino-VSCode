@@ -153,8 +153,11 @@ export class WasmState {
         if (!!!stack) {
             return [];
         }
+
+        const nrArgs = this.sourceMap.typeInfos.get(func.type)!.parameters.length;
+        const fp = frame.sp + 1 + nrArgs;
         return func.locals.map((local, idx) => {
-            const sv = stack[frame.fp + 1 + idx];
+            const sv = stack[fp + idx];
             return { index: local.index, name: local.name, type: local.type, mutable: local.mutable, value: `${sv.value}` };
         });
     }
