@@ -110,5 +110,5 @@
   (export "main" (func $main))
   (export "__data_end" (global $__data_end))
   (export "__heap_base" (global $__heap_base))
-  (elem $e0 (i32.const 1) func $decrease)
-  (elem $e1 (i32.const 2) func $increase))
+  (elem (i32.const 1) func $decrease)
+  (elem (i32.const 2) func $increase))
