@@ -21,7 +21,7 @@ import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
 import {RunTimeTarget} from '../DebugBridges/RunTimeTarget';
 import {CompileBridgeFactory} from '../CompilerBridges/CompileBridgeFactory';
 import {CompileBridge} from '../CompilerBridges/CompileBridge';
-import {SourceMap, getLineNumberForAddress, getLocationForAddress, Location} from '../State/SourceMap';
+import {SourceMap, getLocationForAddress, Location} from '../State/SourceMap';
 import {VariableInfo} from '../State/VariableInfo';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -59,8 +59,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     private program: string = '';
     private tmpdir: string;
     private THREAD_ID: number = 42;
-    private testCurrentLine = 0;
-    private testCurrentColumn = 0;
+    private currentLocation: Location = {line: 0, column: 0};
     private debugBridge?: DebugBridge;
     private proxyBridge?: DebugBridge;
     private notifier: vscode.StatusBarItem;
@@ -562,8 +561,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private setLineNumberFromPC(pc: number) {
-        this.testCurrentLine = getLineNumberForAddress(this.sourceMap!, pc) ?? this.testCurrentLine;
-        this.testCurrentColumn = getLocationForAddress(this.sourceMap!, pc)?.column ?? this.testCurrentColumn;
+        this.currentLocation = getLocationForAddress(this.sourceMap!, pc) ?? this.currentLocation;
     }
 
 
@@ -632,8 +630,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         let frames = Array.from(callstack.reverse(), (frame, index) => {
             // @ts-ignore
             const functionInfo = this.sourceMap.functionInfos[frame.index];
-            let start = (index === 0) ? this.testCurrentLine : getLineNumberForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? 0;
-            let location: Location | undefined = (index === 0) ? {line: this.testCurrentLine, column: 0} : getLocationForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? {line: 0, column: 0};
+            let start = (index === 0) ? this.currentLocation.line : getLocationForAddress(this.sourceMap!, callstack[index - 1].returnAddress)?.line ?? 0;
+            let location: Location | undefined = (index === 0) ? {line: this.currentLocation.line, column: 0} : getLocationForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? {line: 0, column: 0};
             let name = (functionInfo === undefined) ? '<anonymous>' : functionInfo.name;
 
             return new StackFrame(index, name,
@@ -642,8 +640,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 this.convertDebuggerColumnToClient(location.column)); // TODO
         });
         frames.push(bottom);
-        frames[0].line = this.convertDebuggerLineToClient(this.testCurrentLine);
-        frames[0].column = this.convertDebuggerColumnToClient(this.testCurrentColumn);
+        frames[0].line = this.convertDebuggerLineToClient(this.currentLocation.line);
+        frames[0].column = this.convertDebuggerColumnToClient(this.currentLocation.column);
 
         if (this.sourceMap !== undefined) {
             response.body = {
@@ -785,7 +783,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         const name = debugBridge.getDeviceConfig().name;
         const exception = runtime.getExceptionMsg();
         const includeMinusOne = false;
-        const loc = getLineNumberForAddress(runtime.getSourceMap(), runtime.getExceptionLocation(), includeMinusOne);
+        const loc = getLocationForAddress(runtime.getSourceMap(), runtime.getExceptionLocation(), includeMinusOne)?.line ?? -1;
         const msg = `${name}: exception occurred at (Line ${loc}). ${exception}`;
         vscode.window.showErrorMessage(msg);
     }

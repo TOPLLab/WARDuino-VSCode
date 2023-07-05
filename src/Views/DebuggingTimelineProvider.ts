@@ -3,7 +3,7 @@ import { ProviderResult, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { RuntimeState } from '../State/RuntimeState';
 import { DebugBridge } from '../DebugBridges/DebugBridge';
 import { RuntimeViewRefreshInterface } from './RuntimeViewRefreshInterface';
-import { getLineNumberForAddress } from '../State/SourceMap';
+import {getLocationForAddress} from '../State/SourceMap';
 
 export enum AllowedAction {
     Save = 'save',
@@ -50,7 +50,7 @@ export class DebuggingTimelineProvider implements vscode.TreeDataProvider<Timeli
                 }
                 const sm = this.debugBridge.getSourceMap();
                 const doNotMinusOne = false;
-                const linenr = getLineNumberForAddress(sm, rs.getProgramCounter(), doNotMinusOne);
+                const linenr = getLocationForAddress(sm, rs.getProgramCounter(), doNotMinusOne)?.line;
                 let label = '';
                 if (linenr !== undefined) {
                     label = `Line ${linenr}`;
