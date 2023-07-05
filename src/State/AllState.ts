@@ -155,9 +155,10 @@ export class WasmState {
         }
 
         const nrArgs = this.sourceMap.typeInfos.get(func.type)!.parameters.length;
-        const fp = frame.sp + 1 + nrArgs;
-        return func.locals.map((local, idx) => {
-            const sv = stack[fp + idx];
+        const fp = frame.sp + 1;
+        const locals = func.locals.filter(l => l.index >= nrArgs);
+        return locals.map((local) => {
+            const sv = stack[fp + local.index];
             return { index: local.index, name: local.name, type: local.type, mutable: local.mutable, value: `${sv.value}` };
         });
     }

@@ -173,8 +173,8 @@ export function getFunctionInfos(input: String): FunctionInfo[] {
         // primitive functions are handled seperately
         if(index >= firstNonPrimiveFunc){
             let locals: VariableInfo[] = [];
-            func.locals.forEach((local: string, index: number) => {
-                locals.push({index: index, name: local, type: 'undefined', mutable: true, value: ''});
+            func.locals.forEach((local: any) => {
+                locals.push({ index: local.idx, name: local.name, type: 'undefined', mutable: true, value: '' });
             });
             const typeIdx = metadata.get(index);
             if(typeIdx === undefined){
