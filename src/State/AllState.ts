@@ -138,7 +138,10 @@ export class WasmState {
         }
         const argStartIndex = frame.sp + 1;
         const args = this.state.stack.slice(argStartIndex, argStartIndex + argsAmount).map((sv, argIndex) => {
-            return { index: sv.idx, name: `arg${argIndex}`, type: sv.type, mutable: true, value: `${sv.value}` };
+            const nameArg = func.locals.find(loc => {
+                return loc.index === argIndex;
+            })?.name || `arg${argIndex}`;
+            return { index: sv.idx, name: nameArg, type: sv.type, mutable: true, value: `${sv.value}` };
         });
         return args;
     }
