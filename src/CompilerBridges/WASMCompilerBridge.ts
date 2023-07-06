@@ -38,8 +38,8 @@ function checkErrorObjDump(errorMessage: string) {
 }
 
 function extractLineInfo(lineString: string): LineInfo {
-    lineString = lineString.substring(1);
-    return parseUtils.jsonParse(lineString);
+    const obj = JSON.parse(lineString.substring(2));
+    return {line: obj.line, column: obj.col_start - 1, message: obj.message};
 }
 
 function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
