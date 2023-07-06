@@ -2,10 +2,6 @@ import {FunctionInfo} from '../State/FunctionInfo';
 import { string2WASMType, TypeInfo } from '../State/TypeInfo';
 import {VariableInfo} from '../State/VariableInfo';
 
-export function jsonParse(obj: string) {
-    return new Function(`return ${obj}`)();
-}
-
 export function extractAddressInformation(addressLine: string): string {
     let regexpr = /^(?<address>([\da-f])+):/;
     let match = addressLine.match(regexpr);
