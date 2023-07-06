@@ -1,7 +1,7 @@
 import {DebugBridge} from './DebugBridge';
 import {Frame} from '../Parsers/Frame';
 import {VariableInfo} from '../State/VariableInfo';
-import {SourceMap, getLineNumberForAddress} from '../State/SourceMap';
+import {getLocationForAddress, SourceMap} from '../State/SourceMap';
 import {ExecutionStateType, WOODDumpResponse, WOODState} from '../State/WOODState';
 import {InterruptTypes} from './InterruptTypes';
 import {FunctionInfo} from '../State/FunctionInfo';
@@ -132,7 +132,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
                 });
                 // Normal step forward
                 runtimeState = await this.refresh();
-            } while (getLineNumberForAddress(this.sourceMap, runtimeState.getProgramCounter()) === undefined);
+            } while (getLocationForAddress(this.sourceMap, runtimeState.getProgramCounter()) === undefined);
             this.updateRuntimeState(runtimeState);
         }
         this.emit(EventsMessages.stepCompleted);
@@ -330,7 +330,8 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         const state = this.getCurrentState();
         state!.copyMissingState(missingState);
         const pc = state!.getProgramCounter();
-        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${getLineNumberForAddress(this.sourceMap, pc)})`);
+        const loc = getLocationForAddress(this.sourceMap, pc);
+        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${loc?.line}, column ${loc?.column})`);
         return;
     }
 
@@ -376,7 +377,8 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
     public emitNewStateEvent() {
         const currentState = this.getCurrentState();
         const pc = currentState!.getProgramCounter();
-        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${getLineNumberForAddress(this.sourceMap, pc)})`);
+        const loc = getLocationForAddress(this.sourceMap, pc);
+        console.log(`PC=${pc} (Hexa ${pc.toString(16)}, line ${loc?.line}, column ${loc?.column})`);
         this.emit(EventsMessages.stateUpdated, currentState);
         if (currentState?.hasException()) {
             this.emit(EventsMessages.exceptionOccurred, this, currentState);
