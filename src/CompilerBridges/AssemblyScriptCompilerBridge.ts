@@ -132,7 +132,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
                 err = error?.message ?? '';
             }
 
-            let compilerVersion = exec('asc --version', handle);
+            let compilerVersion = exec(`cd ${path.dirname(this.sourceFilePath.toString())} ; npx asc --version`, handle);
             compilerVersion.on('close', (code) => {
                 if (code !== 0) {
                     reject(`Compilation to wasm failed: exit code ${code}. Message: ${err}`);
@@ -144,7 +144,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
                 if (!matched || !!!matched.groups?.major || !!!matched.groups?.minor || !!!matched.groups?.patch) {
                     reject(`Compilation to wasm failed: asc--version did not print expected output format 'Version x.x.x'.Got instead ${out} `);
                 }
-                let command = `asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap -O3s --debug `;
+                let command = `npx asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap -O3s --debug `;
                 if (+matched!.groups!.major > 0 || +matched!.groups!.minor >= 20) {
                     command += '--outFile ';
                 }
