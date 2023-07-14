@@ -48,7 +48,7 @@ function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
     let lastLineInfo = undefined;
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const newLine = line.match(/@/);
+        const newLine = line.match(/@ {/);
         if (newLine) {
             lastLineInfo = extractLineInfo(line);
             continue;
