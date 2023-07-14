@@ -144,7 +144,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
                 if (!matched || !!!matched.groups?.major || !!!matched.groups?.minor || !!!matched.groups?.patch) {
                     reject(`Compilation to wasm failed: asc--version did not print expected output format 'Version x.x.x'.Got instead ${out} `);
                 }
-                let command = `npx asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap -O3s --debug `;
+                let command = `npx asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap --debug --runtime stub `;
                 if (+matched!.groups!.major > 0 || +matched!.groups!.minor >= 20) {
                     command += '--outFile ';
                 }
