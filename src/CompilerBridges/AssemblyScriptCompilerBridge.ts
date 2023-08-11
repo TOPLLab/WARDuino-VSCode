@@ -1,6 +1,7 @@
 import {CompileBridge, CompileResult} from './CompileBridge';
 import {exec, ExecException} from 'child_process';
 import {SourceMap} from '../State/SourceMap';
+import {MappingItem, SourceMapConsumer} from 'source-map';
 import * as fs from 'fs';
 import {readFileSync} from 'fs';
 import {WASMCompilerBridge} from './WASMCompilerBridge';
@@ -10,32 +11,20 @@ import * as path from 'path';
 
 export class AssemblyScriptCompilerBridge implements CompileBridge {
     sourceFilePath: String;
-    private wat: WASMCompilerBridge;
     private readonly tmpdir: string;
+    private readonly wabt: string;
+    private readonly workingDir?: string;
 
-    constructor(sourceFilePath: String, tmpdir: string, wabt: string) {
+    constructor(sourceFilePath: String, tmpdir: string, wabt: string, workingDir?: string) {
         this.sourceFilePath = sourceFilePath;
         this.tmpdir = tmpdir;
-        this.wat = new WASMCompilerBridge(`${this.tmpdir}/upload.wast`, tmpdir, wabt);
+        this.wabt = wabt;
+        this.workingDir = workingDir;
     }
 
     async compile(): Promise<CompileResult> {
-        return this.wasm().then((result) => {
-            return this.lineInformation(result.sourceMap).then((lines) => {
-                const wasm: Buffer = readFileSync(`${this.tmpdir}/upload.wasm`);
-                result.sourceMap.lineInfoPairs = lines;
-                return Promise.resolve({sourceMap: result.sourceMap, wasm: wasm});
-            });
-        });
-    }
-
-    async clean(path2makefile: string): Promise<void> {
-        return;
-    }
-
-    private async wasm() {
         return new Promise<void>(async (resolve, reject) => {
-            const command = `cd ${path.dirname(this.sourceFilePath.toString())} ; ` + await this.getCompilationCommand();
+            const command = await this.getCompilationCommand();
             let out: String = '';
             let err: String = '';
 
@@ -53,11 +42,19 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
                 }
                 resolve();
             });
-        }).then(() => {
-            return this.wat.compile();
+        }).then(async () => {
+            const w: Buffer = readFileSync(`${this.tmpdir}/upload.wasm`);
+            return Promise.resolve({
+                sourceMap: await new AsScriptMapper(this.sourceFilePath.toString(), this.tmpdir, this.wabt).mapping(),
+                wasm: w
+            });
         }).catch((error) => {
             return Promise.reject(error);
         });
+    }
+
+    async clean(path2makefile: string): Promise<void> {
+        return;
     }
 
     // private executeCompileCommand(command: string): Promise<SourceMap> {
@@ -115,7 +112,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
             }
         });
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             reader.on('close', () => {
                 resolve(mapping);
             });
@@ -124,36 +121,84 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
 
     private getCompilationCommand(): Promise<string> {
         // builds asc command based on the version of asc
-        return new Promise<string>((resolve, reject) => {
+        return new Promise<string>(async (resolve) => {
+            let version: Version = await this.retrieveVersion();
+            resolve(`${this.workingDir ? `cd ${this.workingDir}; ` : ''}npx asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap --debug ` +
+                `${(version.major > 0 || +version.minor >= 20) ? '--outFile' : '--binaryFile'} ${this.tmpdir}/upload.wasm`);
+        });
+    }
+
+    private retrieveVersion(): Promise<Version> {
+        return new Promise<Version>((resolve, reject) => {
             let out: String = '';
             let err: String = '';
+
             function handle(error: ExecException | null, stdout: String, stderr: any) {
                 out = stdout;
                 err = error?.message ?? '';
             }
 
-            let compilerVersion = exec(`cd ${path.dirname(this.sourceFilePath.toString())} ; npx asc --version`, handle);
+            const command: string = `${this.workingDir ? `cd ${this.workingDir}; ` : ''}npx asc --version`;
+            let compilerVersion = exec(command, handle);
             compilerVersion.on('close', (code) => {
                 if (code !== 0) {
-                    reject(`Compilation to wasm failed: exit code ${code}. Message: ${err}`);
+                    reject(`asc --version failed: ${err}`);
                 }
 
-                // build command
-                const versionRegex: RegExp = /^Version (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)/;
-                const matched = out.match(versionRegex);
-                if (!matched || !!!matched.groups?.major || !!!matched.groups?.minor || !!!matched.groups?.patch) {
-                    reject(`Compilation to wasm failed: asc--version did not print expected output format 'Version x.x.x'.Got instead ${out} `);
+                const matched = out.match(/^Version (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)/);
+                if (matched && matched.groups?.major && matched.groups?.minor && matched.groups?.patch) {
+                    resolve({major: +matched.groups.major, minor: +matched.groups.minor, patch: +matched.groups.patch});
+                } else {
+                    reject(`asc --version did not print expected output format 'Version x.x.x'. Got ${out} instead.`);
                 }
-                let command = `npx asc ${this.sourceFilePath} --exportTable --disable bulk-memory --sourceMap --debug --runtime stub `;
-                if (+matched!.groups!.major > 0 || +matched!.groups!.minor >= 20) {
-                    command += '--outFile ';
-                }
-                else {
-                    command += '--binaryFile ';
-                }
-                command += `${this.tmpdir}/upload.wasm --textFile ${this.tmpdir}/upload.wast`;  // use .wast to get inline sourcemapping
-                resolve(command);
             });
+        });
+    }
+}
+
+interface Version {
+    major: number;
+    minor: number;
+    patch: number;
+}
+
+export abstract class SourceMapper {
+    abstract mapping(): Promise<SourceMap>;
+}
+
+export class AsScriptMapper implements SourceMapper {
+    private readonly sourceFile: string;
+    private readonly tmpdir: string;
+    private readonly wabt: string;
+
+    constructor(sourceFile: string, tmpdir: string, wabt: string) {
+        this.sourceFile = sourceFile;
+        this.tmpdir = tmpdir;
+        this.wabt = wabt;
+    }
+
+    public mapping(): Promise<SourceMap> {
+        const input = fs.readFileSync(`${this.tmpdir}/upload.wasm.map`);
+
+        return new Promise<LineInfoPairs[]>((resolve) => {
+            new SourceMapConsumer(input.toString()).then((consumer: SourceMapConsumer) => {
+                const lineInfoPairs: LineInfoPairs[] = [];
+                consumer.eachMapping(function (item: MappingItem) {
+                    if (!item.source.includes('~lib')) {
+                        lineInfoPairs.push({
+                            lineInfo: {
+                                line: item.originalLine,
+                                column: item.originalColumn,
+                                message: ''
+                            },
+                            lineAddress: item.generatedColumn.toString(16)
+                        });
+                    }
+                });
+                resolve(lineInfoPairs);
+            });
+        }).then((lines: LineInfoPairs[]) => {
+            return new WASMCompilerBridge(this.sourceFile, this.tmpdir, this.wabt).sourceDump(lines);
         });
     }
 }

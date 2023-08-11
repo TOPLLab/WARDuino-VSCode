@@ -1,15 +1,14 @@
-import { exec, ExecException } from 'child_process';
+import {exec, ExecException} from 'child_process';
 import * as parseUtils from '../Parsers/ParseUtils';
-import { CompileTimeError } from './CompileTimeError';
-import { LineInfo } from '../State/LineInfo';
-import { LineInfoPairs } from '../State/LineInfoPairs';
-import { CompileBridge } from './CompileBridge';
-import { SourceMap } from '../State/SourceMap';
-import { FunctionInfo } from '../State/FunctionInfo';
-import { VariableInfo } from '../State/VariableInfo';
-import { TypeInfo } from '../State/TypeInfo';
-import { readFileSync } from 'fs';
-import assert = require('assert');
+import {CompileTimeError} from './CompileTimeError';
+import {LineInfo} from '../State/LineInfo';
+import {LineInfoPairs} from '../State/LineInfoPairs';
+import {CompileBridge} from './CompileBridge';
+import {EmptySourceMap, SourceMap} from '../State/SourceMap';
+import {FunctionInfo} from '../State/FunctionInfo';
+import {VariableInfo} from '../State/VariableInfo';
+import {TypeInfo} from '../State/TypeInfo';
+import {readFileSync} from 'fs';
 
 function checkCompileTimeError(errorMessage: string) {
     let regexpr = /:(?<line>(\d+)):(?<column>(\d+)): error: (?<message>(.*))/;
@@ -60,9 +59,8 @@ function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
                 column: lastLineInfo!.column,
                 message: lastLineInfo!.message,
             };
-            result.push({ lineInfo: li, lineAddress: addr });
-        }
-        catch (e) {
+            result.push({lineInfo: li, lineAddress: addr});
+        } catch (e) {
         }
 
     }
@@ -86,11 +84,11 @@ export class WASMCompilerBridge implements CompileBridge {
     }
 
     async compile() {
-        let sourceMap: SourceMap = await this.compileAndDump(this.compileToWasmCommand(), this.getNameDumpCommand());
+        let sourceMap: SourceMap = await this.compileAndDump(this.compileToWasmCommand());
         await this.compileHeader();
         const path2Wasm = `${this.tmpdir}/upload.wasm`;
         const w: Buffer = readFileSync(path2Wasm);
-        return { sourceMap: sourceMap, wasm: w };
+        return {sourceMap: sourceMap, wasm: w};
     }
 
     async compileHeader() {
@@ -99,8 +97,8 @@ export class WASMCompilerBridge implements CompileBridge {
     }
 
     async clean(path2makefile: string): Promise<void> {
-        return new Promise((res, rej)=>{
-            const clean = exec('make clean', { cwd: path2makefile }, (err, stdout, stderr) => {
+        return new Promise((res, rej) => {
+            const clean = exec('make clean', {cwd: path2makefile}, (err, stdout, stderr) => {
                 if (err) {
                     rej(err);
                 }
@@ -140,7 +138,7 @@ export class WASMCompilerBridge implements CompileBridge {
         }
     }
 
-    private compileAndDump(compileCommand: string, objDumpCommand: string): Promise<SourceMap> {
+    private compileAndDump(compileCommand: string): Promise<SourceMap> {
         return new Promise<LineInfoPairs[]>((resolve, reject) => {
             let lineInfoPairs: LineInfoPairs[];
             let that = this;
@@ -160,37 +158,37 @@ export class WASMCompilerBridge implements CompileBridge {
                 }
             });
 
-        }).then((result) => {
-            return new Promise<SourceMap>((resolve, reject) => {
-                let typeInfos: Map<number, TypeInfo>;
-                let functionInfos: FunctionInfo[];
-                let globalInfos: VariableInfo[];
-                let importInfos: FunctionInfo[];
-                let sourceMap: SourceMap;
-                let that = this;
+        }).then((result: LineInfoPairs[]) => this.sourceDump(result));
+    }
 
-                function handleObjDumpStreams(error: ExecException | null, stdout: String, stderr: any) {
-                    that.handleStdError(stderr, reject);
-                    that.handleError(error, reject);
-                    typeInfos = parseUtils.getTypeInfos(stdout);
-                    functionInfos = parseUtils.getFunctionInfos(stdout);
-                    globalInfos = parseUtils.getGlobalInfos(stdout);
-                    importInfos = parseUtils.getImportInfos(stdout);
-                }
+    public sourceDump(lines: LineInfoPairs[]): Promise<SourceMap> {
+        return new Promise((resolve, reject) => {
+            let typeInfos: Map<number, TypeInfo>;
+            let functionInfos: FunctionInfo[];
+            let globalInfos: VariableInfo[];
+            let importInfos: FunctionInfo[];
+            let sourceMap: SourceMap = EmptySourceMap();
+            let that = this;
 
-                let objDump = exec(objDumpCommand, handleObjDumpStreams);
+            function handleObjDumpStreams(error: ExecException | null, stdout: String, stderr: any) {
+                that.handleStdError(stderr, reject);
+                that.handleError(error, reject);
+                typeInfos = parseUtils.getTypeInfos(stdout);
+                functionInfos = parseUtils.getFunctionInfos(stdout);
+                globalInfos = parseUtils.getGlobalInfos(stdout);
+                importInfos = parseUtils.getImportInfos(stdout);
+            }
 
-                if (result) {
-                    sourceMap = { lineInfoPairs: result, functionInfos: [], globalInfos: [], importInfos: [], typeInfos: new Map<number, TypeInfo>() };
-                    objDump.on('close', (code) => {
-                        if (functionInfos && globalInfos) {
-                            sourceMap.functionInfos = functionInfos;
-                            sourceMap.globalInfos = globalInfos;
-                            sourceMap.importInfos = importInfos;
-                            sourceMap.typeInfos = typeInfos;
-                            resolve(sourceMap);
-                        }
-                    });
+            let objDump = exec(this.getNameDumpCommand(), handleObjDumpStreams);
+
+            sourceMap.lineInfoPairs = lines;
+            objDump.on('close', (code) => {
+                if (functionInfos && globalInfos) {
+                    sourceMap.functionInfos = functionInfos;
+                    sourceMap.globalInfos = globalInfos;
+                    sourceMap.importInfos = importInfos;
+                    sourceMap.typeInfos = typeInfos;
+                    resolve(sourceMap);
                 }
             });
         });
