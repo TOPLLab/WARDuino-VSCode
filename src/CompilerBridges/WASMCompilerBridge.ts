@@ -1,14 +1,16 @@
-import {exec, ExecException} from 'child_process';
+import { exec, ExecException } from 'child_process';
 import * as parseUtils from '../Parsers/ParseUtils';
-import {CompileTimeError} from './CompileTimeError';
-import {LineInfo} from '../State/LineInfo';
-import {LineInfoPairs} from '../State/LineInfoPairs';
-import {CompileBridge} from './CompileBridge';
-import {EmptySourceMap, SourceMap} from '../State/SourceMap';
-import {FunctionInfo} from '../State/FunctionInfo';
-import {VariableInfo} from '../State/VariableInfo';
-import {TypeInfo} from '../State/TypeInfo';
-import {readFileSync} from 'fs';
+import { CompileTimeError } from './CompileTimeError';
+import { LineInfo } from '../State/LineInfo';
+import { LineInfoPairs } from '../State/LineInfoPairs';
+import { CompileBridge } from './CompileBridge';
+import { EmptySourceMap, SourceMap } from '../State/SourceMap';
+import { FunctionInfo } from '../State/FunctionInfo';
+import { VariableInfo } from '../State/VariableInfo';
+import { TypeInfo } from '../State/TypeInfo';
+import { readFileSync } from 'fs';
+import * as path from 'path';
+
 
 function checkCompileTimeError(errorMessage: string) {
     let regexpr = /:(?<line>(\d+)):(?<column>(\d+)): error: (?<message>(.*))/;
@@ -38,7 +40,7 @@ function checkErrorObjDump(errorMessage: string) {
 
 function extractLineInfo(lineString: string): LineInfo {
     const obj = JSON.parse(lineString.substring(2));
-    return {line: obj.line, column: obj.col_start - 1, message: obj.message};
+    return { line: obj.line, column: obj.col_start - 1, message: obj.message };
 }
 
 function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
@@ -59,7 +61,7 @@ function createLineInfoPairs(lines: string[]): LineInfoPairs[] { // TODO update
                 column: lastLineInfo!.column,
                 message: lastLineInfo!.message,
             };
-            result.push({lineInfo: li, lineAddress: addr});
+            result.push({ lineInfo: li, lineAddress: addr });
         } catch (e) {
         }
 
@@ -88,7 +90,7 @@ export class WASMCompilerBridge implements CompileBridge {
         await this.compileHeader();
         const path2Wasm = `${this.tmpdir}/upload.wasm`;
         const w: Buffer = readFileSync(path2Wasm);
-        return {sourceMap: sourceMap, wasm: w};
+        return { sourceMap: sourceMap, wasm: w };
     }
 
     async compileHeader() {
@@ -98,7 +100,7 @@ export class WASMCompilerBridge implements CompileBridge {
 
     async clean(path2makefile: string): Promise<void> {
         return new Promise((res, rej) => {
-            const clean = exec('make clean', {cwd: path2makefile}, (err, stdout, stderr) => {
+            const clean = exec('make clean', { cwd: path2makefile }, (err, stdout, stderr) => {
                 if (err) {
                     rej(err);
                 }

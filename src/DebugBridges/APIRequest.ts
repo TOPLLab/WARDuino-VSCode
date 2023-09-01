@@ -1,4 +1,6 @@
-import { ExecutionStateType, WOODDumpResponse, numberExecutionStateTypes } from '../State/WOODState';
+import { numberExecutionStateTypes } from '../Model/RuntimeState/WOODState';
+import { WOODDumpResponse } from '../Model/RuntimeState/WOODDumpResponse';
+import { ExecutionStateType } from '../Model/RuntimeState/ExecutionStateType';
 import { HexaEncoder } from '../Util/hexaEncoding';
 import { InterruptTypes } from './InterruptTypes';
 
@@ -215,7 +217,7 @@ export function UpdateModuleRequest(wasm: Buffer): Request {
     };
 }
 
-export const ProxifyRequest: Request =  {
+export const ProxifyRequest: Request = {
     dataToSend: `${InterruptTypes.interruptProxify}\n`,
     expectedResponse: (line: string) => {
         return line === 'Interrupt: 65';

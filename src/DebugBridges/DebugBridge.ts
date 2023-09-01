@@ -1,5 +1,5 @@
 import { VariableInfo } from '../State/VariableInfo';
-import { WOODState } from '../State/WOODState';
+import { WOODState } from '../Model/RuntimeState/WOODState';
 import { SourceMap } from '../State/SourceMap';
 import { ProxyCallItem } from '../Views/ProxyCallsProvider';
 import { RuntimeState } from '../State/RuntimeState';

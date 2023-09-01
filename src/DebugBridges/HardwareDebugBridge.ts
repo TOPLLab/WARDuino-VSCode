@@ -13,6 +13,7 @@ import { RuntimeState } from '../State/RuntimeState';
 import { BreakpointPolicy } from '../State/Breakpoint';
 
 export class HardwareDebugBridge extends AbstractDebugBridge {
+   
     protected client: ChannelInterface | undefined;
     protected readonly sdk: string;
     protected readonly tmpdir: string | undefined;
@@ -37,11 +38,15 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
     }
 
     async connect(flash?: boolean): Promise<string> {
+
         const doFlash = flash === undefined ? this.deviceConfig.onStartConfig.flash : flash;
+        
         if (doFlash) {
             await this.compileAndUpload();
         }
+        
         this.emit(EventsMessages.progress, this, Messages.connecting);
+
         if (this.deviceConfig.usesWiFi()) {
             await this.openSocketPort();
             this.registerCallbacks();
@@ -68,6 +73,9 @@ export class HardwareDebugBridge extends AbstractDebugBridge {
             });
             await p;
         }
+
+        await super.checkPause();
+
         return '';
     }
 

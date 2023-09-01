@@ -1,5 +1,5 @@
-import {DebugProtocol} from 'vscode-debugprotocol';
-import {basename} from 'path-browserify';
+import { DebugProtocol } from 'vscode-debugprotocol';
+import { basename } from 'path-browserify';
 import * as vscode from 'vscode';
 
 import {
@@ -14,31 +14,33 @@ import {
     TerminatedEvent,
     Thread
 } from 'vscode-debugadapter';
-import {CompileTimeError} from '../CompilerBridges/CompileTimeError';
-import {ErrorReporter} from './ErrorReporter';
-import {DebugBridge} from '../DebugBridges/DebugBridge';
-import {DebugBridgeFactory} from '../DebugBridges/DebugBridgeFactory';
-import {RunTimeTarget} from '../DebugBridges/RunTimeTarget';
-import {CompileBridgeFactory} from '../CompilerBridges/CompileBridgeFactory';
-import {CompileBridge} from '../CompilerBridges/CompileBridge';
-import {SourceMap, getLocationForAddress, Location} from '../State/SourceMap';
-import {VariableInfo} from '../State/VariableInfo';
+import { CompileTimeError } from '../CompilerBridges/CompileTimeError';
+import { ErrorReporter } from './ErrorReporter';
+import { DebugBridge } from '../DebugBridges/DebugBridge';
+import { DebugBridgeFactory } from '../DebugBridges/DebugBridgeFactory';
+import { RunTimeTarget } from '../DebugBridges/RunTimeTarget';
+import { CompileBridgeFactory } from '../CompilerBridges/CompileBridgeFactory';
+import { CompileBridge } from '../CompilerBridges/CompileBridge';
+import { SourceMap, getLocationForAddress, Location } from '../State/SourceMap';
+import { VariableInfo } from '../State/VariableInfo';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import {WOODDebugBridge} from '../DebugBridges/WOODDebugBridge';
-import {EventsProvider} from '../Views/EventsProvider';
-import {StackProvider} from '../Views/StackProvider';
-import {ProxyCallItem, ProxyCallsProvider} from '../Views/ProxyCallsProvider';
-import {CompileResult} from '../CompilerBridges/CompileBridge';
-import {DeviceConfig} from '../DebuggerConfig';
-import {BreakpointPolicyItem, BreakpointPolicyProvider} from '../Views/BreakpointPolicyProvider';
-import {Breakpoint, BreakpointPolicy} from '../State/Breakpoint';
-import {DebuggingTimelineProvider, TimelineItem} from '../Views/DebuggingTimelineProvider';
-import {RuntimeViewsRefresher} from '../Views/ViewsRefresh';
-import {DevicesManager} from '../DebugBridges/DevicesManager';
-import {EventsMessages} from '../DebugBridges/AbstractDebugBridge';
-import {RuntimeState} from '../State/RuntimeState';
+import { WOODDebugBridge } from '../DebugBridges/WOODDebugBridge';
+import { EventsProvider } from '../Views/EventsProvider';
+import { StackProvider } from '../Views/StackProvider';
+import { ProxyCallItem, ProxyCallsProvider } from '../Views/ProxyCallsProvider';
+import { CompileResult } from '../CompilerBridges/CompileBridge';
+import { DeviceConfig } from '../DebuggerConfig';
+import { BreakpointPolicyItem, BreakpointPolicyProvider } from '../Views/BreakpointPolicyProvider';
+import { Breakpoint, BreakpointPolicy } from '../State/Breakpoint';
+import { DebuggingTimelineProvider, TimelineItem } from '../Views/DebuggingTimelineProvider';
+import { RuntimeViewsRefresher } from '../Views/ViewsRefresh';
+import { DevicesManager } from '../DebugBridges/DevicesManager';
+import { EventsMessages } from '../DebugBridges/AbstractDebugBridge';
+import { RuntimeState } from '../State/RuntimeState';
+
+import { CONFIG } from './SessionConfig';
 
 const debugmodeMap = new Map<string, RunTimeTarget>([
     ['emulated', RunTimeTarget.emulator],
@@ -54,16 +56,26 @@ interface OnStartBreakpoint {
 }
 
 // Interface between the debugger and the VS runtime
+
+
+// TODO view operations are mixed with the core bussiness logic
+// Move view operations to viewmodels 
 export class WARDuinoDebugSession extends LoggingDebugSession {
+
+    // TODO source map should not be here 
     private sourceMap?: SourceMap = undefined;
+
     private program: string = '';
     private tmpdir: string;
     private THREAD_ID: number = 42;
-    private currentLocation: Location = {line: 0, column: 0};
+
+    private currentLocation: Location = { line: 0, column: 0 };
     private debugBridge?: DebugBridge;
     private proxyBridge?: DebugBridge;
-    private notifier: vscode.StatusBarItem;
+
+    private statusBar: vscode.StatusBarItem;
     private reporter: ErrorReporter;
+
     private proxyCallsProvider?: ProxyCallsProvider;
     private breakpointPolicyProvider?: BreakpointPolicyProvider;
     private timelineProvider?: DebuggingTimelineProvider;
@@ -71,145 +83,46 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
 
     private extensionName = 'warduinodebug';
     private viewsRefresher: RuntimeViewsRefresher = new RuntimeViewsRefresher(this.extensionName);
-
     private variableHandles = new Handles<'locals' | 'globals' | 'arguments'>();
-    private compiler?: CompileBridge;
 
+    private compiler?: CompileBridge;
     private devicesManager: DevicesManager = new DevicesManager();
 
+    // TODO This is currently a hack which should not be here 
     private startingBPs: OnStartBreakpoint[];
 
-    public constructor(notifier: vscode.StatusBarItem, reporter: ErrorReporter) {
+    public constructor(statusBar: vscode.StatusBarItem, reporter: ErrorReporter) {
         super('debug_log.txt');
-        this.notifier = notifier;
+        this.statusBar = statusBar;
         this.reporter = reporter;
         this.tmpdir = '/tmp/';
         this.startingBPs = [];
     }
 
+
+    // Initialize the Debug Session
     protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
         // build and return the capabilities of this debug adapter:
-        response.body = response.body || {};
-
-        // the adapter implements the configurationDone request.
-        response.body.supportsConfigurationDoneRequest = true;
-
-        // make VS Code use 'evaluate' when hovering over source
-        response.body.supportsEvaluateForHovers = false;
-
-        // make VS Code show a 'step back' button
-        response.body.supportsStepBack = true;
-
-        // make VS Code support data breakpoints
-        response.body.supportsDataBreakpoints = false;
-
-        // make VS Code support completion in REPL
-        response.body.supportsCompletionsRequest = false;
-        response.body.completionTriggerCharacters = ['.', '['];
-
-        // make VS Code send cancel request
-        response.body.supportsCancelRequest = false;
-
-        // make VS Code send the breakpointLocations request
-        response.body.supportsBreakpointLocationsRequest = true;
-
-        // make VS Code provide "Step in Target" functionality
-        response.body.supportsStepInTargetsRequest = false;
-
-        // the adapter defines two exceptions filters, one with support for conditions.
-        response.body.supportsExceptionFilterOptions = false;
-
-        // make VS Code send exceptionInfo request
-        response.body.supportsExceptionInfoRequest = false;
-
-        // make VS Code send setVariable request
-        response.body.supportsSetVariable = true;
-
-        // make VS Code send setExpression request
-        response.body.supportsSetExpression = false;
-
-        // make VS Code send disassemble request
-        response.body.supportsDisassembleRequest = false;
-        response.body.supportsSteppingGranularity = false;
-        response.body.supportsInstructionBreakpoints = false;
-
+        response.body = { ...response.body, ...CONFIG };
         this.sendResponse(response);
         this.sendEvent(new InitializedEvent());
     }
 
+    // Signal setup has been finished
     protected configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse, args: DebugProtocol.ConfigurationDoneArguments): void {
         super.configurationDoneRequest(response, args);
     }
 
-    protected async launchRequest(response: DebugProtocol.LaunchResponse, args: any) {
-        console.log(args.program);
-        this.reporter.clear();
-        this.program = args.program;
-        const deviceConfig = DeviceConfig.fromWorkspaceConfig();
-        this.viewsRefresher.showViewsFromConfig(deviceConfig);
-        const eventsProvider = new EventsProvider();
-        this.viewsRefresher.addViewProvider(eventsProvider);
-        vscode.window.registerTreeDataProvider('events', eventsProvider);
 
-        await new Promise((resolve, reject) => {
-            fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
-                if (err === null) {
-                    this.tmpdir = tmpdir;
-                    resolve(null);
-                } else {
-                    reject();
-                }
-            });
-        });
-
-        this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get('warduino.WABToolChainPath') ?? '');
-        if (deviceConfig.onStartConfig.flash) {
-            const makefilepath = path.join(vscode.workspace.getConfiguration().get('warduino.WARDuinoToolChainPath')!, '/platforms/Arduino/');
-            await this.compiler.clean(makefilepath);
-        }
-
-        let compileResult: CompileResult | void = await this.compiler.compile().catch((reason) => this.handleCompileError(reason));
-        if (compileResult) {
-            this.sourceMap = compileResult.sourceMap;
-        }
-
-        const debugmode: string = deviceConfig.debugMode;
-        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, deviceConfig, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir);
-        this.registerGUICallbacks(debugBridge);
-
-        try {
-            this.devicesManager.addDevice(debugBridge);
-            this.setDebugBridge(debugBridge);
-
-            await debugBridge.connect();
-            if (deviceConfig.onStartConfig.pause) {
-                const rs = await this.debugBridge?.refresh();
-                if (rs) {
-                    this.debugBridge?.updateRuntimeState(rs);
-                }
-            }
-
-            if (this.startingBPs.length > 0) {
-                const validBps = this.startingBPs.filter(bp => {
-                    return bp.source.path === args.program;
-                }).map(bp => bp.linenr);
-                await debugBridge.setBreakPoints(validBps);
-                this.startingBPs = [];
-            }
-            this.sendResponse(response);
-            if (debugBridge.getDeviceConfig().onStartConfig.pause) {
-                this.onPause();
-            }
-        } catch (reason) {
-            console.error(reason);
-        }
-    }
-
+    // Switch from one to the next debug bridge 
     private setDebugBridge(next: DebugBridge) {
+
         if (this.debugBridge !== undefined) {
             next.setSelectedProxies(this.debugBridge.getSelectedProxies());
         }
+
         this.debugBridge = next;
+
         if (this.proxyCallsProvider === undefined) {
             this.proxyCallsProvider = new ProxyCallsProvider(next);
             this.viewsRefresher.addViewProvider(this.proxyCallsProvider);
@@ -233,7 +146,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         if (!!!this.timelineProvider) {
             this.timelineProvider = new DebuggingTimelineProvider(next);
             this.viewsRefresher.addViewProvider(this.timelineProvider);
-            const v = vscode.window.createTreeView('debuggingTimeline', {treeDataProvider: this.timelineProvider});
+            const v = vscode.window.createTreeView('debuggingTimeline', { treeDataProvider: this.timelineProvider });
             this.timelineProvider.setView(v);
         } else {
             this.timelineProvider.setDebugBridge(next);
@@ -248,6 +161,107 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
     }
 
+    // Debug protocol requests overview
+    // ----------------------------------
+    // launchRequest
+    // continueRequest
+    // pauseRequest
+    // setVariableRequest
+    // breakpointLocationsRequest
+    // setBreakPointsRequest
+    // setInstructionBreakpointsRequest
+    // threadsRequest
+
+    /*
+        Create a tempory folder in the tmp folder of the operating system
+    */
+    private async initTempFolder(name: string) {
+        await new Promise((resolve, reject) => {
+            fs.mkdtemp(path.join(os.tmpdir(), 'warduino.'), (err, tmpdir) => {
+                if (err === null) {
+                    this.tmpdir = tmpdir;
+                    resolve(null);
+                } else {
+                    reject();
+                }
+            });
+        });
+    }
+
+    /* 
+        Entry point for starting a debug session.
+    */
+    protected async launchRequest(response: DebugProtocol.LaunchResponse, args: any) {
+        // Gui reporting
+        this.reporter.clear();
+
+        // Save state  
+        this.program = args.program;
+
+        // device construction
+        const deviceConfig = DeviceConfig.fromWorkspaceConfig();
+        this.viewsRefresher.showViewsFromConfig(deviceConfig);
+
+        // events construction
+        const eventsProvider = new EventsProvider();
+
+        // GUI setup
+        this.viewsRefresher.addViewProvider(eventsProvider);
+        vscode.window.registerTreeDataProvider('events', eventsProvider);
+
+        // Creation of a Temp Folder
+        await this.initTempFolder('warduino.');
+
+        // Compiler construction
+        this.compiler = CompileBridgeFactory.makeCompileBridge(args.program, this.tmpdir, vscode.workspace.getConfiguration().get('warduino.WABToolChainPath') ?? '');
+
+        // Clean if needed
+        if (deviceConfig.onStartConfig.flash) {
+            const makefilepath = path.join(vscode.workspace.getConfiguration().get('warduino.WARDuinoToolChainPath')!, '/platforms/Arduino/');
+            await this.compiler.clean(makefilepath);
+        }
+
+        // Actual compiling
+        let compileResult: CompileResult | void = await this.compiler.compile().catch((reason) => this.handleCompileError(reason));
+        if (compileResult) {
+            this.sourceMap = compileResult.sourceMap;
+        }
+
+        // Debug bridge construction
+        const debugmode: string = deviceConfig.debugMode;
+        const debugBridge = DebugBridgeFactory.makeDebugBridge(args.program, deviceConfig, this.sourceMap as SourceMap, debugmodeMap.get(debugmode) ?? RunTimeTarget.emulator, this.tmpdir);
+        this.registerGUICallbacks(debugBridge);
+
+        await this.connectBridge(debugBridge);
+        this.sendResponse(response);
+    }
+
+
+    // Connect the debug bridge to the virtual machine
+    private async connectBridge(debugBridge: DebugBridge) {
+        try {
+            this.devicesManager.addDevice(debugBridge);
+            this.setDebugBridge(debugBridge);
+            await debugBridge.connect();
+            await this.initialiseBreakPoints(debugBridge);
+            if (debugBridge.getDeviceConfig().onStartConfig.pause) {
+                this.onPause();
+            }
+        } catch (reason) {
+            console.error(reason);
+        }
+    }
+
+    private async initialiseBreakPoints(debugBridge: DebugBridge) {
+        if (this.startingBPs.length > 0) {
+            const validBps = this.startingBPs.filter(bp => {
+                return bp.source.path === this.program;
+            }).map(bp => bp.linenr);
+            await debugBridge.setBreakPoints(validBps);
+            this.startingBPs = [];
+        }
+    }
+
     protected async continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): Promise<void> {
         await this.debugBridge?.run();
         this.sendResponse(response);
@@ -259,14 +273,21 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
     }
 
+
+    // TODO Remove Duplication for all the local/global/arguments
     protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): Promise<void> {
+
         const v = this.variableHandles.get(args.variablesReference);
         const db = this.debugBridge;
         const state = db?.getCurrentState();
         const isPresent = db?.getDebuggingTimeline().isActiveStatePresent();
+
         const isUpdateAllowed = db?.isUpdateOperationAllowed();
+
         let newvariable: VariableInfo | undefined = undefined;
+
         if (v === 'locals' && db && state) {
+
             if (isUpdateAllowed) {
                 newvariable = state.updateLocal(args.name, args.value);
                 if (!!newvariable) {
@@ -282,6 +303,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             } else {
                 newvariable = state?.getLocal(args.name);
             }
+
         } else if (v === 'globals' && db && state) {
             if (isUpdateAllowed) {
                 newvariable = state?.updateGlobal(args.name, args.value);
@@ -323,11 +345,65 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         response.body = {
             value: newvariable!.value,
         };
+
         this.sendResponse(response);
     }
 
-    // Commands
 
+    protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
+        response.body = {
+            breakpoints: this.debugBridge?.getBreakpointPossibilities() ?? []
+        };
+        this.sendResponse(response);
+    }
+
+    protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): Promise<void> {
+        let responseBps: Breakpoint[] = [];
+        if (!!this.debugBridge) {
+            responseBps = await this.debugBridge.setBreakPoints(args.lines ?? []);
+        } else if (!!args.lines && !!args.source) {
+            // case where the bridge did not start yet.
+            // Store bps so to set them after connection to bridge
+            const toConcat = args.lines.map((linenr: number) => {
+                return {
+                    'source': {
+                        name: args.source.name!,
+                        path: args.source.path!
+                    },
+                    'linenr': linenr
+                };
+            });
+            this.startingBPs = this.startingBPs.concat(toConcat);
+        }
+        response.body = {
+            breakpoints: responseBps
+        };
+        this.sendResponse(response);
+    }
+
+    protected setInstructionBreakpointsRequest(response: DebugProtocol.SetInstructionBreakpointsResponse, args: DebugProtocol.SetInstructionBreakpointsArguments) {
+        console.log('setInstructionBreakpointsRequest');
+        response.body = {
+            breakpoints: []
+        };
+        this.sendResponse(response);
+    }
+
+    protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
+        response.body = {
+            threads: [new Thread(this.THREAD_ID, 'WARDuino Debug Thread')]
+        };
+        this.sendResponse(response);
+    }
+
+
+
+    // Warduino Specific Commands, should not be here ...
+    // ------------------------------------------------------
+    // upload
+    // updateModule
+    // commitChanges
+    // startMultiverseDebugging
     public upload() {
         this.debugBridge?.upload();
     }
@@ -421,7 +497,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         }
         const state = this.debugBridge?.getCurrentState();
         if (!!state) {
-            const doNotSave = {includeInTimeline: false};
+            const doNotSave = { includeInTimeline: false };
             this.debugBridge?.updateRuntimeState(state, doNotSave);
             this.sendEvent(new StoppedEvent('pause', this.THREAD_ID));
         }
@@ -514,51 +590,6 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         this.sendEvent(new TerminatedEvent());
     }
 
-    protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
-        response.body = {
-            breakpoints: this.debugBridge?.getBreakpointPossibilities() ?? []
-        };
-        this.sendResponse(response);
-    }
-
-    protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): Promise<void> {
-        let responseBps: Breakpoint[] = [];
-        if (!!this.debugBridge) {
-            responseBps = await this.debugBridge.setBreakPoints(args.lines ?? []);
-        } else if (!!args.lines && !!args.source) {
-            // case where the bridge did not start yet.
-            // Store bps so to set them after connection to bridge
-            const toConcat = args.lines.map((linenr: number) => {
-                return {
-                    'source': {
-                        name: args.source.name!,
-                        path: args.source.path!
-                    },
-                    'linenr': linenr
-                };
-            });
-            this.startingBPs = this.startingBPs.concat(toConcat);
-        }
-        response.body = {
-            breakpoints: responseBps
-        };
-        this.sendResponse(response);
-    }
-
-    protected setInstructionBreakpointsRequest(response: DebugProtocol.SetInstructionBreakpointsResponse, args: DebugProtocol.SetInstructionBreakpointsArguments) {
-        console.log('setInstructionBreakpointsRequest');
-        response.body = {
-            breakpoints: []
-        };
-        this.sendResponse(response);
-    }
-
-    protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
-        response.body = {
-            threads: [new Thread(this.THREAD_ID, 'WARDuino Debug Thread')]
-        };
-        this.sendResponse(response);
-    }
 
     private setLineNumberFromPC(pc: number) {
         this.currentLocation = getLocationForAddress(this.sourceMap!, pc) ?? this.currentLocation;
@@ -577,8 +608,8 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected variablesRequest(response: DebugProtocol.VariablesResponse,
-                               args: DebugProtocol.VariablesArguments,
-                               request?: DebugProtocol.Request) {
+        args: DebugProtocol.VariablesArguments,
+        request?: DebugProtocol.Request) {
         if (this.sourceMap === undefined) {
             return;
         }
@@ -601,7 +632,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             const globals = this.debugBridge?.getCurrentState()?.getGlobals() ?? this.sourceMap.globalInfos;
             response.body = {
                 variables: Array.from(globals, (info) => {
-                    return {name: info.name, value: info.value, variablesReference: 0};
+                    return { name: info.name, value: info.value, variablesReference: 0 };
                 })
             };
             this.sendResponse(response);
@@ -609,7 +640,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             const state = this.debugBridge?.getCurrentState()?.getArguments() ?? [];
             response.body = {
                 variables: Array.from(state, (info) => {
-                    return {name: info.name, value: info.value, variablesReference: 0};
+                    return { name: info.name, value: info.value, variablesReference: 0 };
                 })
             };
             this.sendResponse(response);
@@ -617,7 +648,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse,
-                                args: DebugProtocol.StackTraceArguments): void {
+        args: DebugProtocol.StackTraceArguments): void {
         const pc = this.debugBridge!.getCurrentState()?.getProgramCounter() ?? 0;
         this.setLineNumberFromPC(pc);
 
@@ -631,7 +662,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
             // @ts-ignore
             const functionInfo = this.sourceMap.functionInfos[frame.index];
             let start = (index === 0) ? this.currentLocation.line : getLocationForAddress(this.sourceMap!, callstack[index - 1].returnAddress)?.line ?? 0;
-            let location: Location | undefined = (index === 0) ? {line: this.currentLocation.line, column: 0} : getLocationForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? {line: 0, column: 0};
+            let location: Location | undefined = (index === 0) ? { line: this.currentLocation.line, column: 0 } : getLocationForAddress(this.sourceMap!, callstack[index - 1].returnAddress) ?? { line: 0, column: 0 };
             let name = (functionInfo === undefined) ? '<anonymous>' : functionInfo.name;
 
             return new StackFrame(index, name,
@@ -673,7 +704,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
         console.log('Shutting the debugger down');
         this.debugBridge?.disconnect();
         if (this.tmpdir) {
-            fs.rm(this.tmpdir, {recursive: true}, err => {
+            fs.rm(this.tmpdir, { recursive: true }, err => {
                 if (err) {
                     throw new Error('Could not delete temporary directory.');
                 }
@@ -686,9 +717,11 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private registerGUICallbacks(debugBridge: DebugBridge) {
+
         debugBridge.on(EventsMessages.stateUpdated, (newState: RuntimeState) => {
             this.onNewState(newState);
         });
+
         debugBridge.on(EventsMessages.moduleUpdated, (db: DebugBridge) => {
             this.notifyInfoMessage(db, EventsMessages.moduleUpdated);
         });
@@ -718,11 +751,13 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
                 }
             }
         });
+
         debugBridge.on(EventsMessages.emulatorStarted, (db: DebugBridge) => {
             const name = db.getDeviceConfig().name;
             const msg = `Emulator for ${name} spawned`;
             this.notifyProgress(msg);
         });
+
         debugBridge.on(EventsMessages.emulatorClosed, (db: DebugBridge, reason: number | null) => {
             const name = db.getDeviceConfig().name;
             let msg = `Emulator for ${name} closed`;
@@ -794,7 +829,7 @@ export class WARDuinoDebugSession extends LoggingDebugSession {
     }
 
     private notifyProgress(msg: string) {
-        this.notifier.text = msg;
+        this.statusBar.text = msg;
     }
 
     private onDisallowedAction(db: DebugBridge, msg: string) {

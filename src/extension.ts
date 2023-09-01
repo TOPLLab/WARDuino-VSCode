@@ -7,6 +7,7 @@ export function activate(context: vscode.ExtensionContext) {
     let errorReporter = installDiagnosticReporting(context);
     let factory = new InlineDebugAdapterFactory(status, errorReporter);
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('WARDuinoDBG', factory));
+
     context.subscriptions.push(vscode.commands.registerCommand('warduinodebug.upload', () => {
         factory.warduino?.upload();
     }));

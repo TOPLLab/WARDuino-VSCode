@@ -1,6 +1,6 @@
-import {SourceMap} from '../State/SourceMap';
+import { SourceMap } from '../State/SourceMap';
 
-export interface CompileResult{
+export interface CompileResult {
     sourceMap: SourceMap;
     wasm: Buffer;
 }

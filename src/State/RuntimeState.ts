@@ -1,9 +1,10 @@
 import { EventItem } from '../Views/EventsProvider';
 import { Frame } from '../Parsers/Frame';
 import { VariableInfo } from './VariableInfo';
-import { WasmState } from './AllState';
+import { WasmState } from './WasmState';
 import { SourceMap } from './SourceMap';
-import { ExecutionStateType, InterruptEvent } from './WOODState';
+import { InterruptEvent } from '../Model/RuntimeState/InterruptEvent';
+import { ExecutionStateType } from '../Model/RuntimeState/ExecutionStateType';
 
 function hash(s: string) {
     let h: number = 0;
@@ -22,7 +23,9 @@ export class RuntimeState {
     private events: EventItem[] = [];
     private stack: VariableInfo[] = [];
     private globals: VariableInfo[] = [];
+
     private arguments: VariableInfo[] = [];
+
     private pcerror: number = -1;
     private exception_msg: string = '';
 
@@ -32,11 +35,11 @@ export class RuntimeState {
     private sourceMap: SourceMap;
 
 
-    constructor(source: string, sourceMap: SourceMap) {
-        this.id = hash(source ?? '');
+    constructor(serializedState: string, sourceMap: SourceMap) {
+        this.id = hash(serializedState ?? '');
         this.sourceMap = sourceMap;
-        this.source = source;
-        this.wasmState = WasmState.fromLine(source, sourceMap);
+        this.source = serializedState;
+        this.wasmState = WasmState.deserialize(serializedState, sourceMap);
         this.fillState();
     }
 

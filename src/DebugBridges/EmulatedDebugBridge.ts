@@ -39,7 +39,8 @@ export class EmulatedDebugBridge extends AbstractDebugBridge {
         this.startAddress = startAddress;
     }
 
-    public connect(flash?: boolean): Promise<string> {
+    public async connect(flash?: boolean): Promise<string> {
+        super.checkPause();
         return this.startEmulator();
     }
 

@@ -1,4 +1,4 @@
-import { WOODState } from '../State/WOODState';
+import { WOODState } from '../Model/RuntimeState/WOODState';
 import { DebugBridge } from './DebugBridge';
 
 export interface DebugBridgeListenerInterface {

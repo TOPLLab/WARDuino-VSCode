@@ -1,17 +1,19 @@
-import {DebugBridge} from './DebugBridge';
-import {Frame} from '../Parsers/Frame';
-import {VariableInfo} from '../State/VariableInfo';
-import {getLocationForAddress, SourceMap} from '../State/SourceMap';
-import {ExecutionStateType, WOODDumpResponse, WOODState} from '../State/WOODState';
-import {InterruptTypes} from './InterruptTypes';
-import {FunctionInfo} from '../State/FunctionInfo';
-import {ProxyCallItem} from '../Views/ProxyCallsProvider';
-import {RuntimeState} from '../State/RuntimeState';
-import {Breakpoint, BreakpointPolicy, UniqueSet} from '../State/Breakpoint';
-import {HexaEncoder} from '../Util/hexaEncoding';
-import {DeviceConfig} from '../DebuggerConfig';
-import {DebuggingTimeline} from '../State/DebuggingTimeline';
-import {ChannelInterface} from '../Channels/ChannelInterface';
+import { DebugBridge } from './DebugBridge';
+import { Frame } from '../Parsers/Frame';
+import { VariableInfo } from '../State/VariableInfo';
+import { getLocationForAddress, SourceMap } from '../State/SourceMap';
+import { WOODState } from '../Model/RuntimeState/WOODState';
+import { WOODDumpResponse } from '../Model/RuntimeState/WOODDumpResponse';
+import { ExecutionStateType } from '../Model/RuntimeState/ExecutionStateType';
+import { InterruptTypes } from './InterruptTypes';
+import { FunctionInfo } from '../State/FunctionInfo';
+import { ProxyCallItem } from '../Views/ProxyCallsProvider';
+import { RuntimeState } from '../State/RuntimeState';
+import { Breakpoint, BreakpointPolicy, UniqueSet } from '../State/Breakpoint';
+import { HexaEncoder } from '../Util/hexaEncoding';
+import { DeviceConfig } from '../DebuggerConfig';
+import { DebuggingTimeline } from '../State/DebuggingTimeline';
+import { ChannelInterface } from '../Channels/ChannelInterface';
 import {
     PauseRequest,
     Request,
@@ -22,7 +24,7 @@ import {
     UpdateModuleRequest,
     UpdateStateRequest
 } from './APIRequest';
-import {EventItem} from '../Views/EventsProvider';
+import { EventItem } from '../Views/EventsProvider';
 import EventEmitter = require('events');
 
 export class Messages {
@@ -91,7 +93,16 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
 
     // General Bridge functionality
 
-    abstract connect(flash?: boolean): Promise<string>;
+    abstract connect(): Promise<string>;
+
+    protected async checkPause(flash?: boolean): Promise<void> {
+        if (this.deviceConfig.onStartConfig.pause) {
+            const rs = await this.refresh();
+            if (rs) {
+                this.updateRuntimeState(rs);
+            }
+        }
+    }
 
     abstract disconnect(): void;
 
@@ -119,7 +130,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         const runtimeState = this.timeline.advanceTimeline();
         if (!!runtimeState) {
             // Time travel forward
-            const doNotSave = {includeInTimeline: false};
+            const doNotSave = { includeInTimeline: false };
             this.updateRuntimeState(runtimeState, doNotSave);
         } else {
             let runtimeState: RuntimeState | undefined;
@@ -142,7 +153,7 @@ export abstract class AbstractDebugBridge extends EventEmitter implements DebugB
         // Time travel backward
         const rs = this.timeline.isActiveStateTheStart() ? this.timeline.getStartState() : this.timeline.goBackTimeline();
         if (!!rs) {
-            const doNotSave = {includeInTimeline: false};
+            const doNotSave = { includeInTimeline: false };
             this.updateRuntimeState(rs, doNotSave);
             this.emit(EventsMessages.paused);
         }

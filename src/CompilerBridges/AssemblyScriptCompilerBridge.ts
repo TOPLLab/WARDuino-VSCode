@@ -1,11 +1,11 @@
-import {CompileBridge, CompileResult} from './CompileBridge';
-import {exec, ExecException} from 'child_process';
-import {SourceMap} from '../State/SourceMap';
-import {MappingItem, SourceMapConsumer} from 'source-map';
+import { CompileBridge, CompileResult } from './CompileBridge';
+import { exec, ExecException } from 'child_process';
+import { SourceMap } from '../State/SourceMap';
+import { MappingItem, SourceMapConsumer } from 'source-map';
 import * as fs from 'fs';
-import {readFileSync} from 'fs';
-import {WASMCompilerBridge} from './WASMCompilerBridge';
-import {LineInfoPairs} from '../State/LineInfoPairs';
+import { readFileSync } from 'fs';
+import { WASMCompilerBridge } from './WASMCompilerBridge';
+import { LineInfoPairs } from '../State/LineInfoPairs';
 import * as readline from 'readline';
 import * as path from 'path';
 
@@ -91,7 +91,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
     // }
 
     private lineInformation(dump: SourceMap): Promise<LineInfoPairs[]> {
-        const reader = readline.createInterface({input: fs.createReadStream(`${this.tmpdir}/upload.wast`)});
+        const reader = readline.createInterface({ input: fs.createReadStream(`${this.tmpdir}/upload.wast`) });
         const mapping: LineInfoPairs[] = [];
 
         const counter = ((i = 0) => () => ++i)();
@@ -147,7 +147,7 @@ export class AssemblyScriptCompilerBridge implements CompileBridge {
 
                 const matched = out.match(/^Version (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)/);
                 if (matched && matched.groups?.major && matched.groups?.minor && matched.groups?.patch) {
-                    resolve({major: +matched.groups.major, minor: +matched.groups.minor, patch: +matched.groups.patch});
+                    resolve({ major: +matched.groups.major, minor: +matched.groups.minor, patch: +matched.groups.patch });
                 } else {
                     reject(`asc --version did not print expected output format 'Version x.x.x'. Got ${out} instead.`);
                 }

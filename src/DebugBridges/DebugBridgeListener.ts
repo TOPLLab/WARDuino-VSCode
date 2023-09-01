@@ -6,7 +6,7 @@ import {
 import { WARDuinoDebugSession } from '../DebugSession/DebugSession';
 import { DebugBridge } from './DebugBridge';
 import { DebugBridgeListenerInterface } from './DebugBridgeListenerInterface';
-import { WOODState } from '../State/WOODState';
+import { WOODState } from '../Model/RuntimeState/WOODState';
 import { ProgressLocation } from 'vscode';
 
 export class BridgeListener implements DebugBridgeListenerInterface {
