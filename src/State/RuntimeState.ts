@@ -18,6 +18,7 @@ export class RuntimeState {
     private id: number = 0;
     private programCounter: number = 0;
     private startAddress: number = 0;
+
     private callstack: Frame[] = [];
     private locals: VariableInfo[] = [];
     private events: EventItem[] = [];
@@ -99,12 +100,14 @@ export class RuntimeState {
         copy.id = this.id;
         copy.programCounter = this.programCounter;
         copy.startAddress = this.startAddress;
+
         copy.callstack = this.callstack.map(obj => Object.assign({}, obj));
         copy.locals = this.locals.map(obj => Object.assign({}, obj));
         copy.arguments = this.arguments.map(obj => Object.assign({}, obj));
         copy.events = this.events.map(obj => Object.assign({}, obj));
         copy.globals = this.globals.map(obj => Object.assign({}, obj));
         copy.stack = this.stack.map(obj => Object.assign({}, obj));
+
         copy.wasmState = this.wasmState;
         copy.pcerror = this.pcerror;
         copy.exception_msg = this.exception_msg;
